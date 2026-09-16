@@ -31,7 +31,7 @@ export function Footer3({
   legalLinks = [],
 }: Footer3Props) {
   return (
-    <footer className="w-full px-1 py-12 md:px-2">
+    <footer className="w-full px-1 py-12 md:px-2 lg:px-[var(--site-gutter)]">
       <div className="border-border bg-muted mx-auto w-full overflow-hidden rounded-lg border">
         <div className="p-1">
           <div className="bg-card rounded-lg shadow-sm">

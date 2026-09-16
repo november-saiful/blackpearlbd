@@ -434,7 +434,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
     : formatDateDisplay(fromMonth, fromDay, fromYear);
 
   return (
-    <div className={embedded ? "w-full" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-24"}>
+    <div className={embedded ? "w-full" : "site-container pt-8 pb-24"}>
       <div className={embedded ? "w-full" : "grid lg:grid-cols-3 gap-8"}>
         {/* ── Left column: form ── */}
         <div className={embedded ? "w-full space-y-6" : "lg:col-span-2 space-y-6 min-w-0"}>

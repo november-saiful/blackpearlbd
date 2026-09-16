@@ -1,312 +1,932 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { MapPin, Plus, Pencil, Trash2, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { Check, Loader2, MapPin, Plus, Search, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { usePackageDestinations, usePackageDistricts, usePackageTourSpots } from '@/hooks/useAdmin';
 import type { PackageDistrict, PackageTourSpot } from '@/types';
+import {
+  SheetBody,
+  SheetDeleteCell,
+  SheetEmptyRow,
+  SheetGutterCell,
+  SheetGrid,
+  SheetHeadCell,
+  SheetHints,
+  SheetInputCell,
+  SheetSelectCell,
+  SheetTable,
+  SheetToggleCell,
+  dropIndicatorClass,
+  interleaveDrafts,
+  useSheetDrag,
+} from './Spreadsheet';
 
-// Toggle switch
-function Toggle({ checked, onToggle }: { checked: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={cn('relative w-9 h-5 rounded-full transition-colors shrink-0', checked ? 'bg-primary' : 'bg-muted-foreground/30')}
-    >
-      <span className={cn('absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform', checked && 'translate-x-4')} />
-    </button>
-  );
-}
+type DistrictOrderCache = { districts: PackageDistrict[] };
+type SpotOrderCache = { tourSpots: PackageTourSpot[] };
+
+/**
+ * Flat "Bangladesh regions" worksheet with cascading cells:
+ * division → district → tour spot. Every district owns a row of its own (its
+ * tour-spot cell empty) and its tour spots follow underneath, so district
+ * level settings stay editable even when a district has spots.
+ */
+
+type RegionRow = {
+  key: string;
+  kind: 'district' | 'spot';
+  districtId: string;
+  districtName: string;
+  divisionValue: string;
+  spotId: string | null;
+  spotName: string;
+  sortOrder: number;
+  isActive: boolean;
+  districtOrdinal: number;
+};
+
+type DraftAnchor = { key: string; side: 'before' | 'after' };
+
+type DraftRow = {
+  key: string;
+  /** Where the unsaved row sits in the sheet; `null` = end. */
+  anchor: DraftAnchor | null;
+  divisionValue: string;
+  districtName: string;
+  spotName: string;
+  active: boolean;
+};
+
+const bySortThenName = <T extends { sort_order: number; name: string }>(a: T, b: T) =>
+  a.sort_order - b.sort_order || a.name.localeCompare(b.name);
 
 export function BangladeshDataManager() {
-  const { destinations } = usePackageDestinations();
-  const bangladeshDivisions = destinations.filter((d) => d.category === 'Bangladesh' && d.value !== 'bangladesh-customized');
+  const queryClient = useQueryClient();
+  const { destinations, isLoading: destinationsLoading } = usePackageDestinations();
+  const districtsApi = usePackageDistricts();
+  const spotsApi = usePackageTourSpots();
 
-  // Fetch ALL districts and ALL tour spots at once
-  const allDistricts = usePackageDistricts();
-  const allTourSpots = usePackageTourSpots();
+  const [query, setQuery] = useState('');
+  const [divisionFilter, setDivisionFilter] = useState('');
+  const [showInactive, setShowInactive] = useState(true);
+  const [drafts, setDrafts] = useState<DraftRow[]>([]);
+  const [draftErrors, setDraftErrors] = useState<Record<string, string>>({});
+  const [activeRowKey, setActiveRowKey] = useState<string | null>(null);
+  const draftSeq = useRef(0);
 
-  // Build a map: division_value → districts
+  // Local-only cascade state: when a spot row's division is changed we narrow the
+  // district list before committing, so nothing is written until a district is picked.
+  const [spotDivision, setSpotDivision] = useState<Record<string, string>>({});
+
+  const isLoading = destinationsLoading || districtsApi.isLoading || spotsApi.isLoading;
+
+  /* ── Derived cascade data ─────────────────────────────────────────── */
+
+  const divisions = useMemo(
+    () => destinations.filter((d) => d.category === 'Bangladesh' && d.value !== 'bangladesh-customized'),
+    [destinations],
+  );
+
   const districtsByDivision = useMemo(() => {
     const map = new Map<string, PackageDistrict[]>();
-    allDistricts.districts.forEach((d) => {
-      const list = map.get(d.division_value) || [];
-      list.push(d);
-      map.set(d.division_value, list);
+    districtsApi.districts.forEach((district) => {
+      const list = map.get(district.division_value) ?? [];
+      list.push(district);
+      map.set(district.division_value, list);
     });
+    map.forEach((list) => list.sort(bySortThenName));
     return map;
-  }, [allDistricts.districts]);
+  }, [districtsApi.districts]);
 
-  // Build a map: district_id → tour spots
   const spotsByDistrict = useMemo(() => {
     const map = new Map<string, PackageTourSpot[]>();
-    allTourSpots.tourSpots.forEach((s) => {
-      const list = map.get(s.district_id) || [];
-      list.push(s);
-      map.set(s.district_id, list);
+    spotsApi.tourSpots.forEach((spot) => {
+      const list = map.get(spot.district_id) ?? [];
+      list.push(spot);
+      map.set(spot.district_id, list);
     });
+    map.forEach((list) => list.sort(bySortThenName));
     return map;
-  }, [allTourSpots.tourSpots]);
+  }, [spotsApi.tourSpots]);
 
-  // Expand/collapse state
-  const [expandedDivisions, setExpandedDivisions] = useState<Set<string>>(new Set());
-  const [expandedDistricts, setExpandedDistricts] = useState<Set<string>>(new Set());
+  const rows = useMemo<RegionRow[]>(() => {
+    const out: RegionRow[] = [];
+    let districtOrdinal = 0;
+    divisions.forEach((division) => {
+      (districtsByDivision.get(division.value) ?? []).forEach((district) => {
+        districtOrdinal += 1;
+        const base = {
+          districtId: district.id,
+          districtName: district.name,
+          divisionValue: district.division_value,
+          districtOrdinal,
+        };
+        out.push({
+          ...base,
+          key: `d:${district.id}`,
+          kind: 'district',
+          spotId: null,
+          spotName: '',
+          sortOrder: district.sort_order,
+          isActive: district.is_active,
+        });
+        (spotsByDistrict.get(district.id) ?? []).forEach((spot) => {
+          out.push({
+            ...base,
+            key: `s:${spot.id}`,
+            kind: 'spot',
+            spotId: spot.id,
+            spotName: spot.name,
+            sortOrder: spot.sort_order,
+            isActive: spot.is_active,
+          });
+        });
+      });
+    });
+    return out;
+  }, [divisions, districtsByDivision, spotsByDistrict]);
 
-  // Dialogs
-  const [districtDialog, setDistrictDialog] = useState<{ open: boolean; editing?: PackageDistrict; divisionValue: string }>({ open: false, divisionValue: '' });
-  const [tourSpotDialog, setTourSpotDialog] = useState<{ open: boolean; editing?: PackageTourSpot; districtId: string }>({ open: false, districtId: '' });
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: 'district' | 'tour-spot'; item: any }>({ open: false, type: 'district', item: null });
+  const visibleRows = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return rows.filter((row) => {
+      if (divisionFilter && row.divisionValue !== divisionFilter) return false;
+      if (!showInactive && !row.isActive) return false;
+      if (!needle) return true;
+      return (
+        row.divisionValue.toLowerCase().includes(needle) ||
+        row.districtName.toLowerCase().includes(needle) ||
+        row.spotName.toLowerCase().includes(needle)
+      );
+    });
+  }, [rows, query, divisionFilter, showInactive]);
 
-  // Form state
-  const [formName, setFormName] = useState('');
+  /** Server rows with the client-side draft rows slotted in below their anchor. */
+  const renderedRows = useMemo(
+    () => interleaveDrafts(visibleRows, (row) => row.key, drafts),
+    [visibleRows, drafts],
+  );
 
-  const isLoading = allDistricts.isLoading || allTourSpots.isLoading;
+  const draftKeys = useMemo(() => new Set(drafts.map((draft) => draft.key)), [drafts]);
+  const updateDraft = (key: string, patch: Partial<DraftRow>) =>
+    setDrafts((prev) => prev.map((draft) => (draft.key === key ? { ...draft, ...patch } : draft)));
 
-  const toggleDivision = (value: string) => {
-    setExpandedDivisions((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
+  const divisionOptions = useMemo(
+    () => divisions.map((division) => ({ value: division.value, label: division.name })),
+    [divisions],
+  );
+
+  const districtCount = districtsApi.districts.length;
+  const spotCount = spotsApi.tourSpots.length;
+
+  /* ── Mutation helpers (reject so the cell can roll back on failure) ── */
+
+  const patchDistrict = (id: string, data: { name?: string; division_value?: string; sort_order?: number; is_active?: boolean }) =>
+    new Promise<void>((resolve, reject) => {
+      districtsApi.updateDistrict({ id, data }, { onSuccess: () => resolve(), onError: reject });
+    });
+
+  const patchSpot = (
+    id: string,
+    data: { name?: string; district_id?: string; sort_order?: number; is_active?: boolean },
+  ) =>
+    new Promise<void>((resolve, reject) => {
+      spotsApi.updateTourSpot({ id, data }, { onSuccess: () => resolve(), onError: reject });
+    });
+
+  const createDistrict = (data: { division_value: string; name: string; sort_order?: number; is_active?: boolean }) =>
+    new Promise<PackageDistrict>((resolve, reject) => {
+      districtsApi.createDistrict(data, { onSuccess: (result) => resolve(result.district), onError: reject });
+    });
+
+  const createSpot = (data: { district_id: string; name: string; sort_order?: number; is_active?: boolean }) =>
+    new Promise<PackageTourSpot>((resolve, reject) => {
+      spotsApi.createTourSpot(data, { onSuccess: (result) => resolve(result.tourSpot), onError: reject });
+    });
+
+  const findDistrict = (divisionValue: string, name: string) =>
+    (districtsByDivision.get(divisionValue) ?? []).find(
+      (district) => district.name.toLowerCase() === name.trim().toLowerCase(),
+    );
+
+  const findOrCreateDistrict = async (divisionValue: string, name: string) => {
+    const existing = findDistrict(divisionValue, name);
+    if (existing) return existing.id;
+    const created = await createDistrict({ division_value: divisionValue, name: name.trim() });
+    return created.id;
+  };
+
+  /* ── Row actions ─────────────────────────────────────────────────── */
+
+  const moveSpotToDistrict = async (row: RegionRow, name: string) => {
+    if (!row.spotId) return;
+    const cleaned = name.trim();
+    if (!cleaned) throw new Error('District is required');
+    const divisionValue = spotDivision[row.spotId] ?? row.divisionValue;
+    const districtId = await findOrCreateDistrict(divisionValue, cleaned);
+    if (districtId !== row.districtId) {
+      await patchSpot(row.spotId, { district_id: districtId });
+    }
+    setSpotDivision((prev) => {
+      const next = { ...prev };
+      delete next[row.spotId as string];
       return next;
     });
   };
 
-  const toggleDistrict = (id: string) => {
-    setExpandedDistricts((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  const addSpotToDistrict = async (row: RegionRow, name: string) => {
+    const cleaned = name.trim();
+    if (!cleaned) throw new Error('Tour spot name is required');
+    const exists = (spotsByDistrict.get(row.districtId) ?? []).some(
+      (spot) => spot.name.toLowerCase() === cleaned.toLowerCase(),
+    );
+    if (exists) {
+      toast.error(`“${cleaned}” already exists in ${row.districtName}`);
+      throw new Error('Duplicate tour spot');
+    }
+    await createSpot({ district_id: row.districtId, name: cleaned });
+  };
+
+  /* ── Row reordering ──────────────────────────────────────────────── */
+
+  // District rows move among their division's districts; tour spots move among
+  // their own district's spots. Each level keeps its own sort_order sequence.
+  const rowByKey = useMemo(() => new Map(rows.map((row) => [row.key, row])), [rows]);
+  const groupOfRow = (row: RegionRow) =>
+    row.kind === 'district' ? `division:${row.divisionValue}` : `spot:${row.districtId}`;
+
+  /** Renumbers a division's districts 1..n, persisting only the rows that moved. */
+  const applyDistrictOrder = (divisionValue: string, orderedIds: string[]) => {
+    const sortById = new Map(orderedIds.map((id, index) => [id, index + 1]));
+    const changed = orderedIds
+      .map((id) => ({
+        id,
+        to: sortById.get(id) as number,
+        from: districtsApi.districts.find((district) => district.id === id)?.sort_order,
+      }))
+      .filter((item) => item.from === undefined || item.from !== item.to);
+
+    queryClient.setQueryData<DistrictOrderCache>(['admin-package-districts', undefined], (prev) =>
+      prev
+        ? {
+            ...prev,
+            districts: prev.districts.map((district) =>
+              sortById.has(district.id) ? { ...district, sort_order: sortById.get(district.id) as number } : district,
+            ),
+          }
+        : prev,
+    );
+
+    if (changed.length === 0) return;
+    void Promise.allSettled(changed.map((item) => patchDistrict(item.id, { sort_order: item.to }))).then(() =>
+      queryClient.invalidateQueries({ queryKey: ['admin-package-districts'] }),
+    );
+  };
+
+  /** Renumbers a district's tour spots 1..n, persisting only the rows that moved. */
+  const applySpotOrder = (districtId: string, orderedIds: string[]) => {
+    const sortById = new Map(orderedIds.map((id, index) => [id, index + 1]));
+    const changed = orderedIds
+      .map((id) => ({
+        id,
+        to: sortById.get(id) as number,
+        from: spotsApi.tourSpots.find((spot) => spot.id === id)?.sort_order,
+      }))
+      .filter((item) => item.from === undefined || item.from !== item.to);
+
+    queryClient.setQueryData<SpotOrderCache>(['admin-package-tour-spots', undefined], (prev) =>
+      prev
+        ? {
+            ...prev,
+            tourSpots: prev.tourSpots.map((spot) =>
+              sortById.has(spot.id) ? { ...spot, sort_order: sortById.get(spot.id) as number } : spot,
+            ),
+          }
+        : prev,
+    );
+
+    if (changed.length === 0) return;
+    void Promise.allSettled(changed.map((item) => patchSpot(item.id, { sort_order: item.to }))).then(() =>
+      queryClient.invalidateQueries({ queryKey: ['admin-package-tour-spots'] }),
+    );
+  };
+
+  /**
+   * Saved rows reorder within the group that shares their sort_order sequence;
+   * unsaved draft rows can be parked anywhere, since nothing is written until
+   * they are saved.
+   */
+  const reorder = useSheetDrag({
+    canDrop: (draggedId, targetId) => {
+      if (draftKeys.has(draggedId)) return true;
+      if (draftKeys.has(targetId)) return false;
+      const dragged = rowByKey.get(draggedId);
+      const target = rowByKey.get(targetId);
+      return !!dragged && !!target && groupOfRow(dragged) === groupOfRow(target);
+    },
+    onDrop: (draggedId, targetId, position) => {
+      if (draftKeys.has(draggedId)) {
+        updateDraft(draggedId, { anchor: { key: targetId, side: position } });
+        return;
+      }
+      const dragged = rowByKey.get(draggedId);
+      if (!dragged) return;
+      const group = groupOfRow(dragged);
+      const siblings = rows.filter((row) => row.key !== draggedId && groupOfRow(row) === group).map((row) => row.key);
+      const at = siblings.indexOf(targetId);
+      if (at < 0) return;
+      siblings.splice(position === 'before' ? at : at + 1, 0, draggedId);
+      if (dragged.kind === 'district') applyDistrictOrder(dragged.divisionValue, siblings.map((key) => key.slice(2)));
+      else applySpotOrder(dragged.districtId, siblings.map((key) => key.slice(2)));
+    },
+    onNudge: (id, delta) => {
+      const side = delta === -1 ? ('before' as const) : ('after' as const);
+      if (draftKeys.has(id)) {
+        const index = renderedRows.findIndex((entry) => entry.kind === 'draft' && entry.draft.key === id);
+        const neighbour = renderedRows[index + delta];
+        if (index < 0 || !neighbour) return;
+        updateDraft(id, { anchor: { key: neighbour.kind === 'row' ? neighbour.row.key : neighbour.draft.key, side } });
+        return;
+      }
+      const dragged = rowByKey.get(id);
+      if (!dragged) return;
+      const group = groupOfRow(dragged);
+      const siblings = rows.filter((row) => groupOfRow(row) === group).map((row) => row.key);
+      const index = siblings.indexOf(id);
+      const next = index + delta;
+      if (index < 0 || next < 0 || next >= siblings.length) return;
+      siblings.splice(index, 1);
+      siblings.splice(next, 0, id);
+      if (dragged.kind === 'district') applyDistrictOrder(dragged.divisionValue, siblings.map((key) => key.slice(2)));
+      else applySpotOrder(dragged.districtId, siblings.map((key) => key.slice(2)));
+    },
+  });
+
+  /* ── Draft rows ──────────────────────────────────────────────────── */
+
+  // The draft anchors to whichever row the cursor sits in, so it renders there.
+  const knownRowKeys = useMemo(
+    () => new Set([...visibleRows.map((row) => row.key), ...draftKeys]),
+    [visibleRows, draftKeys],
+  );
+  const anchorKey = activeRowKey && knownRowKeys.has(activeRowKey) ? activeRowKey : null;
+
+  const nextDraftKey = () => `draft-${++draftSeq.current}`;
+
+  const addDraft = () =>
+    setDrafts((prev) => [
+      ...prev,
+      {
+        key: nextDraftKey(),
+        anchor: anchorKey ? { key: anchorKey, side: 'after' } : null,
+        divisionValue: divisions[0]?.value ?? '',
+        districtName: '',
+        spotName: '',
+        active: true,
+      },
+    ]);
+
+  const dropDraft = (key: string) => {
+    setDrafts((prev) => prev.filter((draft) => draft.key !== key));
+    setDraftErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
       return next;
     });
+    setActiveRowKey((prev) => (prev === key ? null : prev));
   };
 
-  const handleSaveDistrict = () => {
-    if (!formName.trim()) return;
-    if (districtDialog.editing) {
-      allDistricts.updateDistrict({ id: districtDialog.editing.id, data: { name: formName.trim() } });
-    } else {
-      allDistricts.createDistrict({ division_value: districtDialog.divisionValue, name: formName.trim() });
+  const setDraftError = (key: string, message: string) => setDraftErrors((prev) => ({ ...prev, [key]: message }));
+
+  const draftReady = (draft: DraftRow) => draft.divisionValue.trim().length > 0 && draft.districtName.trim().length > 0;
+
+  /** Follows a draft's anchor chain down to a saved row. */
+  const resolveAnchorRow = (anchor: DraftAnchor | null): { row: RegionRow; side: 'before' | 'after' } | null => {
+    const seen = new Set<string>();
+    let current = anchor;
+    while (current) {
+      if (seen.has(current.key)) return null;
+      seen.add(current.key);
+      const draft = drafts.find((item) => item.key === current?.key);
+      if (!draft) {
+        const row = rowByKey.get(current.key);
+        return row ? { row, side: current.side } : null;
+      }
+      current = draft.anchor;
     }
-    setDistrictDialog({ open: false, divisionValue: '' });
-    setFormName('');
+    return null;
   };
 
-  const handleSaveTourSpot = () => {
-    if (!formName.trim()) return;
-    if (tourSpotDialog.editing) {
-      allTourSpots.updateTourSpot({ id: tourSpotDialog.editing.id, data: { name: formName.trim() } });
-    } else {
-      allTourSpots.createTourSpot({ district_id: tourSpotDialog.districtId, name: formName.trim() });
+  const commitDraft = async (draft: DraftRow, options: { chain?: boolean } = {}) => {
+    const districtName = draft.districtName.trim();
+    const spotName = draft.spotName.trim();
+    if (!draft.divisionValue || !districtName) {
+      setDraftError(draft.key, 'Division and district are required.');
+      return;
     }
-    setTourSpotDialog({ open: false, districtId: '' });
-    setFormName('');
+
+    const anchor = resolveAnchorRow(draft.anchor);
+
+    // Where the draft sits relative to the division's existing districts …
+    const divisionDistrictIds = (districtsByDivision.get(draft.divisionValue) ?? []).map((district) => district.id);
+    const anchorDistrictIndex =
+      anchor && anchor.row.divisionValue === draft.divisionValue ? divisionDistrictIds.indexOf(anchor.row.districtId) : -1;
+    const districtInsertAt =
+      anchorDistrictIndex < 0
+        ? divisionDistrictIds.length
+        : anchor?.side === 'before'
+          ? anchorDistrictIndex
+          : anchorDistrictIndex + 1;
+
+    try {
+      const existing = findDistrict(draft.divisionValue, districtName);
+      if (existing && !spotName) {
+        setDraftError(draft.key, 'That district already exists — add a tour spot or edit its existing row.');
+        return;
+      }
+
+      let districtId: string;
+      if (existing) {
+        districtId = existing.id;
+      } else {
+        const created = await createDistrict({
+          division_value: draft.divisionValue,
+          name: districtName,
+          sort_order: districtInsertAt + 1,
+          is_active: draft.active,
+        });
+        districtId = created.id;
+        queryClient.setQueryData<DistrictOrderCache>(['admin-package-districts', undefined], (prev) =>
+          prev ? { ...prev, districts: [...prev.districts, created] } : prev,
+        );
+        // Land it exactly where the draft sat, renumbering the division around it.
+        const ordered = [...divisionDistrictIds];
+        ordered.splice(districtInsertAt, 0, created.id);
+        applyDistrictOrder(draft.divisionValue, ordered);
+      }
+
+      let savedKey = `d:${districtId}`;
+      if (spotName) {
+        const duplicate = (spotsByDistrict.get(districtId) ?? []).some(
+          (spot) => spot.name.toLowerCase() === spotName.toLowerCase(),
+        );
+        if (duplicate) {
+          setDraftError(draft.key, 'That tour spot already exists in this district.');
+          return;
+        }
+
+        // … and where it sits among that district's tour spots.
+        const spotIds = (spotsByDistrict.get(districtId) ?? []).map((spot) => spot.id);
+        const anchorSpotIndex =
+          anchor && anchor.row.kind === 'spot' && anchor.row.districtId === districtId
+            ? spotIds.indexOf(anchor.row.spotId as string)
+            : -1;
+        const anchorIsDistrictRow =
+          !!anchor && anchor.row.kind === 'district' && anchor.row.districtId === districtId;
+        const spotInsertAt = anchorIsDistrictRow
+          ? 0
+          : anchorSpotIndex < 0
+            ? spotIds.length
+            : anchor?.side === 'before'
+              ? anchorSpotIndex
+              : anchorSpotIndex + 1;
+
+        const createdSpot = await createSpot({
+          district_id: districtId,
+          name: spotName,
+          sort_order: spotInsertAt + 1,
+          is_active: draft.active,
+        });
+        queryClient.setQueryData<SpotOrderCache>(['admin-package-tour-spots', undefined], (prev) =>
+          prev ? { ...prev, tourSpots: [...prev.tourSpots, createdSpot] } : prev,
+        );
+        const ordered = [...spotIds];
+        ordered.splice(spotInsertAt, 0, createdSpot.id);
+        applySpotOrder(districtId, ordered);
+        savedKey = `s:${createdSpot.id}`;
+      }
+
+      // Anything parked under the row we just saved now follows the saved row,
+      // and the draft itself is done with.
+      setDrafts((prev) =>
+        prev
+          .filter((other) => other.key !== draft.key)
+          .map((other) =>
+            other.anchor && other.anchor.key === draft.key
+              ? { ...other, anchor: { key: savedKey, side: 'after' } }
+              : other,
+          ),
+      );
+      setDraftErrors((prev) => {
+        const next = { ...prev };
+        delete next[draft.key];
+        return next;
+      });
+      if (activeRowKey === draft.key) setActiveRowKey(savedKey);
+
+      // Enter keeps the streak going: a fresh row in the same division underneath.
+      if (options.chain) {
+        setDrafts((prev) => [
+          ...prev,
+          {
+            key: nextDraftKey(),
+            anchor: { key: savedKey, side: 'after' },
+            divisionValue: draft.divisionValue,
+            districtName: '',
+            spotName: '',
+            active: draft.active,
+          },
+        ]);
+      }
+    } catch {
+      setDraftError(draft.key, 'Could not save this row.');
+    }
   };
 
-  const handleDelete = () => {
-    if (deleteDialog.type === 'district') {
-      allDistricts.deleteDistrict(deleteDialog.item.id);
-    } else {
-      allTourSpots.deleteTourSpot(deleteDialog.item.id);
-    }
-    setDeleteDialog({ open: false, type: 'district', item: null });
-  };
+  /* ── Render ──────────────────────────────────────────────────────── */
 
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-muted-foreground" />
-          Bangladesh Divisions, Districts & Tour Spots
-        </CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MapPin className="h-5 w-5 text-muted-foreground" />
+            Bangladesh Divisions, Districts &amp; Tour Spots
+            <Badge variant="secondary" className="ml-1 text-xs font-medium">
+              {districtCount} districts · {spotCount} spots
+            </Badge>
+          </CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Filter regions…"
+                className="h-9 w-52 pl-8 text-sm"
+              />
+            </div>
+            <select
+              value={divisionFilter}
+              onChange={(event) => setDivisionFilter(event.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">All divisions</option>
+              {divisionOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={showInactive}
+                onChange={(event) => setShowInactive(event.target.checked)}
+                className="h-3.5 w-3.5 cursor-pointer rounded-sm border-border accent-primary"
+              />
+              Show inactive
+            </label>
+            <Button
+              size="sm"
+              onClick={addDraft}
+              disabled={divisions.length === 0}
+              className="gap-1.5"
+              title={anchorKey ? 'Insert a row below the row you were editing' : 'Insert a row at the end'}
+            >
+              <Plus className="h-4 w-4" />
+              Add row
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Loading...
-          </div>
-        ) : bangladeshDivisions.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">
-            No Bangladesh divisions found. Add divisions in Package Builder Destinations first.
+          <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading regions…
           </div>
         ) : (
-          <div className="space-y-2">
-            {bangladeshDivisions.map((division) => {
-              const isExpanded = expandedDivisions.has(division.value);
-              const divisionDistricts = districtsByDivision.get(division.value) || [];
+          <>
+            <SheetGrid>
+              <SheetTable>
+                <thead>
+                  <tr>
+                    <SheetHeadCell stickyLeft className="w-10 px-1" />
+                    <SheetHeadCell className="w-[15%]">Division</SheetHeadCell>
+                    <SheetHeadCell className="w-[20%]">District</SheetHeadCell>
+                    <SheetHeadCell className="w-[24%]">Tour spot</SheetHeadCell>
+                    <SheetHeadCell className="w-20 text-right">Sort</SheetHeadCell>
+                    <SheetHeadCell className="w-16 text-center">Active</SheetHeadCell>
+                    <SheetHeadCell className="w-20 text-center">Row</SheetHeadCell>
+                  </tr>
+                </thead>
+                <SheetBody>
+                  {renderedRows.map((entry, index) => {
+                    if (entry.kind === 'row') {
+                    const row = entry.row;
+                    const override = row.spotId ? spotDivision[row.spotId] : undefined;
+                    const divisionValue = override ?? row.divisionValue;
+                    const districtOptions = (districtsByDivision.get(divisionValue) ?? [])
+                      .filter((district) => district.id !== row.districtId)
+                      .map((district) => district.name);
+                    const spotOptions = (spotsByDistrict.get(row.districtId) ?? [])
+                      .filter((spot) => spot.id !== row.spotId)
+                      .map((spot) => spot.name);
+                    const faded = !row.isActive;
 
-              return (
-                <div key={division.value} className="rounded-lg border border-border overflow-hidden">
-                  {/* ── Division header ───────────────────────── */}
-                  <div className="flex items-center justify-between px-4 py-3 bg-muted/50">
-                    <button
-                      type="button"
-                      onClick={() => toggleDivision(division.value)}
-                      className="flex items-center gap-2 text-left flex-1"
-                    >
-                      {isExpanded ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
-                      <span className="font-medium text-sm text-foreground">{division.name}</span>
-                      <Badge variant="secondary" className="text-xs">{divisionDistricts.length} districts</Badge>
-                    </button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 gap-1 text-xs"
-                      onClick={() => { setFormName(''); setDistrictDialog({ open: true, divisionValue: division.value }); }}
-                    >
-                      <Plus className="w-3 h-3" /> Add District
-                    </Button>
-                  </div>
+                    return (
+                      <tr
+                        key={row.key}
+                        onFocus={() => setActiveRowKey(row.key)}
+                        className={cn(
+                          'group',
+                          row.kind === 'district' && 'bg-muted/25',
+                          reorder.draggingId === row.key && 'opacity-50',
+                          dropIndicatorClass(reorder.dropTarget?.id === row.key ? reorder.dropTarget.position : null),
+                        )}
+                        {...reorder.rowProps(row.key)}
+                      >
+                        <SheetGutterCell
+                          muted={row.kind === 'spot' || faded}
+                          reorder={{
+                            label: `Reorder ${row.spotName || row.districtName}`,
+                            dragging: reorder.draggingId === row.key,
+                            onDragStart: reorder.startDrag(row.key),
+                            onDragEnd: reorder.endDrag,
+                            onMoveBy: (delta) => reorder.moveBy(row.key, delta),
+                          }}
+                        >
+                          {row.districtOrdinal}
+                        </SheetGutterCell>
 
-                  {/* ── Districts + Tour Spots ────────────────── */}
-                  {isExpanded && (
-                    <div className="divide-y divide-border">
-                      {divisionDistricts.length === 0 ? (
-                        <div className="px-4 py-3 text-sm text-muted-foreground">No districts yet</div>
-                      ) : (
-                        divisionDistricts.map((district) => {
-                          const isDistExpanded = expandedDistricts.has(district.id);
-                          const spots = spotsByDistrict.get(district.id) || [];
-                          const activeSpots = spots.filter((s) => s.is_active);
+                        <SheetSelectCell
+                          row={index}
+                          col={1}
+                          value={divisionValue}
+                          options={divisionOptions}
+                          ariaLabel={`Division for ${row.districtName}`}
+                          onCommit={(next) => {
+                            if (!next) return;
+                            if (row.kind === 'district') {
+                              void patchDistrict(row.districtId, { division_value: next });
+                              return;
+                            }
+                            const spotId = row.spotId as string;
+                            setSpotDivision((prev) => {
+                              const copy = { ...prev };
+                              if (next === row.divisionValue) delete copy[spotId];
+                              else copy[spotId] = next;
+                              return copy;
+                            });
+                          }}
+                          className={cn(faded && 'opacity-60')}
+                        />
 
-                          return (
-                            <div key={district.id}>
-                              {/* District row */}
-                              <div className={cn('flex items-center justify-between px-6 py-2.5', !district.is_active && 'opacity-50')}>
-                                <div className="flex items-center gap-2 flex-1 min-w-0">
-                                  <Toggle
-                                    checked={district.is_active}
-                                    onToggle={() => allDistricts.updateDistrict({ id: district.id, data: { is_active: !district.is_active } })}
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleDistrict(district.id)}
-                                    className="flex items-center gap-1.5 text-left"
-                                  >
-                                    {isDistExpanded ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />}
-                                    <span className="text-sm font-medium text-foreground truncate">{district.name}</span>
-                                  </button>
-                                  <Badge variant="outline" className="text-xs shrink-0">
-                                    {activeSpots.length}/{spots.length} spots
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setFormName(district.name); setDistrictDialog({ open: true, editing: district, divisionValue: district.division_value }); }}>
-                                    <Pencil className="w-3.5 h-3.5" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, type: 'district', item: district })}>
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 gap-1 text-xs"
-                                    onClick={() => { setFormName(''); setTourSpotDialog({ open: true, districtId: district.id }); }}
-                                  >
-                                    <Plus className="w-3 h-3" /> Spot
-                                  </Button>
-                                </div>
-                              </div>
+                        {row.kind === 'district' ? (
+                          <SheetInputCell
+                            row={index}
+                            col={2}
+                            value={row.districtName}
+                            options={districtOptions}
+                            ariaLabel={`District name ${row.districtName}`}
+                            onCommit={(next) =>
+                              next
+                                ? patchDistrict(row.districtId, { name: next })
+                                : Promise.reject(new Error('District name is required'))
+                            }
+                            className={cn(faded && 'opacity-60')}
+                          />
+                        ) : (
+                          <SheetInputCell
+                            row={index}
+                            col={2}
+                            value={override ? '' : row.districtName}
+                            options={districtOptions}
+                            placeholder={override ? 'Pick or type a district…' : undefined}
+                            ariaLabel={`District for tour spot ${row.spotName}`}
+                            onCommit={(next) => moveSpotToDistrict(row, next)}
+                            className={cn(faded && 'opacity-60')}
+                          />
+                        )}
 
-                              {/* Tour spots (always rendered inline, no extra fetch) */}
-                              {isDistExpanded && (
-                                <div className="bg-muted/30">
-                                  {spots.length === 0 ? (
-                                    <div className="px-10 py-2 text-xs text-muted-foreground">No tour spots</div>
-                                  ) : (
-                                    spots.map((spot) => (
-                                      <div key={spot.id} className={cn('flex items-center justify-between px-10 py-2', !spot.is_active && 'opacity-50')}>
-                                        <div className="flex items-center gap-2">
-                                          <Toggle
-                                            checked={spot.is_active}
-                                            onToggle={() => allTourSpots.updateTourSpot({ id: spot.id, data: { is_active: !spot.is_active } })}
-                                          />
-                                          <span className="text-sm text-foreground">{spot.name}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setFormName(spot.name); setTourSpotDialog({ open: true, editing: spot, districtId: spot.district_id }); }}>
-                                            <Pencil className="w-3 h-3" />
-                                          </Button>
-                                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, type: 'tour-spot', item: spot })}>
-                                            <Trash2 className="w-3 h-3" />
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
+                        {row.kind === 'spot' ? (
+                          <SheetInputCell
+                            row={index}
+                            col={3}
+                            value={row.spotName}
+                            options={spotOptions}
+                            ariaLabel={`Tour spot ${row.spotName}`}
+                            onCommit={(next) =>
+                              next
+                                ? patchSpot(row.spotId as string, { name: next })
+                                : Promise.reject(new Error('Tour spot name is required'))
+                            }
+                            className={cn(faded && 'opacity-60')}
+                          />
+                        ) : (
+                          <SheetInputCell
+                            row={index}
+                            col={3}
+                            value=""
+                            placeholder="+ add tour spot"
+                            title="Type a tour spot name and press Enter to add it under this district"
+                            ariaLabel={`Add tour spot to ${row.districtName}`}
+                            clearOnCommit
+                            onCommit={(next) => addSpotToDistrict(row, next)}
+                          />
+                        )}
+
+                        <SheetInputCell
+                          row={index}
+                          col={4}
+                          type="number"
+                          align="right"
+                          value={String(row.sortOrder)}
+                          ariaLabel="Sort order"
+                          onCommit={(next) =>
+                            row.kind === 'district'
+                              ? patchDistrict(row.districtId, { sort_order: Number(next) || 0 })
+                              : patchSpot(row.spotId as string, { sort_order: Number(next) || 0 })
+                          }
+                          className={cn(faded && 'opacity-60')}
+                        />
+
+                        <SheetToggleCell
+                          row={index}
+                          col={5}
+                          checked={row.isActive}
+                          ariaLabel={`Toggle ${row.spotName || row.districtName}`}
+                          onCommit={(next) =>
+                            row.kind === 'district'
+                              ? patchDistrict(row.districtId, { is_active: next })
+                              : patchSpot(row.spotId as string, { is_active: next })
+                          }
+                        />
+
+                        <SheetDeleteCell
+                          label={row.spotName || `${row.districtName} (and its tour spots)`}
+                          onDelete={() =>
+                            row.kind === 'district'
+                              ? new Promise<void>((resolve, reject) => {
+                                  districtsApi.deleteDistrict(row.districtId, {
+                                    onSuccess: () => resolve(),
+                                    onError: reject,
+                                  });
+                                })
+                              : new Promise<void>((resolve, reject) => {
+                                  spotsApi.deleteTourSpot(row.spotId as string, {
+                                    onSuccess: () => resolve(),
+                                    onError: reject,
+                                  });
+                                })
+                          }
+                          className="w-20"
+                        />
+                      </tr>
+                    );
+                    }
+
+                    const draft = entry.draft;
+                    const row = index;
+                    const draftDistrictOptions = (districtsByDivision.get(draft.divisionValue) ?? []).map(
+                      (district) => district.name,
+                    );
+                    const draftSpotOptions = draft.districtName
+                      ? (spotsByDistrict.get(findDistrict(draft.divisionValue, draft.districtName)?.id ?? '') ?? []).map(
+                          (spot) => spot.name,
+                        )
+                      : [];
+                    const error = draftErrors[draft.key];
+
+                    return [
+                      <tr
+                        key={draft.key}
+                        onFocus={() => setActiveRowKey(draft.key)}
+                        className={cn(
+                          'group bg-primary/[0.03]',
+                          reorder.draggingId === draft.key && 'opacity-50',
+                          dropIndicatorClass(
+                            reorder.dropTarget?.id === draft.key ? reorder.dropTarget.position : null,
+                          ),
+                        )}
+                        {...reorder.rowProps(draft.key)}
+                      >
+                        <SheetGutterCell
+                          reorder={{
+                            label: `Move unsaved row${draft.districtName ? ` ${draft.districtName}` : ''}`,
+                            dragging: reorder.draggingId === draft.key,
+                            onDragStart: reorder.startDrag(draft.key),
+                            onDragEnd: reorder.endDrag,
+                            onMoveBy: (delta) => reorder.moveBy(draft.key, delta),
+                          }}
+                        >
+                          <Plus className="h-3 w-3 text-primary" />
+                        </SheetGutterCell>
+                        <SheetSelectCell
+                          row={row}
+                          col={1}
+                          value={draft.divisionValue}
+                          options={divisionOptions}
+                          ariaLabel="New row division"
+                          onCommit={(next) => updateDraft(draft.key, { divisionValue: next })}
+                        />
+                        <SheetInputCell
+                          row={row}
+                          col={2}
+                          value={draft.districtName}
+                          options={draftDistrictOptions}
+                          placeholder="District"
+                          autoFocus
+                          ariaLabel="New row district"
+                          onCommit={(next) => updateDraft(draft.key, { districtName: next })}
+                        />
+                        <SheetInputCell
+                          row={row}
+                          col={3}
+                          value={draft.spotName}
+                          options={draftSpotOptions}
+                          placeholder="Tour spot (optional)"
+                          ariaLabel="New row tour spot"
+                          onCommit={(next) => updateDraft(draft.key, { spotName: next })}
+                          onSubmit={(value) => void commitDraft({ ...draft, spotName: value }, { chain: true })}
+                        />
+                        <td
+                          className="border-b border-r border-border p-0 align-middle"
+                          title="Position comes from where this row sits — it is numbered on save"
+                        >
+                          <span className="block px-3 text-right text-xs text-muted-foreground">auto</span>
+                        </td>
+                        <SheetToggleCell
+                          row={row}
+                          col={5}
+                          checked={draft.active}
+                          ariaLabel="New row active"
+                          onCommit={(next) => updateDraft(draft.key, { active: next })}
+                        />
+                        <td className="w-20 border-b border-border p-0 align-middle">
+                          <div className="flex h-9 items-center justify-center gap-1 px-1">
+                            <button
+                              type="button"
+                              title="Save this row"
+                              disabled={!draftReady(draft)}
+                              onClick={() => void commitDraft(draft)}
+                              className="rounded border border-emerald-500/40 bg-emerald-500/10 p-1 text-emerald-600 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              title="Discard this row"
+                              onClick={() => dropDraft(draft.key)}
+                              className="rounded border border-border p-1 text-muted-foreground transition-colors hover:bg-accent"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>,
+                      error ? (
+                        <tr key={`${draft.key}-error`}>
+                          <td colSpan={7} className="border-b border-border bg-destructive/5 px-4 py-1.5 text-xs text-destructive">
+                            {error}
+                          </td>
+                        </tr>
+                      ) : null,
+                    ];
+                  })}
+
+                  {renderedRows.length === 0 && (
+                    <SheetEmptyRow colSpan={7}>
+                      {divisions.length === 0
+                        ? 'No Bangladesh divisions found — add divisions under Package Builder Destinations first.'
+                        : 'No regions match this filter.'}
+                    </SheetEmptyRow>
                   )}
-                </div>
-              );
-            })}
-          </div>
+                </SheetBody>
+              </SheetTable>
+            </SheetGrid>
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <SheetHints>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-sm bg-muted" /> shaded row = the district itself
+                </span>
+                <span className="inline-flex items-center gap-1.5">districts reorder within a division, spots within a district</span>
+                <span className="inline-flex items-center gap-1.5">
+                  unsaved rows can be dragged too — they are numbered where you drop them
+                </span>
+              </SheetHints>
+              <p className="pt-3 text-[11px] text-muted-foreground">
+                {visibleRows.length} of {rows.length} rows
+                {drafts.length > 0 && ` · ${drafts.length} unsaved`}
+              </p>
+            </div>
+          </>
         )}
-
-        {/* District Dialog */}
-        <Dialog open={districtDialog.open} onOpenChange={(v) => { if (!v) { setDistrictDialog({ open: false, divisionValue: '' }); setFormName(''); } }}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>{districtDialog.editing ? 'Edit District' : 'Add District'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div>
-                <Label>District Name</Label>
-                <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Dhaka" className="mt-1" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') handleSaveDistrict(); }} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setDistrictDialog({ open: false, divisionValue: '' }); setFormName(''); }}>Cancel</Button>
-              <Button onClick={handleSaveDistrict} disabled={!formName.trim()}>Save</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Tour Spot Dialog */}
-        <Dialog open={tourSpotDialog.open} onOpenChange={(v) => { if (!v) { setTourSpotDialog({ open: false, districtId: '' }); setFormName(''); } }}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>{tourSpotDialog.editing ? 'Edit Tour Spot' : 'Add Tour Spot'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div>
-                <Label>Tour Spot Name</Label>
-                <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="e.g. Lalbagh Fort" className="mt-1" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTourSpot(); }} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => { setTourSpotDialog({ open: false, districtId: '' }); setFormName(''); }}>Cancel</Button>
-              <Button onClick={handleSaveTourSpot} disabled={!formName.trim()}>Save</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation */}
-        <Dialog open={deleteDialog.open} onOpenChange={(v) => { if (!v) setDeleteDialog({ open: false, type: 'district', item: null }); }}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Delete {deleteDialog.type === 'district' ? 'District' : 'Tour Spot'}</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">
-              Are you sure you want to delete <strong>{deleteDialog.item?.name}</strong>?
-              {deleteDialog.type === 'district' && ' This will also delete all tour spots under it.'}
-            </p>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteDialog({ open: false, type: 'district', item: null })}>Cancel</Button>
-              <Button variant="destructive" onClick={handleDelete}>Delete</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );

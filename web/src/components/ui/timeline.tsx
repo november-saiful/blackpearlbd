@@ -157,10 +157,17 @@ export const Timeline = ({ data, theme = DEFAULT_THEME }: { data: TimelineEntry[
 
   return (
     <div
-      className="w-full bg-white dark:bg-neutral-950 font-sans md:px-10"
+      className="w-full bg-white dark:bg-neutral-950 font-sans md:px-10 lg:px-0"
       ref={containerRef}
     >
-      <div className="max-w-7xl mx-auto py-20 px-4 md:px-8 lg:px-10">
+      {/*
+        Nested inside the deal page's site-container, so from lg up it drops all
+        of its own horizontal padding: the root's md:px-10 and this block's
+        px-4/md:px-8/lg:px-10 stacked to put the heading 112px in while the
+        timeline body sat at 72px and the page's own cards at 32px — three
+        different lines. Below lg the original paddings are untouched.
+      */}
+      <div className="py-20 px-4 md:px-8 lg:px-0">
         <h2 className="text-lg md:text-4xl mb-4 text-black dark:text-white max-w-4xl">
           Itinerary
         </h2>
@@ -169,9 +176,9 @@ export const Timeline = ({ data, theme = DEFAULT_THEME }: { data: TimelineEntry[
         </p>
       </div>
 
-      <div ref={ref} className="relative max-w-7xl mx-auto pb-20">
+      <div ref={ref} className="relative pb-20">
         {/* Sticky phase counter sidebar */}
-        <div className="hidden lg:block fixed right-8 top-1/2 -translate-y-1/2 z-50">
+        <div className="hidden lg:block fixed right-8 lg:right-[var(--site-gutter)] top-1/2 -translate-y-1/2 z-50">
           <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-lg border border-neutral-200 dark:border-neutral-700 p-4 min-w-[80px]">
             <div className="text-center">
               <motion.div

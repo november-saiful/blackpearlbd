@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, RefreshCw, LocateFixed } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
@@ -243,7 +244,8 @@ export function DealsManager() {
         ...current,
         route_waypoints: current.route_waypoints.map((waypoint, waypointIndex) =>
           waypointIndex === index
-            ? { ...waypoint, lat: place.lat, lng: place.lon, name: place.address || waypoint.name }
+            // Only the geocoded reference moves; a title the admin typed is theirs to keep.
+            ? { ...waypoint, lat: place.lat, lng: place.lon, address: place.address || waypoint.address }
             : waypoint,
         ),
         // Moving a stop invalidates the saved route.
@@ -263,14 +265,20 @@ export function DealsManager() {
   };
 
   // Snap a waypoint to the nearest road using reverse geocoding.
+  //
+  // Only the pin and its geocoded reference move. The title the admin typed and
+  // the photo they assigned to this stop are theirs to keep — rebuilding the
+  // object here used to drop both, so an off-road pin silently un-assigned the
+  // stop's polaroid mid-edit and overwrote its name with the geocoded address.
   const snapToNearestRoad = async (point: Waypoint): Promise<Waypoint> => {
     try {
       const { place } = await api.reverseGeocode(point.lat, point.lng);
       if (!place) return point;
       return {
+        ...point,
         lat: place.lat,
         lng: place.lon,
-        name: place.address || point.name,
+        address: place.address || point.address,
       };
     } catch {
       // Ignore errors, return original point
@@ -294,7 +302,10 @@ export function DealsManager() {
   };
 
   const addMapWaypoint = ({ lat, lng }: { lat: number; lng: number }) => {
-    addWaypoint({ name: `Pinned point ${formData.route_waypoints.length + 1}`, lat, lng });
+    // Deliberately untitled: the admin names the stop themselves, so a pin
+    // dropped on the map never arrives pre-labelled with a placeholder that
+    // then has to be cleared. The UI falls back to "Stop N" until it is named.
+    addWaypoint({ name: '', lat, lng });
   };
 
   const validateDeal = (): string | null => {
@@ -744,7 +755,7 @@ export function DealsManager() {
               <div className="col-span-1 sm:col-span-2"><Label>Title *</Label><Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} /></div>
               <div><Label>Slug *</Label><Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} placeholder="my-tour-deal" /></div>
               <div><Label>Destination *</Label><Input value={formData.destination} onChange={(e) => setFormData({ ...formData, destination: e.target.value })} /></div>
-              <div className="col-span-1 sm:col-span-2"><Label>Description *</Label><Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} /></div>
+              <div className="col-span-1 sm:col-span-2"><Label>Description *</Label><MarkdownEditor value={formData.description} onChange={(value) => setFormData({ ...formData, description: value })} rows={4} /></div>
               <div className="col-span-1 sm:col-span-2"><Label>Short Description</Label><Input value={formData.short_description} onChange={(e) => setFormData({ ...formData, short_description: e.target.value })} /></div>
               <div>
                 <Label>Category</Label>
@@ -923,10 +934,11 @@ export function DealsManager() {
                 </div>
                 <p className="mt-1 text-[11px] text-muted-foreground">Search results are powered by Geoapify. OSM map tiles are used for display.</p>
                 {searchMessage && <p className="mt-2 text-xs text-amber-700" role="status">{searchMessage}</p>}
-                {searchResults.length > 0 && <div className="mt-2 divide-y rounded-md border bg-background">{searchResults.map((place, index) => <button type="button" key={place.id ?? `${place.lat}-${place.lon}-${index}`} className="block min-h-11 w-full px-3 py-2 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" onClick={() => addWaypoint({ name: place.address || place.name || 'Selected place', lat: place.lat, lng: place.lon })}>{place.address || place.name || 'Selected place'}</button>)}</div>}
+                {searchResults.length > 0 && <div className="mt-2 divide-y rounded-md border bg-background">{searchResults.map((place, index) => <button type="button" key={place.id ?? `${place.lat}-${place.lon}-${index}`} className="block min-h-11 w-full px-3 py-2 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" onClick={() => addWaypoint({ name: place.name || place.address || '', address: place.address || undefined, lat: place.lat, lng: place.lon })}>{place.address || place.name || 'Selected place'}</button>)}</div>}
                 <DealRouteMap waypoints={formData.route_waypoints} geometry={formData.route_geometry} editable onMapClick={addMapWaypoint} className="mt-3 h-72" />
                 <div className="mt-3 space-y-2">
                   {formData.route_waypoints.map((point, index) => {
+                    const stopLabel = point.name.trim() || point.address?.trim() || `Stop ${index + 1}`;
                     const waypointRow = (
                       <div
                         key={index}
@@ -946,16 +958,24 @@ export function DealsManager() {
                       >
                         <span className="hidden cursor-grab text-muted-foreground sm:inline-flex" title="Drag to reorder" aria-label={'Drag stop ' + (index + 1) + ' to reorder'}><GripVertical className="h-5 w-5" /></span>
                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">{index + 1}</span>
-                        <Input
-                          value={point.name}
-                          onChange={(event) => updateWaypointName(index, event.target.value)}
-                          aria-label={'Stop ' + (index + 1) + ' name'}
-                          className="order-1 h-10 min-w-0 basis-[calc(100%-3rem)] flex-1 sm:order-none sm:h-8"
-                        />
-                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => refreshWaypointSnap(index)} disabled={snappingWaypointIndex === index} title="Re-look up the nearest road for this stop" aria-label={'Re-snap ' + point.name + ' to the nearest road'}>{snappingWaypointIndex === index ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}</Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => moveWaypoint(index, -1)} disabled={index === 0} aria-label={'Move ' + point.name + ' up'}><ChevronUp className="h-4 w-4" /></Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => moveWaypoint(index, 1)} disabled={index === formData.route_waypoints.length - 1} aria-label={'Move ' + point.name + ' down'}><ChevronDown className="h-4 w-4" /></Button>
-                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive" onClick={() => removeWaypoint(index)} aria-label={'Remove ' + point.name}><X className="h-4 w-4" /></Button>
+                        <div className="order-1 flex min-w-0 flex-1 basis-[calc(100%-3rem)] flex-col gap-0.5 sm:order-none">
+                          <Input
+                            value={point.name}
+                            onChange={(event) => updateWaypointName(index, event.target.value)}
+                            placeholder={`Title for stop ${index + 1} — e.g. Sunset camp`}
+                            aria-label={`Title for stop ${index + 1}`}
+                            className="h-10 min-w-0 sm:h-8"
+                          />
+                          {point.address && (
+                            <span className="truncate text-[11px] leading-tight text-muted-foreground" title={point.address}>
+                              {point.address}
+                            </span>
+                          )}
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => refreshWaypointSnap(index)} disabled={snappingWaypointIndex === index} title="Re-look up the nearest road for this stop" aria-label={'Re-snap ' + stopLabel + ' to the nearest road'}>{snappingWaypointIndex === index ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixed className="h-4 w-4" />}</Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => moveWaypoint(index, -1)} disabled={index === 0} aria-label={'Move ' + stopLabel + ' up'}><ChevronUp className="h-4 w-4" /></Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => moveWaypoint(index, 1)} disabled={index === formData.route_waypoints.length - 1} aria-label={'Move ' + stopLabel + ' down'}><ChevronDown className="h-4 w-4" /></Button>
+                        <Button type="button" variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-destructive" onClick={() => removeWaypoint(index)} aria-label={'Remove ' + stopLabel}><X className="h-4 w-4" /></Button>
                       </div>
                     );
                     const imageSelector = formData.gallery.length > 0 ? (
@@ -990,7 +1010,7 @@ export function DealsManager() {
                     return [waypointRow, imageSelector];
                   })}
                   {formData.route_waypoints.length === 0 && <p className="text-xs text-muted-foreground">No stops yet. Search for a place or click anywhere on the map.</p>}
-                  {formData.route_waypoints.length > 1 && <p className="text-xs text-muted-foreground">Drag stops to change the route order. Use the arrow buttons on touch devices. Reordering or adding/removing a stop requires generating the route again; renaming a stop does not. The pin button re-snaps a stop to the nearest road.</p>}
+                  {formData.route_waypoints.length > 1 && <p className="text-xs text-muted-foreground">Each stop's title is free text — type whatever the stop should be called, it does not have to match the address underneath. Drag stops to change the route order. Use the arrow buttons on touch devices. Reordering or adding/removing a stop requires generating the route again; renaming a stop does not. The pin button re-snaps a stop to the nearest road.</p>}
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3"><Button type="button" variant="outline" onClick={generateRoute} disabled={isGeneratingRoute || formData.route_waypoints.length < 2}>{isGeneratingRoute ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}{isGeneratingRoute ? 'Generating route...' : 'Generate route'}</Button>{routeStats && <span className="text-sm text-muted-foreground">{(routeStats.distance / 1000).toFixed(1)} km · {(routeStats.time / 60).toFixed(0)} min</span>}</div>
                 {routeMessage && <p className={'mt-2 text-xs ' + (routeMessage.includes('ready') ? 'text-emerald-700' : 'text-amber-700')} role="status">{routeMessage}</p>}

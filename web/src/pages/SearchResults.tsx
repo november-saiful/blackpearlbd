@@ -76,7 +76,7 @@ export default function SearchResults() {
   }, [results]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+    <div className="site-container py-4 sm:py-6 lg:py-8">
       {/* Back link */}
       <Link
         to="/"

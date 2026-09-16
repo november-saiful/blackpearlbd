@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Heart, Share2, Calendar, Users, MapPin, Hash, Route, X } from 'lucide-react';
+import { Heart, Share2, Calendar, Users, MapPin, Hash, Route } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSavedDeals } from '@/hooks/useDeals';
 import { BookingModal } from '@/components/bookings/BookingModal';
 import { DealRouteMap, isValidWaypoint } from '@/components/deals/DealRouteMap';
+import { CoverflowCarousel, type CoverflowSlide } from '@/components/ruixen/coverflow-carousel';
+import { Lightbox } from '@/components/ui/lightbox';
 import { Timeline, getThemeForDeal } from '@/components/ui/timeline';
 import type { TourDeal } from '@/types';
 
@@ -20,10 +22,29 @@ export function DealDetail({ deal }: DealDetailProps) {
   const { savedDeals } = useSavedDeals();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isRouteOpen, setIsRouteOpen] = useState(false);
+  // Index of the photo open full-screen, or null while the viewer is closed.
+  const [openPhotoIndex, setOpenPhotoIndex] = useState<number | null>(null);
 
   const isSaved = savedDeals.some((sd) => sd.deal_id === deal.id);
   const savedDeal = savedDeals.find((sd) => sd.deal_id === deal.id);
   const routeWaypoints = (deal.route_waypoints || []).filter(isValidWaypoint);
+
+  // Every photo the deal has becomes one coverflow card: the main image first,
+  // each upload once. A deal with no photos still gets its placeholder frame.
+  const photos: string[] = [];
+  const seenPhotos = new Set<string>();
+  for (const source of [deal.image_url, ...(deal.gallery || [])]) {
+    if (!source || !source.trim() || seenPhotos.has(source)) continue;
+    seenPhotos.add(source);
+    photos.push(source);
+  }
+  // One list feeds both the rack and the full-screen viewer, so the photo opened
+  // is always the one that was on screen in that position.
+  const photoSources = photos.length > 0 ? photos : ['/placeholder-deal.jpg'];
+  const photoSlides: CoverflowSlide[] = photoSources.map((src, index) => ({
+    src,
+    alt: `${deal.title} photo ${index + 1}`,
+  }));
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -42,25 +63,16 @@ export function DealDetail({ deal }: DealDetailProps) {
 
   return (
     <div>
-      {/* Image Gallery */}
+      {/*
+        Image gallery: the deal's photos as a coverflow rack. Drag or flick it to
+        spin through them, or focus it and use ←/→; no caption, no dots, no arrows.
+      */}
       <div className="mb-8">
-        <img
-          src={deal.image_url || '/placeholder-deal.jpg'}
-          alt={deal.title}
-          className="w-full h-56 sm:h-72 md:h-96 object-cover rounded-lg"
+        <CoverflowCarousel
+          slides={photoSlides}
+          label={`${deal.title} photos`}
+          onCardClick={setOpenPhotoIndex}
         />
-        {deal.gallery && deal.gallery.length > 0 && (
-          <div className="flex gap-2 mt-4 overflow-x-auto">
-            {deal.gallery.map((img, idx) => (
-              <img
-                key={idx}
-                src={img}
-                alt={`${deal.title} ${idx + 1}`}
-                className="w-24 h-24 object-cover rounded-md flex-shrink-0"
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Header */}
@@ -139,8 +151,9 @@ export function DealDetail({ deal }: DealDetailProps) {
 
       {/*
         Stored route — public pages only render the saved geometry; no routing API call.
-        It lives behind a floating button: the map expands into a card on click and
-        collapses again from the floating close button.
+        It lives behind a floating button pinned to the bottom centre of the viewport:
+        the map expands into a card on click and collapses when anything outside the
+        card is tapped.
       */}
       {routeWaypoints.length > 0 && !isRouteOpen && (
         <button
@@ -148,7 +161,7 @@ export function DealDetail({ deal }: DealDetailProps) {
           onClick={() => setIsRouteOpen(true)}
           aria-expanded={false}
           aria-controls="tour-route-panel"
-          className="fixed bottom-28 right-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:bottom-6 md:right-6"
+          className="fixed bottom-28 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:bottom-6"
         >
           <Route className="h-5 w-5" />
           Tour route
@@ -159,49 +172,56 @@ export function DealDetail({ deal }: DealDetailProps) {
       )}
 
       {routeWaypoints.length > 0 && isRouteOpen && (
-        <div className="fixed inset-x-4 bottom-28 z-40 animate-in fade-in slide-in-from-bottom-4 duration-200 md:inset-x-auto md:bottom-6 md:right-6 md:w-[42rem]">
-          <button
-            type="button"
+        <>
+          {/*
+            Dismissal is by tapping anywhere outside the card. The scrim covers the
+            viewport and the card renders above it, so a touch on the map or the stop
+            list never reaches the dismiss surface. Escape stays for keyboards.
+          */}
+          <div
+            className="fixed inset-0 z-[60] animate-in fade-in bg-black/40 backdrop-blur-sm duration-200"
             onClick={() => setIsRouteOpen(false)}
-            aria-label="Close tour route"
-            className="absolute -right-2 -top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-lg transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <X className="h-5 w-5" />
-          </button>
+            aria-hidden="true"
+          />
 
           <div
             id="tour-route-panel"
-            className="flex max-h-[min(70vh,34rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl md:max-h-[min(82vh,44rem)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="tour-route-title"
+            className="fixed inset-x-4 bottom-28 z-[70] md:bottom-6 md:left-1/2 md:right-auto md:w-[42rem] md:-translate-x-1/2"
           >
-            <div className="border-b border-border px-4 py-3">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <MapPin className="h-4 w-4 shrink-0 text-secondary" />
-                Tour route
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                {routeWaypoints.length} stops in order, from start to finish.
-              </p>
+            <div className="flex max-h-[min(70vh,34rem)] animate-in fade-in slide-in-from-bottom-4 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl duration-200 md:max-h-[min(82vh,44rem)]">
+              <div className="border-b border-border px-4 py-3">
+                <h2 id="tour-route-title" className="flex items-center gap-2 text-base font-semibold text-foreground">
+                  <MapPin className="h-4 w-4 shrink-0 text-secondary" />
+                  Tour route
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {routeWaypoints.length} stops in order, from start to finish.
+                </p>
+              </div>
+
+              <DealRouteMap
+                waypoints={routeWaypoints}
+                geometry={deal.route_geometry}
+                className="h-[240px] w-full border-0 sm:h-[340px]"
+              />
+
+              <ol aria-label="Tour route stops" className="grid max-h-44 gap-2 overflow-y-auto border-t border-border p-3 sm:grid-cols-2">
+                {routeWaypoints.map((waypoint, index) => (
+                  <li key={`${waypoint.lat}-${waypoint.lng}-${index}`} className="flex min-h-10 items-center gap-3 rounded-md bg-muted/50 px-3 py-2 text-sm">
+                    <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">{index + 1}</span>
+                    <span className="min-w-0 truncate">{waypoint.name?.trim() || waypoint.address?.trim() || `Stop ${index + 1}`}</span>
+                  </li>
+                ))}
+              </ol>
+              {routeWaypoints.length === 1 && (
+                <p className="px-4 pb-3 text-xs text-muted-foreground">This tour has one marked stop; no driving route is shown.</p>
+              )}
             </div>
-
-            <DealRouteMap
-              waypoints={routeWaypoints}
-              geometry={deal.route_geometry}
-              className="h-[240px] w-full border-0 sm:h-[340px]"
-            />
-
-            <ol aria-label="Tour route stops" className="grid max-h-44 gap-2 overflow-y-auto border-t border-border p-3 sm:grid-cols-2">
-              {routeWaypoints.map((waypoint, index) => (
-                <li key={`${waypoint.lat}-${waypoint.lng}-${index}`} className="flex min-h-10 items-center gap-3 rounded-md bg-muted/50 px-3 py-2 text-sm">
-                  <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">{index + 1}</span>
-                  <span className="min-w-0 truncate">{waypoint.name || `Stop ${index + 1}`}</span>
-                </li>
-              ))}
-            </ol>
-            {routeWaypoints.length === 1 && (
-              <p className="px-4 pb-3 text-xs text-muted-foreground">This tour has one marked stop; no driving route is shown.</p>
-            )}
           </div>
-        </div>
+        </>
       )}
 
       {/* Timeline Itinerary */}
@@ -276,6 +296,20 @@ export function DealDetail({ deal }: DealDetailProps) {
           </Card>
         )}
       </div>
+
+      {/*
+        Full-screen preview of the centred photo. The native dialog paints in the
+        browser's top layer, above the floating route button, and handles its own
+        Esc / arrow keys and click-outside dismissal.
+      */}
+      <Lightbox
+        images={photoSources}
+        currentIndex={openPhotoIndex ?? 0}
+        isOpen={openPhotoIndex !== null}
+        onClose={() => setOpenPhotoIndex(null)}
+        onNavigate={setOpenPhotoIndex}
+        alt={deal.title}
+      />
 
       {/* Booking Modal */}
       <BookingModal

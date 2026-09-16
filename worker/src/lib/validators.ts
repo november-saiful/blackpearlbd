@@ -29,8 +29,20 @@ export const DEAL_CATEGORY_VALUES = [
   'tour',
 ] as const;
 
+// One stop on a tour route.
+//
+// `name` is the free-text title the admin gives the stop and is what the public
+// pages display; `address` is the separate, geocoded description of the point
+// ("Bhulbaria, Santhia Upazila, Bangladesh") kept purely for reference. They are
+// deliberately independent: renaming a stop must never be undone by a later
+// re-snap, and a snapped stop must not force its address into the title.
+//
+// Every field has to be declared here — this schema strips unlisted keys before
+// the insert, which is how stop images were being silently discarded.
 const WaypointSchema = z.object({
-  name: z.string().min(1).max(200),
+  name: z.string().max(200).default(''),
+  address: optionalClean().pipe(z.string().max(300).optional()),
+  image: optionalClean().pipe(z.string().url().optional()),
   lat: z.number().finite().min(-90).max(90),
   lng: z.number().finite().min(-180).max(180),
 });

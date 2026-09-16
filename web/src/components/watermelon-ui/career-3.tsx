@@ -104,7 +104,7 @@ export default function Career3({
   const totalInCategories = (categories ?? []).reduce((sum, c) => sum + c.count, 0);
 
   return (
-    <section className="mx-auto h-full w-full max-w-7xl px-0 py-16 sm:py-20">
+    <section className="h-full w-full py-16 sm:py-20">
       <div className="flex flex-col items-center text-center">
         <Badge
           variant="outline"

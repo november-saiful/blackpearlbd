@@ -113,6 +113,72 @@
   box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
 }
 
+/* ── Route-map polaroids ──────────────────────────────────────
+ * A stop's photo is shown on a Leaflet tooltip kept permanently open. Leaflet's
+ * tooltip chrome (padding, border, background and the little arrow) is stripped
+ * here instead of being fought with inline styles, so all that shows is the
+ * paper frame the component draws.
+ *
+ * The selectors keep `.leaflet-tooltip` in front on purpose: they tie with
+ * Leaflet's own rules otherwise, and `leaflet.css` and this file can be bundled
+ * in either order.
+ */
+.leaflet-tooltip.deal-route-polaroid-popup {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.leaflet-tooltip.deal-route-polaroid-popup::before {
+  display: none;
+}
+
+/* ── Site rhythm ──────────────────────────────────────────────
+ * One horizontal gutter for the whole site, so the topbar, the tabs, the
+ * featured deals, the page bodies and the footer all start and end on the same
+ * two vertical lines.
+ *
+ * Phones keep the original 1rem/1.5rem gutter; from lg up the content is inset
+ * by 10% of the available width on each side.
+ *
+ * Deliberately a variable rather than a hard-coded padding on every section:
+ * a couple of surfaces (the footer's card, the topbar) have their own hairline
+ * mobile insets that must be preserved, and they reference this same variable
+ * from lg up via `lg:px-[var(--site-gutter)]`.
+ */
+@layer base {
+  :root {
+    --site-gutter: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    :root {
+      --site-gutter: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --site-gutter: 10%;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * Intentionally has no max-width. A cap (the previous `max-w-7xl`) makes wide
+   * sections stop short of the margin line while narrow ones sit on it, which is
+   * exactly the inconsistency this replaces. Percentage padding also resolves
+   * against the real containing block, so it ignores scrollbar width.
+   */
+  .site-container {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: var(--site-gutter);
+  }
+}
+
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;

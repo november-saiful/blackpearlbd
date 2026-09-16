@@ -228,7 +228,7 @@ export function AppTopbar({ className }: { className?: string }) {
 
       <header
         className={cn(
-          "z-50 flex h-16 shrink-0 items-center justify-between border-b py-4 px-4 md:h-20 md:pr-8 md:pl-6 transition-colors duration-300",
+          "z-50 flex h-16 shrink-0 items-center justify-between border-b py-4 px-4 md:h-20 md:pr-8 md:pl-6 lg:px-[var(--site-gutter)] transition-colors duration-300",
           isHome
             ? cn(
                 "fixed inset-x-0 top-0",

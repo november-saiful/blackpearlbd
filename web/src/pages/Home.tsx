@@ -122,7 +122,7 @@ export default function Home() {
       </StarsBackground>
 
       {/* Quick access tabs — below the first screen */}
-      <section className="py-8 sm:py-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+      <section className="site-container py-8 sm:py-10">
         <div className="text-left w-full">
           <CTabs6
             defaultValue="tours"
@@ -147,7 +147,7 @@ export default function Home() {
 
       {/* Featured Deals */}
       {featuredDeals.length > 0 && (
-        <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <section className="site-container py-16">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-primary mb-4">Featured Tour Deals</h2>
             <p className="text-muted-foreground">Handpicked destinations for unforgettable experiences</p>
@@ -170,7 +170,7 @@ export default function Home() {
 
       {/* How It Works */}
       <section className="py-16 bg-muted">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="site-container">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-primary mb-4">How It Works</h2>
             <p className="text-muted-foreground">Three simple steps to your dream vacation</p>
