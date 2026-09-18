@@ -71,6 +71,11 @@ export interface TourDeal {
   description: string | null;
   short_description: string | null;
   destination: string;
+  /**
+   * Alignment of the About section ('left', 'center', 'right', 'justify'); null
+   * on every deal saved before the choice existed, which reads as left.
+   */
+  description_align: string | null;
   /** Deal card category key ('beach', 'nature', ...); null = auto-detect. */
   category: string | null;
   price: number;
@@ -79,6 +84,8 @@ export interface TourDeal {
   max_travelers: number | null;
   image_url: string | null;
   gallery: string[];
+  /** Gallery images excluded from the deal-page carousel. */
+  hidden_gallery: string[];
   inclusions: string[];
   exclusions: string[];
   itinerary: ItineraryPhase[];

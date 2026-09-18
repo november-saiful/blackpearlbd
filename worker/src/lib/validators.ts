@@ -29,6 +29,19 @@ export const DEAL_CATEGORY_VALUES = [
   'tour',
 ] as const;
 
+/**
+ * How a deal's description section is aligned on the deal page. Chosen per deal
+ * by an admin, not by the page. Must stay in sync with the CHECK constraint in
+ * supabase/migrations/013_add_deal_description_align.sql and with
+ * web/src/lib/text-align.ts.
+ */
+export const DEAL_DESCRIPTION_ALIGN_VALUES = [
+  'left',
+  'center',
+  'right',
+  'justify',
+] as const;
+
 // One stop on a tour route.
 //
 // `name` is the free-text title the admin gives the stop and is what the public
@@ -56,6 +69,10 @@ export const CreateDealSchema = z.object({
   title: z.string().min(3).max(200),
   slug: z.string().regex(/^[a-z0-9-]+$/),
   description: z.string().min(10),
+  // Absent means "leave it as it is", which the column stores as null and every
+  // reader draws as left. Declared here or the schema strips it before the
+  // insert, silently discarding the admin's choice.
+  description_align: optionalClean().pipe(z.enum(DEAL_DESCRIPTION_ALIGN_VALUES).optional()),
   short_description: optionalClean().pipe(z.string().max(300).optional()),
   destination: z.string().min(2),
   price: z.coerce.number().positive(),
@@ -67,6 +84,7 @@ export const CreateDealSchema = z.object({
   // never reaches the enum or the nullable column.
   category: optionalClean().pipe(z.enum(DEAL_CATEGORY_VALUES).optional()),
   gallery: z.array(z.string().url()).optional().default([]).transform(v => v && v.length > 0 ? v : undefined),
+  hidden_gallery: z.array(z.string().url()).optional().default([]).transform(v => v && v.length > 0 ? v : undefined),
   inclusions: z.array(z.string()).optional().default([]).transform(v => v && v.length > 0 ? v : undefined),
   exclusions: z.array(z.string()).optional().default([]).transform(v => v && v.length > 0 ? v : undefined),
   itinerary: z.array(z.object({

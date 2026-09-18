@@ -29,6 +29,8 @@ export interface TourDeal {
   title: string;
   slug: string;
   description: string | null;
+  /** Alignment of the description section; null reads as left. */
+  description_align: string | null;
   short_description: string | null;
   destination: string;
   /** Deal card category chip; null until an admin picks one. */
