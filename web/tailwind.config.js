@@ -7,6 +7,11 @@ export default {
   ],
   theme: {
   	extend: {
+  		fontFamily: {
+  			sans: ['"Times New Roman"', '"SolaimanLipi"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			bengali: ['"SolaimanLipi"', '"Times New Roman"', 'serif'],
+  			serif: ['"Times New Roman"', '"SolaimanLipi"', 'Georgia', 'serif'],
+  		},
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
