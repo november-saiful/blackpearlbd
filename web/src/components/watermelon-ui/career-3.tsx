@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -37,8 +37,18 @@ export interface Career3Props {
   eyebrow?: string;
   heading: string;
   subheading?: string;
-  departments: Department[];
+  /**
+   * Destination tabs. Optional: leave them out when the caller owns filtering,
+   * and every job renders instead of the tab's slice of them.
+   */
+  departments?: Department[];
   jobs: JobListing[];
+  /**
+   * Replaces the tab and chip chrome with a filter surface the caller owns, so
+   * a page can filter by more than one axis without stacking a second control
+   * under this one.
+   */
+  toolbar?: ReactNode;
   exploreLabel?: string;
   exploreHref?: string;
   emptyMessage?: string;
@@ -84,6 +94,7 @@ export default function Career3({
   subheading,
   departments,
   jobs,
+  toolbar,
   exploreLabel = "View all tours",
   exploreHref = "#",
   emptyMessage = "No tours found in this category right now.",
@@ -93,62 +104,85 @@ export default function Career3({
   onCategoryChange,
   onDepartmentChange,
 }: Career3Props) {
-  const [active, setActive] = useState<Department>(defaultDepartment ?? departments[0] ?? "");
+  const tabs = departments && departments.length > 0 ? departments : null;
+  const [active, setActive] = useState<Department>(defaultDepartment ?? tabs?.[0] ?? "All");
 
   useEffect(() => {
     onDepartmentChange?.(active);
   }, [active, onDepartmentChange]);
 
-  const filtered = active === "All" ? jobs : jobs.filter((j) => j.department === active);
+  // No tabs means no department scoping: the caller's own filter has already
+  // decided what belongs on screen.
+  const filtered =
+    !tabs || active === "All" ? jobs : jobs.filter((j) => j.department === active);
 
   const totalInCategories = (categories ?? []).reduce((sum, c) => sum + c.count, 0);
 
   return (
-    <section className="h-full w-full py-16 sm:py-20">
+    <section className="h-full w-full pb-10 pt-6 sm:py-16 lg:py-20">
       <div className="flex flex-col items-center text-center">
         <Badge
           variant="outline"
-          className="mb-4 rounded-full px-4 py-1 text-xs font-medium tracking-wide"
+          className="mb-3 rounded-full px-3.5 py-1 text-[11px] font-medium tracking-wide sm:mb-4 sm:px-4 sm:text-xs"
         >
           {eyebrow}
         </Badge>
 
-        <h1 className="max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
+        <h1 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
           {heading}
         </h1>
 
         {subheading && (
-          <p className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
+          <p className="mt-3 max-w-xl text-sm text-muted-foreground sm:mt-4 sm:text-lg">
             {subheading}
           </p>
         )}
       </div>
 
-      <div className="mt-10 flex w-full justify-center">
-        <div className="no-scrollbar w-full max-w-6xl overflow-x-auto rounded-full border border-border bg-muted p-1">
-          <div className="flex min-w-max items-center justify-start gap-1 md:justify-center md:min-w-full">
-            {departments.map((dept) => (
-              <button
-                key={dept}
-                onClick={() => setActive(dept)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:px-5 ${
-                  active === dept
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {dept}
-              </button>
-            ))}
+      {toolbar ? (
+        <div className="mt-6 sm:mt-10">{toolbar}</div>
+      ) : (
+        tabs && (
+          /*
+           * Destination tabs. On phones this is a horizontally scrollable
+           * segmented control: the pill keeps the site gutter, the row snaps to
+           * each tab, and every option is a 40px-tall tap target.
+           */
+          <div className="mt-6 flex w-full justify-center sm:mt-10">
+            <div className="no-scrollbar w-full max-w-6xl snap-x scroll-pl-1 overflow-x-auto rounded-full border border-border bg-muted p-1">
+              <div className="flex min-w-max items-center justify-start gap-1 md:min-w-full md:justify-center">
+                {tabs.map((dept) => (
+                  <button
+                    key={dept}
+                    onClick={() => setActive(dept)}
+                    aria-pressed={active === dept}
+                    className={`min-h-10 shrink-0 snap-start rounded-full px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:px-5 ${
+                      active === dept
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {dept}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        )
+      )}
 
-      {categories && categories.length > 0 && (
+      {/*
+       * Experience chips, shown only when this component owns the chrome. On
+       * phones the row bleeds out to the screen edge (negative gutter + matching
+       * padding) so chips scroll off the edge instead of being clipped
+       * mid-gutter, and the chips are tall enough to tap. From sm up they simply
+       * wrap and stay centred.
+       */}
+      {!toolbar && categories && categories.length > 0 && (
         <div
           role="group"
           aria-label="Filter tours by experience"
-          className="no-scrollbar mt-4 flex w-full snap-x items-center gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible"
+          className="no-scrollbar -mx-[var(--site-gutter)] mt-3 flex snap-x scroll-pl-[var(--site-gutter)] items-center gap-2 overflow-x-auto px-[var(--site-gutter)] pb-1 sm:mx-0 sm:mt-4 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0"
         >
           {[
             { key: "all", label: "All experiences", emoji: "✨", count: totalInCategories, className: undefined },
@@ -161,7 +195,7 @@ export default function Career3({
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => onCategoryChange?.(category.key)}
-                className={`inline-flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${
+                className={`inline-flex min-h-10 shrink-0 snap-start items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${
                   isActive
                     ? category.className ?? "border-foreground/20 bg-foreground text-background"
                     : "border-border bg-background text-muted-foreground hover:border-foreground/25 hover:text-foreground"
@@ -182,13 +216,13 @@ export default function Career3({
         </div>
       )}
 
-      <div className="mt-10">
+      <div className="mt-6 sm:mt-10">
         {filtered.length === 0 ? (
-          <p className="py-16 text-center text-sm text-muted-foreground">
+          <p className="py-12 text-center text-sm text-muted-foreground sm:py-16">
             {emptyMessage}
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {filtered.map((job) => (
               <JobCard key={job.id} job={job} />
             ))}
@@ -196,14 +230,14 @@ export default function Career3({
         )}
       </div>
 
-      <div className="mt-14 flex flex-col items-center gap-2">
+      <div className="mt-8 flex flex-col items-center gap-2 sm:mt-14">
         <p className="text-sm text-muted-foreground">
           Looking for something else?
         </p>
         <Button
           variant="link"
           asChild
-          className="group h-auto gap-1.5 p-0 text-sm font-semibold hover:no-underline"
+          className="group h-auto min-h-10 gap-1.5 px-2 text-sm font-semibold hover:no-underline"
         >
           <a href={exploreHref}>
             {exploreLabel}

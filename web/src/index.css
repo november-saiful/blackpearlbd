@@ -90,7 +90,7 @@
     @apply bg-background text-foreground;
     min-height: 100%;
     margin: 0;
-    font-family: 'SolaimanLipi', sans-serif;
+    font-family: 'Times New Roman', 'SolaimanLipi', serif;
   }
 }
 

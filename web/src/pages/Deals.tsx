@@ -1,218 +1,147 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import Career3, { type CategoryFilter, type JobListing } from '@/components/watermelon-ui/career-3';
-import { useDeals, useSavedDeals } from '@/hooks/useDeals';
-import { useAuth } from '@/hooks/useAuth';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Career3, { type JobListing } from '@/components/watermelon-ui/career-3';
+import { DealsFilterBar } from '@/components/deals/DealsFilterBar';
+import { matchesDealsFilter } from '@/components/deals/deals-filter';
+import {
+  applyDealsQuery,
+  canonicalDealsQuery,
+  decodeDealsFilterQuery,
+  encodeDealsQuery,
+  readDealSort,
+} from '@/components/deals/deals-filter-url';
+import { DealsSortMenu } from '@/components/deals/DealsSortMenu';
+import { sortDeals, type DealSort } from '@/components/deals/deals-sort';
+import { countFilterRules, createFilterQuery } from '@/components/reui/filters/filters-query';
+import type { FilterQuery } from '@/components/reui/filters/filters-types';
+import { useDeals } from '@/hooks/useDeals';
 import { DealsPageSkeleton } from '@/components/skeletons/DealCardSkeleton';
-import { Search } from 'lucide-react';
-import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
-import { DEAL_CATEGORIES, getDealCategory } from '@/lib/deal-category';
-import { useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import type { TourDeal } from '@/types';
+
+/** One deal, in the shape the grid's card list expects. */
+function toJobListing(deal: TourDeal): JobListing {
+  return {
+    id: deal.id,
+    title: deal.title,
+    description: deal.short_description || deal.description || '',
+    location: deal.destination,
+    type: deal.duration_days === 1 ? '1 Day' : `${deal.duration_days} Days`,
+    salaryRange: formatCurrency(deal.price),
+    department: deal.destination,
+    href: `/deals/${deal.slug}`,
+    tags: [
+      deal.is_featured ? 'Featured' : null,
+      deal.original_price && deal.original_price > deal.price
+        ? `${Math.round((1 - deal.price / deal.original_price) * 100)}% OFF`
+        : null,
+    ].filter(Boolean) as string[],
+    deal,
+  };
+}
 
 export default function Deals() {
   const { deals, isLoading } = useDeals();
-  const { savedDeals } = useSavedDeals();
-  const { isAuthenticated } = useAuth();
-  const queryClient = useQueryClient();
 
-  // Deep link support: /deals?destination=Paris pre-selects that destination tab
-  const [searchParams] = useSearchParams();
-  const requestedDestination = searchParams.get('destination')?.trim() || '';
-
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
-
-  // Deep link support: /deals?category=beach pre-selects that experience chip
-  const requestedCategory = searchParams.get('category')?.trim().toLowerCase() || '';
-  const [activeCategory, setActiveCategory] = useState(
-    DEAL_CATEGORIES.some((c) => c.key === requestedCategory) ? requestedCategory : 'all'
+  /*
+   * The view lives in the URL, so a filtered and sorted view IS a link: it can
+   * be shared, bookmarked, and it survives a reload. The bar owns the query
+   * while the page is open - the block's node ids have to stay stable for its
+   * drag handles and its focus - and the URL is written from both it and the
+   * sort, which is why the two are compared as canonical spellings rather than
+   * as objects.
+   *
+   * The old deep links still open the bar on the right conditions:
+   * /deals?destination=Paris&category=beach&sort=price-low. An unknown
+   * destination is kept as written - the chip says what was asked for, and the
+   * grid says nothing matched, which beats dropping the filter and showing
+   * everything - while an unknown sort falls back to Newest, since no control
+   * could show which order was asked for.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [query, setQuery] = useState<FilterQuery>(
+    () => decodeDealsFilterQuery(searchParams) ?? createFilterQuery([])
   );
+  const [sortBy, setSortBy] = useState<DealSort>(() => readDealSort(searchParams));
 
-  // Derive unique destinations as department tabs
-  const departments = useMemo(() => {
-    const dests = [...new Set(deals.map((d) => d.destination))];
-    return dests.length > 0 ? ['All', ...dests] : ['All'];
-  }, [deals]);
+  /** What this page is holding, spelled as a URL would spell it. */
+  const stateSearch = useMemo(
+    () => canonicalDealsQuery(encodeDealsQuery(query, sortBy)),
+    [query, sortBy]
+  );
+  /** The URL's own spelling, canonicalised, so `?experience=beach` compares
+   * equal to `?category=is_any_of:beach` instead of reading as a change. */
+  const urlSearch = useMemo(() => canonicalDealsQuery(searchParams), [searchParams]);
+  /** What the URL last said, so our own write is not mistaken for a move. */
+  const publishedSearch = useRef(urlSearch);
 
-  const hasDestinationTab = requestedDestination !== '' && departments.includes(requestedDestination);
-
-  // If the requested destination has no dedicated tab (no deals there yet),
-  // fall back to pre-filling the search box with it.
   useEffect(() => {
-    if (!isLoading && requestedDestination && !hasDestinationTab) {
-      setSearch(requestedDestination);
-    }
-  }, [isLoading, requestedDestination, hasDestinationTab]);
-
-  // Map TourDeal → JobListing for Career3
-  const allJobs: JobListing[] = useMemo(() => {
-    return deals.map((deal) => ({
-      id: deal.id,
-      title: deal.title,
-      description: deal.short_description || deal.description || '',
-      location: deal.destination,
-      type: deal.duration_days === 1 ? '1 Day' : `${deal.duration_days} Days`,
-      salaryRange: formatCurrency(deal.price),
-      department: deal.destination,
-      href: `/deals/${deal.slug}`,
-      tags: [
-        deal.is_featured ? 'Featured' : null,
-        deal.original_price && deal.original_price > deal.price
-          ? `${Math.round((1 - deal.price / deal.original_price) * 100)}% OFF`
-          : null,
-      ].filter(Boolean) as string[],
-      deal: deal, // Pass the full deal object for bookmarking
-    }));
-  }, [deals]);
-
-  // Apply search filter
-  const searchedJobs = useMemo(() => {
-    let result = allJobs;
-
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (j) =>
-          j.title.toLowerCase().includes(q) ||
-          j.location.toLowerCase().includes(q) ||
-          j.description.toLowerCase().includes(q) ||
-          (j.deal?.deal_code && j.deal.deal_code.toLowerCase().includes(q))
-      );
+    if (urlSearch === stateSearch) {
+      publishedSearch.current = stateSearch;
+      return;
     }
 
-    return result;
-  }, [allJobs, search]);
-
-  // The destination tab the grid is currently showing. Career3 owns the tab
-  // state (it also supports ?destination= deep links) and reports it back here
-  // so the experience chips can be scoped to the same slice of the catalogue.
-  const [activeDestination, setActiveDestination] = useState('All');
-
-  // Experience category chips. The set of chips is derived from the deals the
-  // current destination tab can actually show (so a chip never promises results
-  // the tab hides), while the counts also track the search box. The active chip
-  // is always kept visible so it can be switched off even at zero results.
-  const categories: CategoryFilter[] = useMemo(() => {
-    const inScope =
-      activeDestination === 'All'
-        ? searchedJobs
-        : searchedJobs.filter((j) => j.department === activeDestination);
-
-    const counts = new Map<string, number>();
-    inScope.forEach((j) => {
-      const key = getDealCategory(j.deal).key;
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    });
-
-    return DEAL_CATEGORIES.filter(
-      (c) => counts.has(c.key) || c.key === activeCategory
-    ).map((c) => ({
-      key: c.key,
-      label: c.label,
-      emoji: c.emoji,
-      className: c.className,
-      count: counts.get(c.key) ?? 0,
-    }));
-  }, [searchedJobs, activeDestination, activeCategory]);
-
-  // Apply the experience filter, then sort
-  const filteredJobs = useMemo(() => {
-    let result =
-      activeCategory === 'all'
-        ? searchedJobs
-        : searchedJobs.filter((j) => getDealCategory(j.deal).key === activeCategory);
-
-    // Sort
-    switch (sortBy) {
-      case 'price-low':
-        result = [...result].sort((a, b) => {
-          const pa = parseFloat(a.salaryRange.replace(/[^0-9.]/g, ''));
-          const pb = parseFloat(b.salaryRange.replace(/[^0-9.]/g, ''));
-          return pa - pb;
-        });
-        break;
-      case 'price-high':
-        result = [...result].sort((a, b) => {
-          const pa = parseFloat(a.salaryRange.replace(/[^0-9.]/g, ''));
-          const pb = parseFloat(b.salaryRange.replace(/[^0-9.]/g, ''));
-          return pb - pa;
-        });
-        break;
-      case 'featured':
-        result = [...result].sort(
-          (a, b) => (b.tags?.includes('Featured') ? 1 : 0) - (a.tags?.includes('Featured') ? 1 : 0)
-        );
-        break;
-      case 'newest':
-      default:
-        // keep original order (API returns newest first)
-        break;
+    if (urlSearch !== publishedSearch.current) {
+      // The URL moved without us: Back, or a link into this page. Adopt it.
+      publishedSearch.current = urlSearch;
+      setQuery(decodeDealsFilterQuery(searchParams) ?? createFilterQuery([]));
+      setSortBy(readDealSort(searchParams));
+      return;
     }
 
-    return result;
-  }, [searchedJobs, activeCategory, sortBy]);
+    // The bar or the sort moved: publish them together, off the live params so
+    // one write cannot overwrite the other. `replace`, so filtering does not
+    // fill the back stack with every chip the user tried.
+    publishedSearch.current = stateSearch;
+    setSearchParams((prev) => applyDealsQuery(prev, query, sortBy), { replace: true });
+  }, [query, sortBy, stateSearch, urlSearch, searchParams, setSearchParams]);
 
-  const activeCategoryMeta = categories.find((c) => c.key === activeCategory);
-
-  // Hide the chips only when there is genuinely nothing to choose between. A
-  // filter that is still on always keeps the row visible, otherwise narrowing
-  // the destination tab could strand you with an invisible active filter.
-  const showCategories = categories.length > 1 || activeCategory !== 'all';
+  // One pass: the filter query, then the sort.
+  const visibleJobs = useMemo(
+    () =>
+      sortDeals(
+        deals.filter((deal) => matchesDealsFilter(deal, query)),
+        sortBy
+      ).map(toJobListing),
+    [deals, query, sortBy]
+  );
 
   if (isLoading) {
     return <DealsPageSkeleton />;
   }
 
+  const emptyMessage =
+    countFilterRules(query) > 0
+      ? 'No tours match these filters yet. Try removing one.'
+      : 'No tours found right now. Check back soon.';
+
   return (
-    <div className="site-container py-4">
-      {/* Filters bar */}
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by destination, title, or deal ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="price-low">Price: Low to High</SelectItem>
-            <SelectItem value="price-high">Price: High to Low</SelectItem>
-            <SelectItem value="featured">Featured</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Career3 layout with filtered data */}
+    <div className="site-container pt-4 pb-2 sm:py-4">
+      {/* Career3 layout with the filtered catalogue */}
       <Career3
         eyebrow="Explore our curated tour packages"
         heading="Tour Deals"
         subheading="Find your perfect getaway from our handpicked destinations"
-        departments={departments}
-        defaultDepartment={hasDestinationTab ? requestedDestination : undefined}
-        jobs={filteredJobs}
-        categories={showCategories ? categories : undefined}
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-        onDepartmentChange={setActiveDestination}
+        jobs={visibleJobs}
+        toolbar={
+          /* Filters left, sort right, in ONE row: the sort is a single icon
+             button in the corner, level with the bar's own Add filter button
+             rather than a full-width select of its own under the chips. Search
+             lives in the topbar palette, so there is nothing here for it. */
+          <div className="flex items-start gap-2 sm:gap-4">
+            <DealsFilterBar
+              deals={deals}
+              query={query}
+              onQueryChange={setQuery}
+              className="min-w-0 flex-1"
+            />
+
+            <DealsSortMenu value={sortBy} onChange={setSortBy} />
+          </div>
+        }
         exploreLabel="Build a custom package"
         exploreHref="/build-package"
-        emptyMessage={
-          activeCategoryMeta
-            ? `No ${activeCategoryMeta.label} tours match your filters yet. Try another experience or destination.`
-            : 'No tours found matching your search. Try a different keyword.'
-        }
+        emptyMessage={emptyMessage}
       />
     </div>
   );

@@ -3,7 +3,8 @@ import { Heart, Share2, Calendar, Users, MapPin, Hash, Route } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
+
 import { useAuth } from '@/hooks/useAuth';
 import { useSavedDeals } from '@/hooks/useDeals';
 import { BookingModal } from '@/components/bookings/BookingModal';
@@ -24,6 +25,10 @@ export function DealDetail({ deal }: DealDetailProps) {
   const [isRouteOpen, setIsRouteOpen] = useState(false);
   // Index of the photo open full-screen, or null while the viewer is closed.
   const [openPhotoIndex, setOpenPhotoIndex] = useState<number | null>(null);
+  // Itinerary photo lightbox state
+  const [itineraryLightboxOpen, setItineraryLightboxOpen] = useState(false);
+  const [itineraryPhaseIndex, setItineraryPhaseIndex] = useState(0);
+  const [itineraryPhotoIndex, setItineraryPhotoIndex] = useState(0);
 
   const isSaved = savedDeals.some((sd) => sd.deal_id === deal.id);
   const savedDeal = savedDeals.find((sd) => sd.deal_id === deal.id);
@@ -31,10 +36,11 @@ export function DealDetail({ deal }: DealDetailProps) {
 
   // Every photo the deal has becomes one coverflow card: the main image first,
   // each upload once. A deal with no photos still gets its placeholder frame.
+  const hiddenSet = new Set(deal.hidden_gallery || []);
   const photos: string[] = [];
   const seenPhotos = new Set<string>();
   for (const source of [deal.image_url, ...(deal.gallery || [])]) {
-    if (!source || !source.trim() || seenPhotos.has(source)) continue;
+    if (!source || !source.trim() || seenPhotos.has(source) || hiddenSet.has(source)) continue;
     seenPhotos.add(source);
     photos.push(source);
   }
@@ -139,13 +145,56 @@ export function DealDetail({ deal }: DealDetailProps) {
         </div>
       </div>
 
+      {/* Timeline Itinerary */}
+      {deal.itinerary && deal.itinerary.length > 0 && (
+        <div className="mb-6">
+          <Timeline
+            theme={getThemeForDeal(deal.title, deal.destination)}
+            className="bg-transparent dark:bg-transparent"
+            data={deal.itinerary.map(
+              (phase) => ({
+                title: phase.title || `Phase ${phase.phase}`,
+                content: (
+                  <div className="mb-8">
+                    <p className="text-neutral-800 dark:text-neutral-200 text-xs md:text-sm font-normal mb-4 whitespace-pre-wrap">
+                      {phase.description}
+                    </p>
+                    {/* Phase-specific photos */}
+                    {phase.photos && phase.photos.length > 0 && (
+                      <div className="grid grid-cols-2 gap-4">
+                        {phase.photos.slice(0, 4).map((img, imgIdx) => (
+                          <img
+                            key={imgIdx}
+                            src={img}
+                            alt={`${phase.title || `Phase ${phase.phase}`} photo ${imgIdx + 1}`}
+                            onClick={() => {
+                              setItineraryPhaseIndex(phase.phase - 1);
+                              setItineraryPhotoIndex(imgIdx);
+                              setItineraryLightboxOpen(true);
+                            }}
+                            className="rounded-lg object-cover h-20 md:h-44 lg:h-60 w-full shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ),
+              }),
+            )}
+          />
+        </div>
+      )}
+
       {/* Description */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>About this tour</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground whitespace-pre-wrap">{deal.description}</p>
+          {/* All body text in posts is justified by default. */}
+          <p className="text-muted-foreground whitespace-pre-wrap text-justify">
+            {deal.description}
+          </p>
         </CardContent>
       </Card>
 
@@ -224,40 +273,6 @@ export function DealDetail({ deal }: DealDetailProps) {
         </>
       )}
 
-      {/* Timeline Itinerary */}
-      {deal.itinerary && deal.itinerary.length > 0 && (
-        <div className="mb-6">
-          <Timeline
-            theme={getThemeForDeal(deal.title, deal.destination)}
-            data={deal.itinerary.map(
-              (phase) => ({
-                title: phase.title || `Phase ${phase.phase}`,
-                content: (
-                  <div className="mb-8">
-                    <p className="text-neutral-800 dark:text-neutral-200 text-xs md:text-sm font-normal mb-4 whitespace-pre-wrap">
-                      {phase.description}
-                    </p>
-                    {/* Phase-specific photos */}
-                    {phase.photos && phase.photos.length > 0 && (
-                      <div className="grid grid-cols-2 gap-4">
-                        {phase.photos.slice(0, 4).map((img, imgIdx) => (
-                          <img
-                            key={imgIdx}
-                            src={img}
-                            alt={`${phase.title || `Phase ${phase.phase}`} photo ${imgIdx + 1}`}
-                            className="rounded-lg object-cover h-20 md:h-44 lg:h-60 w-full shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset]"
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ),
-              }),
-            )}
-          />
-        </div>
-      )}
-
       {/* Inclusions & Exclusions */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         {deal.inclusions && deal.inclusions.length > 0 && (
@@ -310,6 +325,18 @@ export function DealDetail({ deal }: DealDetailProps) {
         onNavigate={setOpenPhotoIndex}
         alt={deal.title}
       />
+
+      {/* Itinerary photo lightbox */}
+      {deal.itinerary && deal.itinerary.length > 0 && (
+        <Lightbox
+          images={deal.itinerary[itineraryPhaseIndex]?.photos || []}
+          currentIndex={itineraryPhotoIndex}
+          isOpen={itineraryLightboxOpen}
+          onClose={() => setItineraryLightboxOpen(false)}
+          onNavigate={setItineraryPhotoIndex}
+          alt={`${deal.title} itinerary photo`}
+        />
+      )}
 
       {/* Booking Modal */}
       <BookingModal

@@ -26,27 +26,37 @@ export function DealCardSkeleton() {
   );
 }
 
+/**
+ * Mirrors the real /deals layout — centred hero, the filter bar with the sort
+ * control beside it, and the card grid — at the same breakpoints, so nothing
+ * jumps when the deals arrive.
+ */
 export function DealsPageSkeleton() {
   return (
-    <div className="site-container py-12">
-      {/* Header */}
-      <div className="mb-8 space-y-2">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-5 w-64" />
-      </div>
+    <div className="site-container pt-4 pb-2 sm:py-4">
+      <div className="flex flex-col items-center pb-10 pt-6 text-center sm:py-16 lg:py-20">
+        {/* Eyebrow, heading, subheading */}
+        <Skeleton className="mb-3 h-6 w-60 max-w-full rounded-full sm:mb-4" />
+        <Skeleton className="h-9 w-44 max-w-full sm:h-10 sm:w-56 lg:h-12" />
+        <Skeleton className="mt-3 h-5 w-72 max-w-full sm:mt-4 sm:h-7 sm:w-80" />
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8">
-        <Skeleton className="h-10 flex-1" />
-        <Skeleton className="h-10 w-[180px]" />
-        <Skeleton className="h-10 w-[180px]" />
-      </div>
+        {/* Filter bar left, sort icon button right, in one row - the sort took
+            the filter bar's own control height so the two line up. */}
+        <div className="mt-6 flex w-full items-start gap-2 sm:mt-10 sm:gap-4">
+          <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+            <Skeleton className="size-10 rounded-md" />
+            <Skeleton className="h-9 w-40 rounded-full" />
+            <Skeleton className="h-9 w-28 rounded-full" />
+          </div>
+          <Skeleton className="size-10 shrink-0 rounded-md" />
+        </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <DealCardSkeleton key={i} />
-        ))}
+        {/* Grid */}
+        <div className="mt-6 grid w-full grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <DealCardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     </div>
   );

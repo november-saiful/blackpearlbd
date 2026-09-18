@@ -7,15 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, RefreshCw, LocateFixed } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, EyeOff, RefreshCw, LocateFixed } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { DEAL_CATEGORIES, getDealCategory } from '@/lib/deal-category';
+
 import { useDeals } from '@/hooks/useDeals';
 import { api, ApiError } from '@/lib/api';
 import { compressImage } from '@/lib/image-compress';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { DealRouteMap } from '@/components/deals/DealRouteMap';
+import { DealDestinationPicker } from '@/components/deals/DealDestinationPicker';
 import type { GeoPlace, GeoRoute, ItineraryPhase, RouteGeometry, TourDeal, Waypoint } from '@/types';
 import { Lightbox } from '@/components/ui/lightbox';
 
@@ -36,6 +38,7 @@ type DealFormData = {
   title: string;
   slug: string;
   description: string;
+  /** How the About section is aligned. Stored per deal, so it is form state. */
   short_description: string;
   destination: string;
   category: string;
@@ -45,6 +48,7 @@ type DealFormData = {
   max_travelers: number;
   image_url: string;
   gallery: string[];
+  hidden_gallery: string[];
   inclusions: string;
   exclusions: string;
   is_featured: boolean;
@@ -54,10 +58,12 @@ type DealFormData = {
 };
 
 const emptyForm: DealFormData = {
-  title: '', slug: '', description: '', short_description: '', destination: '', category: '',
+  title: '', slug: '', description: '',
+  short_description: '', destination: '', category: '',
   price: 0, original_price: 0, duration_days: 1, max_travelers: 0, image_url: '',
   gallery: [],
   inclusions: '', exclusions: '', is_featured: false, route_waypoints: [], route_geometry: null,
+  hidden_gallery: [],
   itinerary: [],
 };
 
@@ -331,6 +337,7 @@ export function DealsManager() {
     route_geometry: formData.route_geometry,
     itinerary: formData.itinerary.length > 0 ? formData.itinerary : undefined,
     gallery: formData.gallery,
+    hidden_gallery: formData.hidden_gallery,
   });
 
   const handleCreate = async () => {
@@ -494,6 +501,10 @@ export function DealsManager() {
 
     setFormData({
       title: deal.title, slug: deal.slug, description: deal.description || '',
+      // A deal saved before alignments existed has no value, and one restored
+      // from an older build may hold something this one cannot draw: both open
+      // on the default rather than on an alignment no button could show.
+
       short_description: deal.short_description || '', destination: deal.destination,
       category: deal.category || '',
       price: deal.price, original_price: deal.original_price || 0, duration_days: deal.duration_days,
@@ -502,6 +513,7 @@ export function DealsManager() {
       inclusions: (deal.inclusions || []).join('\n'), exclusions: (deal.exclusions || []).join('\n'),
       is_featured: deal.is_featured, route_waypoints: deal.route_waypoints || [], route_geometry: deal.route_geometry || null,
       itinerary: (deal.itinerary || []).map((d, i) => ({ phase: i + 1, title: d.title, description: d.description, photos: d.photos || [] })),
+      hidden_gallery: deal.hidden_gallery || [],
     });
     resetRouteUi();
     setLightboxOpen(false);
@@ -565,6 +577,7 @@ export function DealsManager() {
         gallery,
         // Never leave the deal pointing at a deleted upload.
         image_url: current.image_url === removedUrl ? (gallery[0] || '') : current.image_url,
+        hidden_gallery: current.hidden_gallery.filter((u) => u !== removedUrl),
         itinerary: current.itinerary.map((phase) => ({
           ...phase,
           photos: (phase.photos || []).filter((photo) => photo !== removedUrl),
@@ -600,6 +613,16 @@ export function DealsManager() {
 
   const setImageAsMain = (url: string) => {
     setFormData((current) => ({ ...current, image_url: url }));
+  };
+
+  /** Toggle whether a gallery image is hidden from the deal-page carousel. */
+  const toggleCarouselHidden = (url: string) => {
+    setFormData((current) => ({
+      ...current,
+      hidden_gallery: current.hidden_gallery.includes(url)
+        ? current.hidden_gallery.filter((u) => u !== url)
+        : [...current.hidden_gallery, url],
+    }));
   };
 
   const toggleItineraryPhoto = (phaseIndex: number, photoUrl: string) => {
@@ -754,8 +777,24 @@ export function DealsManager() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="col-span-1 sm:col-span-2"><Label>Title *</Label><Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} /></div>
               <div><Label>Slug *</Label><Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} placeholder="my-tour-deal" /></div>
-              <div><Label>Destination *</Label><Input value={formData.destination} onChange={(e) => setFormData({ ...formData, destination: e.target.value })} /></div>
-              <div className="col-span-1 sm:col-span-2"><Label>Description *</Label><MarkdownEditor value={formData.description} onChange={(value) => setFormData({ ...formData, description: value })} rows={4} /></div>
+              <div>
+                <Label htmlFor="deal-destination">Destination *</Label>
+                {/* Picked from the admin's destination list rather than typed, so
+                    one place is not spelled three ways across the catalogue. */}
+                <DealDestinationPicker
+                  id="deal-destination"
+                  value={formData.destination}
+                  onChange={(destination: string) => setFormData({ ...formData, destination })}
+                />
+              </div>
+              <div className="col-span-1 sm:col-span-2">
+                <Label>Description *</Label>
+                <MarkdownEditor
+                  value={formData.description}
+                  onChange={(value) => setFormData({ ...formData, description: value })}
+                  rows={4}
+                />
+              </div>
               <div className="col-span-1 sm:col-span-2"><Label>Short Description</Label><Input value={formData.short_description} onChange={(e) => setFormData({ ...formData, short_description: e.target.value })} /></div>
               <div>
                 <Label>Category</Label>
@@ -834,7 +873,7 @@ export function DealsManager() {
                   <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
                       <Label className="text-xs text-muted-foreground">Gallery ({formData.gallery.length} images)</Label>
-                      <Label className="text-xs text-muted-foreground">Drag (or use ← →) to reorder · Click to preview</Label>
+                      <Label className="text-xs text-muted-foreground">Drag to reorder · Eye icon toggles carousel visibility · Click to preview</Label>
                     </div>
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
                       {formData.gallery.map((url, idx) => (
@@ -900,6 +939,15 @@ export function DealsManager() {
                               Main
                             </div>
                           )}
+                          <button
+                            type="button"
+                            aria-label={formData.hidden_gallery.includes(url) ? 'Show in carousel' : 'Hide from carousel'}
+                            title={formData.hidden_gallery.includes(url) ? 'Hidden from carousel — click to show' : 'Visible in carousel — click to hide'}
+                            className={'absolute top-1 left-1 z-10 flex h-5 w-5 items-center justify-center rounded-full transition-opacity hover:opacity-100 ' + (formData.hidden_gallery.includes(url) ? 'bg-amber-500 text-white opacity-90' : 'bg-black/55 text-white opacity-0 group-hover:opacity-70')}
+                            onClick={(e) => { e.stopPropagation(); toggleCarouselHidden(url); }}
+                          >
+                            {formData.hidden_gallery.includes(url) ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </button>
                         </div>
                       ))}
                     </div>

@@ -1,17 +1,25 @@
 'use client';
 
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useComboboxContext } from './context';
 
-export type ComboboxTriggerProps = {
+// The native button's props ride through, so a caller can give the trigger an
+// `id`, an `aria-label` or a `disabled` state like any other control. `onClick`
+// is the one exception: opening the list is the trigger's whole job.
+export type ComboboxTriggerProps = Omit<ComponentPropsWithoutRef<'button'>, 'onClick'> & {
   children?: ReactNode;
-  className?: string;
+  /** Accepted for API symmetry with the other primitives; not implemented. */
   asChild?: boolean;
 };
 
-export function ComboboxTrigger({ children, className }: ComboboxTriggerProps) {
+export function ComboboxTrigger({
+  children,
+  className,
+  asChild: _asChild,
+  ...props
+}: ComboboxTriggerProps) {
   const { open, setOpen, inputRef } = useComboboxContext();
 
   const handleClick = useCallback(() => {
@@ -25,10 +33,15 @@ export function ComboboxTrigger({ children, className }: ComboboxTriggerProps) {
     <button
       type="button"
       onClick={handleClick}
+      // The list is a `role="listbox"` inside the panel, so the trigger owns the
+      // combobox semantics and announces whether that panel is showing.
+      aria-haspopup="listbox"
+      aria-expanded={open}
       className={cn(
         'flex h-10 w-full items-center justify-between overflow-hidden rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-foreground/20',
         className,
       )}
+      {...props}
     >
       {children}
       <ChevronDown

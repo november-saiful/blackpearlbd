@@ -15,7 +15,6 @@ import {
   Minus,
   Eye,
   EyeOff,
-  Type
 } from 'lucide-react';
 
 export interface MarkdownEditorProps {
@@ -213,7 +212,7 @@ export function MarkdownEditor({
             {button.icon}
           </button>
         ))}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
             onClick={() => setShowPreview(!showPreview)}
@@ -242,7 +241,7 @@ export function MarkdownEditor({
       {/* Editor / Preview */}
       {showPreview ? (
         <div
-          className="min-h-[120px] p-3 text-sm prose prose-sm max-w-none"
+          className="min-h-[120px] p-3 text-sm prose prose-sm max-w-none text-justify"
           dangerouslySetInnerHTML={{ __html: renderMarkdownPreview(value) }}
         />
       ) : (

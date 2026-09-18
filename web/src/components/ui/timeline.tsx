@@ -6,6 +6,7 @@ import {
   motion,
 } from "framer-motion";
 import React, { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 export interface TimelineTheme {
   line: string;       // gradient colors for the draw-on line
@@ -103,7 +104,7 @@ const AnimatedEntry = ({
   );
 };
 
-export const Timeline = ({ data, theme = DEFAULT_THEME }: { data: TimelineEntry[]; theme?: TimelineTheme }) => {
+export const Timeline = ({ data, theme = DEFAULT_THEME, className }: { data: TimelineEntry[]; theme?: TimelineTheme; className?: string }) => {
   const ref = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const entryRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -157,7 +158,7 @@ export const Timeline = ({ data, theme = DEFAULT_THEME }: { data: TimelineEntry[
 
   return (
     <div
-      className="w-full bg-white dark:bg-neutral-950 font-sans md:px-10 lg:px-0"
+      className={cn("w-full bg-white dark:bg-neutral-950 font-sans md:px-10 lg:px-0", className)}
       ref={containerRef}
     >
       {/*
@@ -168,7 +169,7 @@ export const Timeline = ({ data, theme = DEFAULT_THEME }: { data: TimelineEntry[
         different lines. Below lg the original paddings are untouched.
       */}
       <div className="py-20 px-4 md:px-8 lg:px-0">
-        <h2 className="text-lg md:text-4xl mb-4 text-black dark:text-white max-w-4xl">
+        <h2 className="text-2xl font-semibold leading-none tracking-tight mb-4 text-black dark:text-white max-w-4xl">
           Itinerary
         </h2>
         <p className="text-neutral-700 dark:text-neutral-300 text-sm md:text-base max-w-sm">
@@ -178,7 +179,7 @@ export const Timeline = ({ data, theme = DEFAULT_THEME }: { data: TimelineEntry[
 
       <div ref={ref} className="relative pb-20">
         {/* Sticky phase counter sidebar */}
-        <div className="hidden lg:block fixed right-8 lg:right-[var(--site-gutter)] top-1/2 -translate-y-1/2 z-50">
+        <div className="hidden lg:block fixed right-2 top-1/2 -translate-y-1/2 z-50">
           <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-lg border border-neutral-200 dark:border-neutral-700 p-4 min-w-[80px]">
             <div className="text-center">
               <motion.div
@@ -245,13 +246,13 @@ export const Timeline = ({ data, theme = DEFAULT_THEME }: { data: TimelineEntry[
                   transition={{ duration: 0.3 }}
                 />
               </motion.div>
-              <h3 className="hidden md:block text-xl md:pl-20 md:text-5xl font-bold text-neutral-500 dark:text-neutral-500 ">
+              <h3 className="hidden md:block text-lg md:pl-20 md:text-2xl font-bold text-neutral-500 dark:text-neutral-500 ">
                 {item.title}
               </h3>
             </div>
 
             <div className="relative pl-20 pr-4 md:pl-4 w-full">
-              <h3 className="md:hidden block text-2xl mb-4 text-left font-bold text-neutral-500 dark:text-neutral-500">
+              <h3 className="md:hidden block text-lg mb-4 text-left font-bold text-neutral-500 dark:text-neutral-500">
                 {item.title}
               </h3>
               <AnimatedEntry index={index}>{item.content}</AnimatedEntry>

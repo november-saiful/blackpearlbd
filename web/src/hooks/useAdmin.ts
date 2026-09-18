@@ -152,6 +152,9 @@ export function usePackageDestinations() {
   return {
     destinations: destinationsQuery.data?.destinations || [],
     isLoading: destinationsQuery.isLoading,
+    // A picker that cannot load its list has to say so rather than render an
+    // empty menu that reads as "no destinations exist".
+    isError: destinationsQuery.isError,
     createDestination: createMutation.mutate,
     updateDestination: updateMutation.mutate,
     deleteDestination: deleteMutation.mutate,
