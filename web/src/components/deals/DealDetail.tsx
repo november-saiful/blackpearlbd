@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Heart, Share2, Calendar, Users, MapPin, Hash, Route } from 'lucide-react';
+import { Heart, Share2, Calendar, Users, MapPin, Hash, Route, Crosshair } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,11 +7,13 @@ import { cn, formatCurrency } from '@/lib/utils';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useSavedDeals } from '@/hooks/useDeals';
+import { useRelatedDeals } from '@/hooks/useRelatedDeals';
 import { BookingModal } from '@/components/bookings/BookingModal';
 import { DealRouteMap, isValidWaypoint } from '@/components/deals/DealRouteMap';
 import { CoverflowCarousel, type CoverflowSlide } from '@/components/ruixen/coverflow-carousel';
 import { Lightbox } from '@/components/ui/lightbox';
 import { Timeline, getThemeForDeal } from '@/components/ui/timeline';
+import { RelatedPackages } from '@/components/deals/RelatedPackages';
 import type { TourDeal } from '@/types';
 
 interface DealDetailProps {
@@ -29,6 +31,9 @@ export function DealDetail({ deal }: DealDetailProps) {
   const [itineraryLightboxOpen, setItineraryLightboxOpen] = useState(false);
   const [itineraryPhaseIndex, setItineraryPhaseIndex] = useState(0);
   const [itineraryPhotoIndex, setItineraryPhotoIndex] = useState(0);
+  const [repositionKey, setRepositionKey] = useState(0);
+
+  const { related: relatedDeals } = useRelatedDeals(deal);
 
   const isSaved = savedDeals.some((sd) => sd.deal_id === deal.id);
   const savedDeal = savedDeals.find((sd) => sd.deal_id === deal.id);
@@ -145,58 +150,153 @@ export function DealDetail({ deal }: DealDetailProps) {
         </div>
       </div>
 
-      {/* Timeline Itinerary */}
-      {deal.itinerary && deal.itinerary.length > 0 && (
-        <div className="mb-6">
-          <Timeline
-            theme={getThemeForDeal(deal.title, deal.destination)}
-            className="bg-transparent dark:bg-transparent"
-            data={deal.itinerary.map(
-              (phase) => ({
-                title: phase.title || `Phase ${phase.phase}`,
-                content: (
-                  <div className="mb-8">
-                    <p className="text-neutral-800 dark:text-neutral-200 text-xs md:text-sm font-normal mb-4 whitespace-pre-wrap">
-                      {phase.description}
-                    </p>
-                    {/* Phase-specific photos */}
-                    {phase.photos && phase.photos.length > 0 && (
-                      <div className="grid grid-cols-2 gap-4">
-                        {phase.photos.slice(0, 4).map((img, imgIdx) => (
-                          <img
-                            key={imgIdx}
-                            src={img}
-                            alt={`${phase.title || `Phase ${phase.phase}`} photo ${imgIdx + 1}`}
-                            onClick={() => {
-                              setItineraryPhaseIndex(phase.phase - 1);
-                              setItineraryPhotoIndex(imgIdx);
-                              setItineraryLightboxOpen(true);
-                            }}
-                            className="rounded-lg object-cover h-20 md:h-44 lg:h-60 w-full shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] cursor-pointer hover:opacity-90 transition-opacity"
-                          />
-                        ))}
+      {/* Timeline Itinerary + About this tour — two columns on md+ */}
+      <div className="grid md:grid-cols-2 items-stretch gap-6 mb-6">
+        {/* Timeline Itinerary */}
+        {deal.itinerary && deal.itinerary.length > 0 && (
+          <Card className={!deal.description ? 'md:col-span-2' : ''}>
+            <CardHeader>
+              <CardTitle>Itinerary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Timeline
+                theme={getThemeForDeal(deal.title, deal.destination)}
+                className="bg-transparent dark:bg-transparent md:px-0 lg:px-0 py-0"
+                hideHeader
+                data={deal.itinerary.map(
+                  (phase) => ({
+                    title: phase.title || `Phase ${phase.phase}`,
+                    content: (
+                      <div className="mb-8">
+                        <p className="text-neutral-800 dark:text-neutral-200 text-xs md:text-sm font-normal mb-4 whitespace-pre-wrap">
+                          {phase.description}
+                        </p>
+                        {/* Phase-specific photos */}
+                        {phase.photos && phase.photos.length > 0 && (
+                          <div className="grid grid-cols-2 gap-4">
+                            {phase.photos.slice(0, 4).map((img, imgIdx) => (
+                              <img
+                                key={imgIdx}
+                                src={img}
+                                alt={`${phase.title || `Phase ${phase.phase}`} photo ${imgIdx + 1}`}
+                                onClick={() => {
+                                  setItineraryPhaseIndex(phase.phase - 1);
+                                  setItineraryPhotoIndex(imgIdx);
+                                  setItineraryLightboxOpen(true);
+                                }}
+                                className="rounded-lg object-cover h-20 md:h-44 lg:h-60 w-full shadow-[0_0_24px_rgba(34,_42,_53,_0.06),_0_1px_1px_rgba(0,_0,_0,_0.05),_0_0_0_1px_rgba(34,_42,_53,_0.04),_0_0_4px_rgba(34,_42,_53,_0.08),_0_16px_68px_rgba(47,_48,_55,_0.05),_0_1px_0_rgba(255,_255,_255,_0.1)_inset] cursor-pointer hover:opacity-90 transition-opacity"
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ),
-              }),
-            )}
-          />
-        </div>
-      )}
+                    ),
+                  }),
+                )}
+              />
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Description */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>About this tour</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* All body text in posts is justified by default. */}
-          <p className="text-muted-foreground whitespace-pre-wrap text-justify">
-            {deal.description}
-          </p>
-        </CardContent>
-      </Card>
+        {/* Right column: About + Inclusions + Exclusions stacked */}
+        <div className={!deal.itinerary || deal.itinerary.length === 0 ? 'md:col-span-2 flex flex-col gap-6 h-full' : 'flex flex-col gap-6 h-full'}>
+          <Card>
+            <CardHeader>
+              <CardTitle>About this tour</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* All body text in posts is justified by default. */}
+              <p className="text-muted-foreground whitespace-pre-wrap text-justify">
+                {deal.description}
+              </p>
+            </CardContent>
+          </Card>
+
+          {deal.inclusions && deal.inclusions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-emerald-600">What's Included</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {deal.inclusions.map((item, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <span className="text-emerald-500 mr-2">✓</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {deal.exclusions && deal.exclusions.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-rose-600">What's Not Included</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {deal.exclusions.map((item, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <span className="text-rose-500 mr-2">✗</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Inline route map — fills the remaining vertical space */}
+          {routeWaypoints.length > 0 && (
+            <Card className="hidden md:flex flex-col flex-1 min-h-0 overflow-hidden shadow-md ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+              <CardHeader className="flex-row items-center justify-between space-y-0">
+                <CardTitle>Tour Route</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs text-muted-foreground"
+                  onClick={() => setRepositionKey((k) => k + 1)}
+                >
+                  <Crosshair className="h-3.5 w-3.5" />
+                  Reposition
+                </Button>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col min-h-0 gap-3">
+                <DealRouteMap
+                  waypoints={routeWaypoints}
+                  geometry={deal.route_geometry}
+                  className="flex-1 min-h-[220px] w-full"
+                  repositionKey={repositionKey}
+                />
+                <ol aria-label="Tour route stops" className="grid max-h-36 gap-2 overflow-y-auto sm:grid-cols-2">
+                  {routeWaypoints.map((waypoint, index) => (
+                    <li
+                      key={`${waypoint.lat}-${waypoint.lng}-${index}`}
+                      className="flex min-h-10 items-center gap-3 rounded-md bg-muted/50 px-3 py-2 text-sm"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white"
+                      >
+                        {index + 1}
+                      </span>
+                      <span className="min-w-0 truncate">
+                        {waypoint.name?.trim() || waypoint.address?.trim() || `Stop ${index + 1}`}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="mt-auto">
+            <RelatedPackages deals={relatedDeals} />
+          </div>
+        </div>
+      </div>
 
       {/*
         Stored route — public pages only render the saved geometry; no routing API call.
@@ -210,7 +310,7 @@ export function DealDetail({ deal }: DealDetailProps) {
           onClick={() => setIsRouteOpen(true)}
           aria-expanded={false}
           aria-controls="tour-route-panel"
-          className="fixed bottom-28 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:bottom-6"
+          className="fixed bottom-28 left-1/2 z-50 hidden -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:bottom-6 md:flex"
         >
           <Route className="h-5 w-5" />
           Tour route
@@ -273,44 +373,7 @@ export function DealDetail({ deal }: DealDetailProps) {
         </>
       )}
 
-      {/* Inclusions & Exclusions */}
-      <div className="grid md:grid-cols-2 gap-6 mb-6">
-        {deal.inclusions && deal.inclusions.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-emerald-600">What's Included</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {deal.inclusions.map((item, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <span className="text-emerald-500 mr-2">✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
 
-        {deal.exclusions && deal.exclusions.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-rose-600">What's Not Included</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                {deal.exclusions.map((item, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <span className="text-rose-500 mr-2">✗</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-      </div>
 
       {/*
         Full-screen preview of the centred photo. The native dialog paints in the

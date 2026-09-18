@@ -30,6 +30,8 @@ interface DealRouteMapProps {
   editable?: boolean;
   onMapClick?: (point: { lat: number; lng: number }) => void;
   className?: string;
+  /** Bump this value to re-fit the map to all waypoints. */
+  repositionKey?: number;
 }
 
 type LatLngTuple = [number, number];
@@ -230,10 +232,12 @@ function MapBounds({
   waypoints,
   geometry,
   hasPolaroid,
+  repositionKey,
 }: {
   waypoints: Waypoint[];
   geometry?: RouteGeometry | null;
   hasPolaroid: boolean;
+  repositionKey?: number;
 }) {
   const map = useMap();
   const geometryPoints = validGeometry(geometry);
@@ -267,7 +271,7 @@ function MapBounds({
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [geometry, geometryPoints.length, hasPolaroid, map, waypoints]);
+  }, [geometry, geometryPoints.length, hasPolaroid, map, repositionKey, waypoints]);
 
   return null;
 }
@@ -287,6 +291,7 @@ export function DealRouteMap({
   editable = false,
   onMapClick,
   className = '',
+  repositionKey,
 }: DealRouteMapProps) {
   const safeWaypoints = filterValidWaypoints(waypoints);
   const line = validGeometry(geometry);
@@ -301,7 +306,7 @@ export function DealRouteMap({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-lg border ${className}`}
+      className={`relative isolate overflow-hidden rounded-lg border ${className}`}
       role="region"
       aria-label={editable ? 'Editable tour route map' : 'Tour route map'}
     >
@@ -309,7 +314,7 @@ export function DealRouteMap({
         center={center}
         zoom={firstPoint ? 10 : 7}
         scrollWheelZoom
-        className="h-full w-full"
+        className="absolute inset-0"
         aria-label={editable ? 'Editable tour route map' : 'Tour route map'}
       >
         <TileLayer
@@ -320,6 +325,7 @@ export function DealRouteMap({
           waypoints={safeWaypoints}
           geometry={geometry}
           hasPolaroid={safeWaypoints.some((point) => Boolean(point.image))}
+          repositionKey={repositionKey}
         />
         {editable && <ClickHandler onMapClick={onMapClick} />}
         {safeWaypoints.map((point, index) => (
