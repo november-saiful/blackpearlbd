@@ -167,15 +167,17 @@ export function MediaExplorer() {
     }
   };
 
+  const apiUrl = import.meta.env.VITE_API_URL || '';
+
   const copyUrl = (file: MediaFile) => {
-    const url = `${window.location.origin}/upload/image/${file.key}`;
+    const url = `${apiUrl}/upload/image/${file.key}`;
     navigator.clipboard.writeText(url).then(
       () => toast.success('URL copied to clipboard'),
       () => toast.error('Failed to copy URL'),
     );
   };
 
-  const fileUrl = (file: MediaFile) => `/upload/image/${file.key}`;
+  const fileUrl = (file: MediaFile) => `${apiUrl}/upload/image/${file.key}`;
 
   return (
     <Card>
