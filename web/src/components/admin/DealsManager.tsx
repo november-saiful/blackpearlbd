@@ -565,7 +565,7 @@ export function DealsManager() {
     setLightboxOpen(false);
     setLightboxIndex(0);
     setSlugError('');
-    setShowExistingMedia(false);
+    setShowExistingMedia(true);
     setIsEditModalOpen(true);
   };
 
