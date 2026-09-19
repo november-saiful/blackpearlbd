@@ -180,6 +180,48 @@ upload.post('/batch-delete', authMiddleware, adminMiddleware, async (c) => {
   return c.json({ deleted: keys.length });
 });
 
+// Delete a whole folder — every object under a prefix — from R2 (admin only).
+// R2 has no real directories, so "the folder deals/kuakata-sea" is the set of
+// keys starting with that prefix; deleting the folder means deleting all of them.
+upload.post('/delete-folder', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  const body = await c.req.json<{ prefix: string }>();
+  const raw = (body.prefix || '').trim().replace(/^\/+/, '');
+  if (!raw) {
+    return c.json({ error: 'prefix is required' }, 400);
+  }
+
+  const prefix = raw.endsWith('/') ? raw : `${raw}/`;
+
+  // Without at least one slash this is a top-level name, and an empty prefix
+  // would list — and then delete — the entire bucket.
+  if (!prefix.includes('/') || prefix === '/') {
+    return c.json({ error: 'Refusing to delete the bucket root' }, 400);
+  }
+
+  let deleted = 0;
+
+  // Delete the first page, then list again from the start. Re-listing (rather
+  // than following a cursor) matters because a cursor into a listing whose
+  // objects have just been deleted can skip entries and leave the folder
+  // half-empty.
+  for (let pass = 0; pass < 10_000; pass++) {
+    const page = await env.BLACKPEARL_BUCKET.list({ prefix, limit: 1000 });
+    const keys = (page.objects || []).map((object) => object.key);
+    if (keys.length === 0) {
+      return c.json({ prefix, deleted });
+    }
+    await env.BLACKPEARL_BUCKET.delete(keys);
+    deleted += keys.length;
+  }
+
+  return c.json({ error: 'Too many objects to delete in one call', deleted }, 500);
+});
+
 // Batch rename: add prefix/suffix to multiple R2 objects (admin only)
 upload.post('/batch-rename', authMiddleware, adminMiddleware, async (c) => {
   const env = c.env as Env;

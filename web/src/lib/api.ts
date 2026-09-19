@@ -187,6 +187,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ keys, find, replace }),
     }),
+  /** Deletes a folder: every object under the prefix, in R2. */
+  deleteMediaFolder: (prefix: string) =>
+    fetchApi<{ prefix: string; deleted: number }>('/upload/delete-folder', {
+      method: 'POST',
+      body: JSON.stringify({ prefix }),
+    }),
   getMediaBySlug: (slug: string) =>
     fetchApi<{ slug: string; files: Array<{ key: string; url: string; size: number; contentType: string }>; total: number }>(
       `/upload/by-slug/${encodeURIComponent(slug)}`,

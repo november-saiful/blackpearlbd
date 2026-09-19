@@ -77,6 +77,8 @@ export function MediaExplorer() {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  // Prefix of the folder currently being deleted, so its own button can spin.
+  const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
   // Batch selection
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   // Batch rename dialog
@@ -251,6 +253,37 @@ export function MediaExplorer() {
     }
   };
 
+  /**
+   * Deletes a folder and everything inside it. R2 folders are just key
+   * prefixes, so `folderPrefix` is always the path up to and including its
+   * trailing slash.
+   */
+  const deleteFolderMutation = useMutation({
+    mutationFn: (folderPrefix: string) => api.deleteMediaFolder(folderPrefix),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-media'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-storage-stats'] });
+      toast.success(
+        `Folder deleted with ${result.deleted} file${result.deleted !== 1 ? 's' : ''}`,
+      );
+      setDeletingFolder(null);
+      clearSelection();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete folder');
+      setDeletingFolder(null);
+    },
+  });
+
+  const handleDeleteFolder = (folderPrefix: string, name: string) => {
+    const warning =
+      `Permanently delete the folder "${name}" and every file inside it?\n\n` +
+      'Deals still pointing at those images will show broken photos. This cannot be undone.';
+    if (!confirm(warning)) return;
+    setDeletingFolder(folderPrefix);
+    deleteFolderMutation.mutate(folderPrefix);
+  };
+
   const handleBatchDelete = () => {
     const count = selectedKeys.size;
     if (count === 0) return;
@@ -378,6 +411,30 @@ export function MediaExplorer() {
               </span>
             );
           })}
+          {/*
+           * Deleting the folder you are standing in. The tiles below can only
+           * delete subfolders, so without this the parent would have to be
+           * re-entered just to remove the one you are looking at.
+           */}
+          {prefix && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-2 h-7 px-2 text-xs text-destructive hover:text-destructive"
+              disabled={deletingFolder === prefix}
+              onClick={() => {
+                const name = prefix.replace(/\/$/, '').split('/').pop() || prefix;
+                handleDeleteFolder(prefix, name);
+              }}
+            >
+              {deletingFolder === prefix ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              Delete this folder
+            </Button>
+          )}
         </div>
 
         {/* Batch action bar */}
@@ -490,19 +547,38 @@ export function MediaExplorer() {
             {viewMode === 'grid' && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 {/* Folders */}
-                {Array.from(folders).map((folder) => (
-                  <button
-                    key={folder}
-                    type="button"
-                    onClick={() => navigateTo(prefix + folder)}
-                    className="group flex flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 hover:bg-accent/50 transition-colors text-center"
-                  >
-                    <Folder className="w-10 h-10 text-amber-500 shrink-0" />
-                    <span className="text-xs font-medium text-foreground truncate w-full">
-                      {folder.replace(/\/$/, '')}
-                    </span>
-                  </button>
-                ))}
+                {Array.from(folders).map((folder) => {
+                  const folderPrefix = prefix + folder;
+                  const folderName = folder.replace(/\/$/, '');
+                  return (
+                    <div key={folder} className="group relative">
+                      <button
+                        type="button"
+                        onClick={() => navigateTo(folderPrefix)}
+                        className="flex w-full flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 hover:bg-accent/50 transition-colors text-center"
+                      >
+                        <Folder className="w-10 h-10 text-amber-500 shrink-0" />
+                        <span className="text-xs font-medium text-foreground truncate w-full">
+                          {folderName}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        title={`Delete folder ${folderName}`}
+                        aria-label={`Delete folder ${folderName} and all of its files`}
+                        disabled={deletingFolder === folderPrefix}
+                        onClick={() => handleDeleteFolder(folderPrefix, folderName)}
+                        className="absolute right-2 top-2 rounded-md p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-100"
+                      >
+                        {deletingFolder === folderPrefix ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
 
                 {/* Files */}
                 {fileItems.map((file) => {
@@ -633,27 +709,53 @@ export function MediaExplorer() {
                   </thead>
                   <tbody>
                     {/* Folders */}
-                    {Array.from(folders).map((folder) => (
-                      <tr
-                        key={folder}
-                        className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() => navigateTo(prefix + folder)}
-                      >
-                        <td className="py-3 px-3"></td>
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2">
-                            <Folder className="w-5 h-5 text-amber-500 shrink-0" />
-                            <span className="text-sm font-medium text-foreground">
-                              {folder.replace(/\/$/, '')}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 hidden sm:table-cell text-sm text-muted-foreground">Folder</td>
-                        <td className="py-3 px-3 hidden md:table-cell text-sm text-muted-foreground">—</td>
-                        <td className="py-3 px-3 hidden lg:table-cell text-sm text-muted-foreground">—</td>
-                        <td className="py-3 px-3"></td>
-                      </tr>
-                    ))}
+                    {Array.from(folders).map((folder) => {
+                      const folderPrefix = prefix + folder;
+                      const folderName = folder.replace(/\/$/, '');
+                      return (
+                        <tr
+                          key={folder}
+                          className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
+                          onClick={() => navigateTo(folderPrefix)}
+                        >
+                          <td className="py-3 px-3"></td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2">
+                              <Folder className="w-5 h-5 text-amber-500 shrink-0" />
+                              <span className="text-sm font-medium text-foreground">
+                                {folderName}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 hidden sm:table-cell text-sm text-muted-foreground">Folder</td>
+                          <td className="py-3 px-3 hidden md:table-cell text-sm text-muted-foreground">—</td>
+                          <td className="py-3 px-3 hidden lg:table-cell text-sm text-muted-foreground">—</td>
+                          <td className="py-3 px-3">
+                            <div className="flex justify-end">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                title={`Delete folder ${folderName}`}
+                                aria-label={`Delete folder ${folderName} and all of its files`}
+                                disabled={deletingFolder === folderPrefix}
+                                onClick={(event) => {
+                                  // The row itself navigates; deleting must not.
+                                  event.stopPropagation();
+                                  handleDeleteFolder(folderPrefix, folderName);
+                                }}
+                              >
+                                {deletingFolder === folderPrefix ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
 
                     {/* Files */}
                     {fileItems.map((file) => {
