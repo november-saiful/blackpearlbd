@@ -551,7 +551,7 @@ export function MediaExplorer() {
                   const folderPrefix = prefix + folder;
                   const folderName = folder.replace(/\/$/, '');
                   return (
-                    <div key={folder} className="group relative">
+                    <div key={folder} className="relative">
                       <button
                         type="button"
                         onClick={() => navigateTo(folderPrefix)}
@@ -562,13 +562,18 @@ export function MediaExplorer() {
                           {folderName}
                         </span>
                       </button>
+                      {/*
+                       * Always visible, not revealed on hover: a control that
+                       * only exists under the pointer is invisible on a touch
+                       * screen and easy to miss with a mouse.
+                       */}
                       <button
                         type="button"
                         title={`Delete folder ${folderName}`}
                         aria-label={`Delete folder ${folderName} and all of its files`}
                         disabled={deletingFolder === folderPrefix}
                         onClick={() => handleDeleteFolder(folderPrefix, folderName)}
-                        className="absolute right-2 top-2 rounded-md p-1.5 text-muted-foreground opacity-0 transition-[opacity,background-color,color] hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-100"
+                        className="absolute right-2 top-2 rounded-md border border-border bg-background/90 p-1.5 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {deletingFolder === folderPrefix ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
