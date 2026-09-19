@@ -195,6 +195,13 @@ export const api = {
     fetchApi<{ slug: string; exists: boolean; fileCount: number }>(
       `/upload/slug-check/${encodeURIComponent(slug)}`,
     ),
+  getSlugFolders: () =>
+    fetchApi<{ folders: string[] }>('/upload/slug-folders'),
+  createSlugFolder: (slug: string) =>
+    fetchApi<{ slug: string; created: boolean; key: string }>('/upload/create-folder', {
+      method: 'POST',
+      body: JSON.stringify({ slug }),
+    }),
 
   // Featured Reviews (public)
   getFeaturedReviews: (limit = 10) =>

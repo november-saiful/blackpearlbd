@@ -92,18 +92,48 @@ export function DealsManager() {
   const [isPurgingGeoCache, setIsPurgingGeoCache] = useState(false);
   const [snappingWaypointIndex, setSnappingWaypointIndex] = useState<number | null>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  // Slug validation
+  const slugDropdownRef = useRef<HTMLDivElement>(null);
+  // Slug system
   const [slugError, setSlugError] = useState('');
   const [slugChecking, setSlugChecking] = useState(false);
+  const [slugConfirmed, setSlugConfirmed] = useState(false);
+  const [slugDropdownOpen, setSlugDropdownOpen] = useState(false);
+  const [slugFilter, setSlugFilter] = useState('');
+  const [createFolderConfirmOpen, setCreateFolderConfirmOpen] = useState(false);
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+
+  // Close slug dropdown on outside click
+  useEffect(() => {
+    if (!slugDropdownOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (slugDropdownRef.current && !slugDropdownRef.current.contains(e.target as Node)) {
+        setSlugDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [slugDropdownOpen]);
+
   // Existing media browser
   const [showExistingMedia, setShowExistingMedia] = useState(false);
 
-  // Fetch existing media from the slug folder when slug is set
+  // Fetch existing slug folders from R2 for the combobox
+  const { data: slugFoldersData } = useQuery({
+    queryKey: ['slug-folders'],
+    queryFn: () => api.getSlugFolders(),
+    enabled: isCreateModalOpen,
+  });
+  const slugFolders = slugFoldersData?.folders || [];
+  const filteredSlugFolders = slugFolders.filter((f) =>
+    f.toLowerCase().includes(slugFilter.toLowerCase()) && f !== formData.slug.trim()
+  );
+
+  // Fetch existing media from the slug folder when slug is confirmed
   const currentSlug = formData.slug.trim();
   const { data: existingMedia, isLoading: isLoadingMedia } = useQuery({
     queryKey: ['deal-slug-media', currentSlug],
     queryFn: () => api.getMediaBySlug(currentSlug),
-    enabled: showExistingMedia && currentSlug.length > 0,
+    enabled: slugConfirmed && currentSlug.length > 0,
   });
 
   /** Convert a title to a URL-safe slug */
@@ -111,8 +141,8 @@ export function DealsManager() {
     title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   /** Check slug uniqueness against the DB */
-  const checkSlugUniqueness = async (slug: string) => {
-    if (!slug) { setSlugError(''); return; }
+  const checkSlugUniqueness = async (slug: string): Promise<boolean> => {
+    if (!slug) { setSlugError(''); return false; }
     setSlugChecking(true);
     try {
       const { deals: allDeals } = await api.getDeals();
@@ -120,14 +150,57 @@ export function DealsManager() {
       const duplicate = allDeals.some((d: any) => d.slug === slug && (!isEdit || d.id !== selectedDeal?.id));
       if (duplicate) {
         setSlugError('A deal with this slug already exists');
-      } else {
-        setSlugError('');
+        return false;
       }
+      setSlugError('');
+      return true;
     } catch {
       setSlugError('');
+      return true;
     } finally {
       setSlugChecking(false);
     }
+  };
+
+  /** Confirm and create the slug folder in R2 */
+  const handleCreateFolder = async () => {
+    const slug = formData.slug.trim();
+    if (!slug) return;
+    const unique = await checkSlugUniqueness(slug);
+    if (!unique) return;
+    setCreateFolderConfirmOpen(true);
+  };
+
+  const confirmCreateFolder = async () => {
+    const slug = formData.slug.trim();
+    setIsCreatingFolder(true);
+    try {
+      await api.createSlugFolder(slug);
+      setSlugConfirmed(true);
+      setCreateFolderConfirmOpen(false);
+      setSlugDropdownOpen(false);
+      toast.success(`Folder deals/${slug}/ created`);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to create folder');
+    } finally {
+      setIsCreatingFolder(false);
+    }
+  };
+
+  /** Select an existing slug folder — already confirmed */
+  const selectSlugFolder = (slug: string) => {
+    setFormData((current) => ({ ...current, slug }));
+    setSlugConfirmed(true);
+    setSlugDropdownOpen(false);
+    setSlugFilter('');
+    setSlugError('');
+  };
+
+  /** Reset slug to edit mode (pre-confirmed) */
+  const confirmSlugForEdit = (slug: string) => {
+    setFormData((current) => ({ ...current, slug }));
+    setSlugConfirmed(true);
+    setSlugError('');
   };
 
   const setRouteWaypoints = (waypoints: Waypoint[]) => {
@@ -360,6 +433,7 @@ export function DealsManager() {
       setFormData((current) => ({ ...current, slug: autoSlug }));
     }
     if (slugError) return slugError;
+    if (!slugConfirmed && !isEditModalOpen) return 'Create the slug folder first before saving';
     if (!formData.destination.trim()) return 'Destination is required';
     if (!formData.description.trim()) return 'Description is required';
     if (!formData.price || formData.price <= 0) return 'Price must be greater than 0';
@@ -525,6 +599,10 @@ export function DealsManager() {
     setLightboxIndex(0);
     setSlugError('');
     setSlugChecking(false);
+    setSlugConfirmed(false);
+    setSlugDropdownOpen(false);
+    setSlugFilter('');
+    setCreateFolderConfirmOpen(false);
     setShowExistingMedia(false);
   };
 
@@ -565,6 +643,7 @@ export function DealsManager() {
     setLightboxOpen(false);
     setLightboxIndex(0);
     setSlugError('');
+    confirmSlugForEdit(deal.slug);
     setShowExistingMedia(true);
     setIsEditModalOpen(true);
   };
@@ -839,33 +918,135 @@ export function DealsManager() {
                     <Input value={formData.slug} disabled className="bg-muted font-mono text-sm" />
                     <p className="mt-1 text-[11px] text-muted-foreground">Slug cannot be changed after creation (folder structure).</p>
                   </div>
+                ) : slugConfirmed ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 flex items-center gap-2 rounded-md border border-green-500/50 bg-green-500/5 px-3 py-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+                      <span className="font-mono text-sm text-green-700">deals/{formData.slug}/</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs text-muted-foreground"
+                      onClick={() => {
+                        setSlugConfirmed(false);
+                        setFormData((c) => ({ ...c, slug: '', gallery: [], image_url: '' }));
+                      }}
+                    >
+                      Change
+                    </Button>
+                  </div>
                 ) : (
-                  <div>
+                  <div className="space-y-2 relative">
                     <div className="relative">
                       <Input
-                        value={formData.slug}
+                        value={formData.slug || slugFilter}
                         onChange={(e) => {
-                          const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
-                          setFormData({ ...formData, slug });
+                          const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
+                          setFormData({ ...formData, slug: val });
+                          setSlugFilter(val);
                           setSlugError('');
+                          setSlugDropdownOpen(val.length > 0);
                         }}
-                        onBlur={() => checkSlugUniqueness(formData.slug)}
-                        placeholder="auto-generated from title"
-                        className={slugError ? 'border-destructive' : ''}
+                        onFocus={() => setSlugDropdownOpen(true)}
+                        placeholder="Type a slug or pick existing folder"
+                        className={slugError ? 'border-destructive pr-20' : 'pr-20'}
+                        disabled={slugConfirmed}
                       />
-                      {slugChecking && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
-                      {!slugChecking && !slugError && formData.slug && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />}
+                      {/* Dropdown indicator */}
+                      <button
+                        type="button"
+                        className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                        onClick={() => setSlugDropdownOpen(!slugDropdownOpen)}
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
                     </div>
+
+                    {/* Combobox dropdown */}
+                    {slugDropdownOpen && !slugConfirmed && (
+                      <div ref={slugDropdownRef} className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-md border bg-popover shadow-md">
+                        {filteredSlugFolders.length > 0 ? (
+                          <>
+                            <p className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground uppercase">Existing folders</p>
+                            {filteredSlugFolders.map((folder) => (
+                              <button
+                                key={folder}
+                                type="button"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left"
+                                onClick={() => selectSlugFolder(folder)}
+                              >
+                                <FolderOpen className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <span className="font-mono text-xs">deals/{folder}/</span>
+                              </button>
+                            ))}
+                          </>
+                        ) : (
+                          <p className="px-3 py-2 text-xs text-muted-foreground">
+                            {formData.slug.trim() ? `No existing folder matches "${formData.slug.trim()}"` : 'Type to search existing folders'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Error / status */}
                     {slugError && (
-                      <p className="mt-1 text-[11px] text-destructive flex items-center gap-1">
+                      <p className="text-[11px] text-destructive flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />{slugError}
                       </p>
                     )}
-                    <p className="mt-1 text-[11px] text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground">
                       Folder: <span className="font-mono">deals/{formData.slug || '...'}/</span>
                     </p>
+
+                    {/* Create folder button */}
+                    {formData.slug.trim() && !slugError && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="h-8 text-xs"
+                        disabled={slugChecking || isCreatingFolder}
+                        onClick={handleCreateFolder}
+                      >
+                        {slugChecking || isCreatingFolder ? (
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                        )}
+                        Create Folder & Confirm
+                      </Button>
+                    )}
                   </div>
                 )}
+
+                {/* Create folder confirmation dialog */}
+                <Dialog open={createFolderConfirmOpen} onOpenChange={setCreateFolderConfirmOpen}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Confirm Slug Folder</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        You are about to create the folder <span className="font-mono font-medium text-foreground">deals/{formData.slug}/</span> in storage.
+                      </p>
+                      <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                        <p className="text-sm font-medium text-destructive flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />This cannot be undone
+                        </p>
+                        <p className="text-xs text-destructive/80 mt-1">
+                          The slug URL will be permanently locked. Media uploads will always go to this folder. You cannot change the slug later.
+                        </p>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" size="sm" onClick={() => setCreateFolderConfirmOpen(false)}>Cancel</Button>
+                      <Button size="sm" disabled={isCreatingFolder} onClick={confirmCreateFolder}>
+                        {isCreatingFolder && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                        Confirm & Create
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
               <div>
                 <Label htmlFor="deal-destination">Destination *</Label>
@@ -919,6 +1100,14 @@ export function DealsManager() {
               {/* Centralized Gallery Upload */}
               <div className="col-span-1 sm:col-span-2">
                 <Label>Deal Gallery</Label>
+                {!slugConfirmed && !isEditModalOpen ? (
+                  <div className="rounded-lg border-2 border-dashed p-8 text-center bg-muted/30">
+                    <FolderOpen className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">Create and confirm a slug folder first to upload media.</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">The slug determines the storage folder for all media files.</p>
+                  </div>
+                ) : (
+                  <>
                 <p className="text-xs text-muted-foreground mb-2">Upload all images here. Select from gallery below for main image, itinerary days, and map markers.</p>
                 
                 {/* Upload area */}
@@ -1099,6 +1288,8 @@ export function DealsManager() {
                       ))}
                     </div>
                   </div>
+                )}
+                  </>
                 )}
               </div>
               <div><Label>Inclusions (one per line)</Label><Textarea value={formData.inclusions} onChange={(e) => setFormData({ ...formData, inclusions: e.target.value })} rows={4} /></div>

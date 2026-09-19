@@ -531,4 +531,62 @@ upload.get('/slug-check/:slug', async (c) => {
   return c.json({ slug: slug.trim(), exists: count > 0, fileCount: count });
 });
 
+// List all existing deal slug folders in R2 (admin only)
+upload.get('/slug-folders', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ folders: [] });
+  }
+
+  // List all objects under deals/ and extract unique first-level subfolder names
+  const folderSet = new Set<string>();
+  let cursor: string | undefined = undefined;
+
+  do {
+    const page = await env.BLACKPEARL_BUCKET.list({ prefix: 'deals/', cursor, limit: 1000 });
+    for (const obj of page.objects || []) {
+      const relative = obj.key.slice('deals/'.length); // e.g. "foo/123.jpg" or "123.jpg"
+      const slashIdx = relative.indexOf('/');
+      if (slashIdx > 0) {
+        folderSet.add(relative.slice(0, slashIdx)); // e.g. "foo"
+      }
+    }
+    cursor = page.truncated && page.cursor ? page.cursor : undefined;
+  } while (cursor);
+
+  return c.json({ folders: Array.from(folderSet).sort() });
+});
+
+// Create a slug folder in R2 by placing a .keep marker (admin only)
+// This is a one-time action — the slug becomes permanent for the deal.
+upload.post('/create-folder', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  const body = await c.req.json<{ slug: string }>();
+  const slug = body.slug?.trim();
+  if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
+    return c.json({ error: 'Invalid slug. Only lowercase letters, numbers, and hyphens allowed.' }, 400);
+  }
+
+  const folderKey = `deals/${slug}/.keep`;
+
+  // Check if folder already has files (already created)
+  const existing = await env.BLACKPEARL_BUCKET.head(folderKey);
+  if (!existing) {
+    // Also check if any files exist under this prefix (from prior uploads)
+    const page = await env.BLACKPEARL_BUCKET.list({ prefix: `deals/${slug}/`, limit: 1 });
+    if ((page.objects || []).length === 0) {
+      // Truly empty — create the .keep marker
+      await env.BLACKPEARL_BUCKET.put(folderKey, new Uint8Array(0), {
+        httpMetadata: { contentType: 'application/x-empty' },
+      });
+    }
+  }
+
+  return c.json({ slug, created: true, key: folderKey });
+});
+
 export default upload;
