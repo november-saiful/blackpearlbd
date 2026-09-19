@@ -100,6 +100,50 @@ upload.get('/image/*', async (c) => {
   return new Response(object.body, { headers });
 });
 
+// Storage stats for the admin dashboard (admin only)
+// Lists all objects to compute total size, file count, and folder breakdown.
+upload.get('/stats', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  let totalFiles = 0;
+  let totalSize = 0;
+  const folderBreakdown: Record<string, { count: number; size: number }> = {};
+  let cursor: string | undefined = undefined;
+
+  // Paginate through all objects
+  while (true) {
+    const page = await env.BLACKPEARL_BUCKET.list({ cursor, limit: 1000 });
+    const objects: R2Object[] = page.objects || [];
+    for (const obj of objects) {
+      totalFiles++;
+      totalSize += obj.size;
+      // Top-level folder (e.g. "deals" from "deals/foo/bar.jpg")
+      const parts = obj.key.split('/');
+      const folder = parts.length > 1 ? parts[0] : '(root)';
+      if (!folderBreakdown[folder]) {
+        folderBreakdown[folder] = { count: 0, size: 0 };
+      }
+      folderBreakdown[folder].count++;
+      folderBreakdown[folder].size += obj.size;
+    }
+    if (page.truncated && page.cursor) {
+      cursor = page.cursor;
+    } else {
+      break;
+    }
+  }
+
+  return c.json({
+    totalFiles,
+    totalSize,
+    folders: folderBreakdown,
+  });
+});
+
 // List all objects in R2 bucket (admin only)
 upload.get('/list', authMiddleware, adminMiddleware, async (c) => {
   const env = c.env as Env;

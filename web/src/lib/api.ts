@@ -153,6 +153,8 @@ export const api = {
     fetchApi(`/reviews/${id}`, { method: 'DELETE' }),
 
   // Media (admin)
+  getStorageStats: () =>
+    fetchApi<StorageStats>('/upload/stats'),
   listMedia: (options?: { prefix?: string; cursor?: string; limit?: number }) => {
     const params = new URLSearchParams();
     if (options?.prefix) params.set('prefix', options.prefix);
@@ -244,4 +246,4 @@ export const api = {
 };
 
 // Import types at the top level for convenience
-import type { Profile, TourDeal, CustomPackage, Booking, SavedDeal, PearlsHistory, Destination, ProfileStats, AdminStats, PackageDestination, PackageDistrict, PackageTourSpot, GeoPlace, GeoRoute, GeoCachePurgeResult, Review, ReviewStats, MediaFile } from '../types';
+import type { Profile, TourDeal, CustomPackage, Booking, SavedDeal, PearlsHistory, Destination, ProfileStats, AdminStats, PackageDestination, PackageDistrict, PackageTourSpot, GeoPlace, GeoRoute, GeoCachePurgeResult, Review, ReviewStats, MediaFile, StorageStats } from '../types';

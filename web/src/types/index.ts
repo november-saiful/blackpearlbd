@@ -263,3 +263,9 @@ export interface MediaFile {
     cacheControl: string | null;
   };
 }
+
+export interface StorageStats {
+  totalFiles: number;
+  totalSize: number;
+  folders: Record<string, { count: number; size: number }>;
+}
