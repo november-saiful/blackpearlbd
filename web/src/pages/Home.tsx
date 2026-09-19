@@ -2,15 +2,15 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { DealCard } from '@/components/deals/DealCard';
 import { DealGrid } from '@/components/deals/DealGrid';
 import { useDeals } from '@/hooks/useDeals';
 import { GlobePolaroids } from '@/components/ui/component';
 import { StarsBackground } from '@/components/ui/stars-background';
 import { CTabs6 } from '@/components/examples/c-tabs-6';
 import BuildPackageForm from '@/components/package-builder/BuildPackageForm';
-import { Compass, Star, ArrowRight, MapPin, Clock } from 'lucide-react';
+import { Compass, Star, ArrowRight } from 'lucide-react';
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
-import { formatCurrency } from '@/lib/utils';
 import type { TourDeal } from '@/types';
 
 function TourDealsPreview({ deals }: { deals: TourDeal[] }) {
@@ -25,42 +25,9 @@ function TourDealsPreview({ deals }: { deals: TourDeal[] }) {
       {deals.length === 0 ? (
         <p className="text-muted-foreground text-sm py-4">No deals available right now.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {deals.map((deal) => (
-            <Link
-              key={deal.id}
-              to={`/deals/${deal.slug}`}
-              className="group rounded-xl border bg-card overflow-hidden transition-shadow hover:shadow-md"
-            >
-              <div className="relative h-32">
-                <img
-                  src={deal.image_url || '/placeholder-deal.jpg'}
-                  alt={deal.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                {deal.original_price && deal.original_price > deal.price && (
-                  <span className="absolute top-2 right-2 text-[10px] font-bold bg-emerald-500 text-white px-1.5 py-0.5 rounded">
-                    {Math.round((1 - deal.price / deal.original_price) * 100)}% OFF
-                  </span>
-                )}
-              </div>
-              <div className="p-3">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                  <MapPin className="w-3 h-3" />
-                  {deal.destination}
-                </div>
-                <h4 className="text-sm font-semibold line-clamp-1 group-hover:text-primary transition-colors">
-                  {deal.title}
-                </h4>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-sm font-bold">{formatCurrency(deal.price)}</span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    {deal.duration_days}D
-                  </span>
-                </div>
-              </div>
-            </Link>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {deals.slice(0, 6).map((deal) => (
+            <DealCard key={deal.id} deal={deal} />
           ))}
         </div>
       )}
