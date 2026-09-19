@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Folder,
+  FolderInput,
   Image,
   File,
   Trash2,
@@ -167,6 +168,18 @@ export function MediaExplorer() {
     }
   };
 
+  const reorganizeMutation = useMutation({
+    mutationFn: () => api.reorganizeMedia(),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-media'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-storage-stats'] });
+      toast.success(`Reorganized: ${result.moved} files moved, ${result.skipped} skipped`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to reorganize');
+    },
+  });
+
   const apiUrl = import.meta.env.VITE_API_URL || '';
 
   const copyUrl = (file: MediaFile) => {
@@ -188,6 +201,24 @@ export function MediaExplorer() {
             Media Files
           </CardTitle>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              disabled={reorganizeMutation.isPending}
+              onClick={() => {
+                if (confirm('Move all root-level deal images into their deal-slug subfolders? This updates database references too.')) {
+                  reorganizeMutation.mutate();
+                }
+              }}
+            >
+              {reorganizeMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <FolderInput className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              {reorganizeMutation.isPending ? 'Organizing...' : 'Reorganize'}
+            </Button>
             <div className="flex items-center gap-1 border border-border rounded-lg">
               <Button
                 variant={viewMode === 'grid' ? 'secondary' : 'ghost'}

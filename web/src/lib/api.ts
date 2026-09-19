@@ -155,6 +155,11 @@ export const api = {
   // Media (admin)
   getStorageStats: () =>
     fetchApi<StorageStats>('/upload/stats'),
+  reorganizeMedia: () =>
+    fetchApi<{ moved: number; skipped: number; errors: number; details: string[] }>(
+      '/upload/reorganize',
+      { method: 'POST' },
+    ),
   listMedia: (options?: { prefix?: string; cursor?: string; limit?: number }) => {
     const params = new URLSearchParams();
     if (options?.prefix) params.set('prefix', options.prefix);

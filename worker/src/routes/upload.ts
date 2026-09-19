@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import { publicImageUrl } from '../lib/r2';
+import { createSupabaseAdminClient } from '../lib/supabase';
 import { Env } from '../types';
 import { z } from 'zod';
 
@@ -179,6 +180,160 @@ upload.get('/list', authMiddleware, adminMiddleware, async (c) => {
     truncated: listed.truncated,
     cursor: listed.truncated && listed.cursor ? listed.cursor : null,
   });
+});
+
+// Reorganize existing root-level deal images into deal-slug subfolders.
+// For each deal, finds images it references that sit in the flat deals/ folder,
+// moves them to deals/{slug}/, and updates all database references.
+upload.post('/reorganize', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  const adminClient = createSupabaseAdminClient(env);
+
+  // Fetch all deals
+  const { data: allDeals, error: dealsError } = await adminClient
+    .from('tour_deals')
+    .select('id, slug, image_url, gallery, itinerary, route_waypoints');
+
+  if (dealsError) {
+    return c.json({ error: 'Failed to fetch deals' }, 500);
+  }
+
+  const deals = allDeals || [];
+  let moved = 0;
+  let skipped = 0;
+  let errors = 0;
+  const details: string[] = [];
+
+  for (const deal of deals) {
+    if (!deal.slug) {
+      skipped++;
+      continue;
+    }
+
+    // Collect all image URLs from this deal
+    const imageUrls: string[] = [];
+    if (deal.image_url) imageUrls.push(deal.image_url);
+    if (Array.isArray(deal.gallery)) {
+      for (const url of deal.gallery) {
+        if (typeof url === 'string' && !imageUrls.includes(url)) imageUrls.push(url);
+      }
+    }
+    // Itinerary photos
+    if (Array.isArray(deal.itinerary)) {
+      for (const phase of deal.itinerary) {
+        if (Array.isArray(phase.photos)) {
+          for (const url of phase.photos) {
+            if (typeof url === 'string' && !imageUrls.includes(url)) imageUrls.push(url);
+          }
+        }
+      }
+    }
+    // Route waypoint images
+    if (Array.isArray(deal.route_waypoints)) {
+      for (const wp of deal.route_waypoints) {
+        if (typeof wp.image === 'string' && !imageUrls.includes(wp.image)) imageUrls.push(wp.image);
+      }
+    }
+
+    // For each image, check if it's in the root deals/ folder (not in a subfolder)
+    for (const url of imageUrls) {
+      const keyMatch = url.match(/\/upload\/image\/(.+)$/);
+      if (!keyMatch) continue;
+
+      const oldKey = decodeURIComponent(keyMatch[1]);
+      // Skip if already in a subfolder (contains deals/X/ where X is not empty)
+      const afterDeals = oldKey.replace(/^deals\//, '');
+      if (afterDeals.includes('/')) continue; // Already in a subfolder
+
+      // This file is in the root deals/ folder — move it
+      const ext = oldKey.split('.').pop() || 'jpg';
+      const filename = oldKey.split('/').pop() || oldKey;
+      const newKey = `deals/${deal.slug}/${filename}`;
+
+      try {
+        const existing = await env.BLACKPEARL_BUCKET.get(oldKey);
+        if (!existing) {
+          skipped++;
+          continue;
+        }
+
+        // Check destination doesn't already exist
+        const conflict = await env.BLACKPEARL_BUCKET.head(newKey);
+        if (!conflict) {
+          // Copy to new location
+          await env.BLACKPEARL_BUCKET.put(newKey, existing.body, {
+            httpMetadata: existing.httpMetadata,
+            customMetadata: existing.customMetadata,
+          });
+          // Delete original
+          await env.BLACKPEARL_BUCKET.delete(oldKey);
+        }
+
+        // Build the new URL
+        const newUrl = `/upload/image/${newKey}`;
+
+        // Update database references for this deal
+        const updates: Record<string, unknown> = {};
+        if (deal.image_url === url) {
+          updates.image_url = newUrl;
+        }
+        if (Array.isArray(deal.gallery)) {
+          const idx = deal.gallery.indexOf(url);
+          if (idx !== -1) {
+            const newGallery = [...deal.gallery];
+            newGallery[idx] = newUrl;
+            updates.gallery = newGallery;
+          }
+        }
+        if (Array.isArray(deal.itinerary)) {
+          let changed = false;
+          const newItinerary = deal.itinerary.map((phase: any) => {
+            if (Array.isArray(phase.photos)) {
+              const pIdx = phase.photos.indexOf(url);
+              if (pIdx !== -1) {
+                changed = true;
+                const newPhotos = [...phase.photos];
+                newPhotos[pIdx] = newUrl;
+                return { ...phase, photos: newPhotos };
+              }
+            }
+            return phase;
+          });
+          if (changed) updates.itinerary = newItinerary;
+        }
+        if (Array.isArray(deal.route_waypoints)) {
+          let changed = false;
+          const newWps = deal.route_waypoints.map((wp: any) => {
+            if (wp.image === url) {
+              changed = true;
+              return { ...wp, image: newUrl };
+            }
+            return wp;
+          });
+          if (changed) updates.route_waypoints = newWps;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await adminClient
+            .from('tour_deals')
+            .update(updates)
+            .eq('id', deal.id);
+        }
+
+        moved++;
+      } catch (err) {
+        errors++;
+        details.push(`Failed to move ${oldKey}: ${err}`);
+      }
+    }
+  }
+
+  return c.json({ moved, skipped, errors, details: details.slice(0, 20) });
 });
 
 // Rename/move an R2 object (admin only)
