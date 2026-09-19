@@ -130,11 +130,35 @@ export function DealsManager() {
 
   // Fetch existing media from the slug folder when slug is confirmed
   const currentSlug = formData.slug.trim();
-  const { data: existingMedia, isLoading: isLoadingMedia } = useQuery({
-    queryKey: ['deal-slug-media', currentSlug],
-    queryFn: () => api.getMediaBySlug(currentSlug),
-    enabled: slugConfirmed && currentSlug.length > 0,
-  });
+  const [existingMedia, setExistingMedia] = useState<{ slug: string; files: Array<{ key: string; url: string; size: number; contentType: string }>; total: number } | null>(null);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+
+  const fetchSlugMedia = async (slug: string) => {
+    if (!slug || slug.length === 0) return;
+    setIsLoadingMedia(true);
+    setMediaError(null);
+    try {
+      const result = await api.getMediaBySlug(slug);
+      setExistingMedia(result);
+    } catch (err: any) {
+      console.error('[MediaFetch] Error:', err);
+      setMediaError(err?.message || 'Failed to load media');
+      setExistingMedia(null);
+    } finally {
+      setIsLoadingMedia(false);
+    }
+  };
+
+  // Fetch media when slug is confirmed and modal is open
+  useEffect(() => {
+    if (slugConfirmed && currentSlug.length > 0 && (isCreateModalOpen || isEditModalOpen)) {
+      fetchSlugMedia(currentSlug);
+    } else {
+      setExistingMedia(null);
+      setMediaError(null);
+    }
+  }, [slugConfirmed, currentSlug, isCreateModalOpen, isEditModalOpen]);
 
   /** Convert a title to a URL-safe slug */
   const titleToSlug = (title: string) =>
@@ -685,6 +709,8 @@ export function DealsManager() {
           ? current
           : { ...current, gallery: [...current.gallery, url] });
         toast.success(`Uploaded: ${file.name}`);
+        // Refresh the existing media list after upload
+        if (slugConfirmed && currentSlug) fetchSlugMedia(currentSlug);
       } catch (error: any) {
         toast.error(error?.message || `Failed to upload: ${file.name}`);
       } finally {
@@ -1152,19 +1178,43 @@ export function DealsManager() {
                 {/* Browse existing media from slug folder */}
                 {slugConfirmed && currentSlug && (
                   <div className="mt-3">
-                    <button
-                      type="button"
-                      className="flex items-center gap-2 text-xs text-primary hover:underline"
-                      onClick={() => setShowExistingMedia(!showExistingMedia)}
-                    >
-                      <FolderOpen className="w-3.5 h-3.5" />
-                      {showExistingMedia ? 'Hide' : 'Show'} existing media in deals/{currentSlug}/
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="flex items-center gap-2 text-xs text-primary hover:underline"
+                        onClick={() => {
+                          const next = !showExistingMedia;
+                          setShowExistingMedia(next);
+                          if (next && currentSlug) fetchSlugMedia(currentSlug);
+                        }}
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        {showExistingMedia ? 'Hide' : 'Show'} existing media in deals/{currentSlug}/
+                      </button>
+                      {showExistingMedia && !isLoadingMedia && (
+                        <button
+                          type="button"
+                          className="text-xs text-muted-foreground hover:text-primary"
+                          onClick={() => fetchSlugMedia(currentSlug)}
+                          title="Refresh"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                     {showExistingMedia && (
                       <div className="mt-2 rounded-lg border p-3">
                         {isLoadingMedia ? (
                           <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
                             <Loader2 className="w-4 h-4 animate-spin" />Loading media...
+                          </div>
+                        ) : mediaError ? (
+                          <div className="flex flex-col items-center gap-2 py-4">
+                            <AlertCircle className="w-5 h-5 text-destructive" />
+                            <p className="text-xs text-destructive text-center">{mediaError}</p>
+                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => fetchSlugMedia(currentSlug)}>
+                              <RefreshCw className="w-3 h-3 mr-1" />Retry
+                            </Button>
                           </div>
                         ) : existingMedia && existingMedia.files.length > 0 ? (
                           <>
