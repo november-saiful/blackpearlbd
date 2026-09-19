@@ -59,6 +59,17 @@ deals.post('/', authMiddleware, adminMiddleware, async (c) => {
   const env = c.env as Env;
   const admin = createSupabaseAdminClient(env);
 
+  // Check slug uniqueness before insert
+  const { data: existingSlug } = await admin
+    .from('tour_deals')
+    .select('id')
+    .eq('slug', result.data.slug)
+    .single();
+
+  if (existingSlug) {
+    return c.json({ error: 'A deal with this slug already exists' }, 409);
+  }
+
   // Generate deal_code: #DDMMYY-HHMM
   const now = new Date();
   const day = String(now.getDate()).padStart(2, '0');
@@ -88,19 +99,22 @@ deals.post('/', authMiddleware, adminMiddleware, async (c) => {
 // Update deal (admin only)
 deals.patch('/:id', authMiddleware, adminMiddleware, async (c) => {
   const id = c.req.param('id');
-  const body = await c.req.json();
-  const result = CreateDealSchema.partial().safeParse(body);
+  const body = await c.req.json();  const result = CreateDealSchema.partial().safeParse(body);
 
   if (!result.success) {
     return c.json({ error: 'Invalid input', details: result.error.issues }, 400);
   }
 
+  // Slug is immutable after creation — strip it from the update payload
+  const { slug: _slug, ...updateData } = result.data;
+
   const env = c.env as Env;
   const admin = createSupabaseAdminClient(env);
 
+
   const { data, error } = await admin
     .from('tour_deals')
-    .update({ ...result.data, updated_at: new Date().toISOString() })
+    .update({ ...updateData, updated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
     .single();

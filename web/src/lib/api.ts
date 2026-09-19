@@ -187,6 +187,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ keys, find, replace }),
     }),
+  getMediaBySlug: (slug: string) =>
+    fetchApi<{ slug: string; files: Array<{ key: string; url: string; size: number; contentType: string }>; total: number }>(
+      `/upload/by-slug/${encodeURIComponent(slug)}`,
+    ),
+  checkSlugMedia: (slug: string) =>
+    fetchApi<{ slug: string; exists: boolean; fileCount: number }>(
+      `/upload/slug-check/${encodeURIComponent(slug)}`,
+    ),
 
   // Featured Reviews (public)
   getFeaturedReviews: (limit = 10) =>

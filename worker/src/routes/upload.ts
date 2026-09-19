@@ -476,4 +476,59 @@ upload.delete('/image/*', authMiddleware, adminMiddleware, async (c) => {
   return c.json({ message: 'Image deleted' });
 });
 
+// List all media files for a deal slug folder (admin only)
+// Returns files under deals/{slug}/ without requiring cursor-based listing.
+upload.get('/by-slug/:slug', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+  const slug = c.req.param('slug');
+
+  if (!slug || !slug.trim()) {
+    return c.json({ error: 'Slug is required' }, 400);
+  }
+
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  const prefix = `deals/${slug.trim()}/`;
+  const files: Array<{ key: string; url: string; size: number; contentType: string }> = [];
+  let cursor: string | undefined = undefined;
+
+  // Paginate through all objects under this slug prefix
+  do {
+    const page = await env.BLACKPEARL_BUCKET.list({ prefix, cursor, limit: 1000 });
+    for (const obj of page.objects || []) {
+      files.push({
+        key: obj.key,
+        url: publicImageUrl(c.req.url, obj.key),
+        size: obj.size,
+        contentType: obj.httpMetadata?.contentType || 'application/octet-stream',
+      });
+    }
+    cursor = page.truncated && page.cursor ? page.cursor : undefined;
+  } while (cursor);
+
+  return c.json({ slug: slug.trim(), files, total: files.length });
+});
+
+// Check if a slug folder exists in R2 (public, no auth needed for validation)
+upload.get('/slug-check/:slug', async (c) => {
+  const env = c.env as Env;
+  const slug = c.req.param('slug');
+
+  if (!slug || !slug.trim()) {
+    return c.json({ exists: false });
+  }
+
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ exists: false });
+  }
+
+  const prefix = `deals/${slug.trim()}/`;
+  const page = await env.BLACKPEARL_BUCKET.list({ prefix, limit: 1 });
+  const count = (page.objects || []).length;
+
+  return c.json({ slug: slug.trim(), exists: count > 0, fileCount: count });
+});
+
 export default upload;

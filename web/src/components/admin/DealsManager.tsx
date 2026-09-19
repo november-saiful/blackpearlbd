@@ -7,14 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, EyeOff, RefreshCw, LocateFixed } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, EyeOff, RefreshCw, LocateFixed, FolderOpen, CheckCircle, AlertCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { DEAL_CATEGORIES, getDealCategory } from '@/lib/deal-category';
 
 import { useDeals } from '@/hooks/useDeals';
 import { api, ApiError } from '@/lib/api';
 import { compressImage } from '@/lib/image-compress';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { DealRouteMap } from '@/components/deals/DealRouteMap';
 import { DealDestinationPicker } from '@/components/deals/DealDestinationPicker';
@@ -92,6 +92,43 @@ export function DealsManager() {
   const [isPurgingGeoCache, setIsPurgingGeoCache] = useState(false);
   const [snappingWaypointIndex, setSnappingWaypointIndex] = useState<number | null>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  // Slug validation
+  const [slugError, setSlugError] = useState('');
+  const [slugChecking, setSlugChecking] = useState(false);
+  // Existing media browser
+  const [showExistingMedia, setShowExistingMedia] = useState(false);
+
+  // Fetch existing media from the slug folder when slug is set
+  const currentSlug = formData.slug.trim();
+  const { data: existingMedia, isLoading: isLoadingMedia } = useQuery({
+    queryKey: ['deal-slug-media', currentSlug],
+    queryFn: () => api.getMediaBySlug(currentSlug),
+    enabled: showExistingMedia && currentSlug.length > 0,
+  });
+
+  /** Convert a title to a URL-safe slug */
+  const titleToSlug = (title: string) =>
+    title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  /** Check slug uniqueness against the DB */
+  const checkSlugUniqueness = async (slug: string) => {
+    if (!slug) { setSlugError(''); return; }
+    setSlugChecking(true);
+    try {
+      const { deals: allDeals } = await api.getDeals();
+      const isEdit = isEditModalOpen && selectedDeal;
+      const duplicate = allDeals.some((d: any) => d.slug === slug && (!isEdit || d.id !== selectedDeal?.id));
+      if (duplicate) {
+        setSlugError('A deal with this slug already exists');
+      } else {
+        setSlugError('');
+      }
+    } catch {
+      setSlugError('');
+    } finally {
+      setSlugChecking(false);
+    }
+  };
 
   const setRouteWaypoints = (waypoints: Waypoint[]) => {
     setFormData((current) => ({ ...current, route_waypoints: waypoints, route_geometry: null }));
@@ -316,7 +353,13 @@ export function DealsManager() {
 
   const validateDeal = (): string | null => {
     if (!formData.title.trim()) return 'Title is required';
-    if (!formData.slug.trim()) return 'Slug is required';
+    // Auto-generate slug from title if empty
+    if (!formData.slug.trim()) {
+      const autoSlug = titleToSlug(formData.title.trim());
+      if (!autoSlug) return 'Slug is required';
+      setFormData((current) => ({ ...current, slug: autoSlug }));
+    }
+    if (slugError) return slugError;
     if (!formData.destination.trim()) return 'Destination is required';
     if (!formData.description.trim()) return 'Description is required';
     if (!formData.price || formData.price <= 0) return 'Price must be greater than 0';
@@ -480,6 +523,9 @@ export function DealsManager() {
     resetRouteUi();
     setLightboxOpen(false);
     setLightboxIndex(0);
+    setSlugError('');
+    setSlugChecking(false);
+    setShowExistingMedia(false);
   };
 
   const openEditModal = (deal: TourDeal) => {
@@ -518,6 +564,8 @@ export function DealsManager() {
     resetRouteUi();
     setLightboxOpen(false);
     setLightboxIndex(0);
+    setSlugError('');
+    setShowExistingMedia(false);
     setIsEditModalOpen(true);
   };
 
@@ -775,8 +823,50 @@ export function DealsManager() {
           >
             <DialogHeader><DialogTitle>{isEditModalOpen ? 'Edit Deal' : 'Create New Deal'}</DialogTitle></DialogHeader>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="col-span-1 sm:col-span-2"><Label>Title *</Label><Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} /></div>
-              <div><Label>Slug *</Label><Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} placeholder="my-tour-deal" /></div>
+              <div className="col-span-1 sm:col-span-2"><Label>Title *</Label><Input value={formData.title} onChange={(e) => {
+                const title = e.target.value;
+                setFormData((current) => ({
+                  ...current,
+                  title,
+                  // Auto-generate slug from title only when creating (not editing)
+                  ...(!isEditModalOpen && { slug: titleToSlug(title) }),
+                }));
+              }} /></div>
+              <div>
+                <Label>Slug URL *</Label>
+                {isEditModalOpen ? (
+                  <div>
+                    <Input value={formData.slug} disabled className="bg-muted font-mono text-sm" />
+                    <p className="mt-1 text-[11px] text-muted-foreground">Slug cannot be changed after creation (folder structure).</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="relative">
+                      <Input
+                        value={formData.slug}
+                        onChange={(e) => {
+                          const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
+                          setFormData({ ...formData, slug });
+                          setSlugError('');
+                        }}
+                        onBlur={() => checkSlugUniqueness(formData.slug)}
+                        placeholder="auto-generated from title"
+                        className={slugError ? 'border-destructive' : ''}
+                      />
+                      {slugChecking && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />}
+                      {!slugChecking && !slugError && formData.slug && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />}
+                    </div>
+                    {slugError && (
+                      <p className="mt-1 text-[11px] text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />{slugError}
+                      </p>
+                    )}
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Folder: <span className="font-mono">deals/{formData.slug || '...'}/</span>
+                    </p>
+                  </div>
+                )}
+              </div>
               <div>
                 <Label htmlFor="deal-destination">Destination *</Label>
                 {/* Picked from the admin's destination list rather than typed, so
@@ -867,6 +957,63 @@ export function DealsManager() {
                   onChange={handleGalleryUpload}
                   disabled={isUploading}
                 />
+
+                {/* Browse existing media from slug folder */}
+                {isEditModalOpen && currentSlug && (
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 text-xs text-primary hover:underline"
+                      onClick={() => setShowExistingMedia(!showExistingMedia)}
+                    >
+                      <FolderOpen className="w-3.5 h-3.5" />
+                      {showExistingMedia ? 'Hide' : 'Show'} existing media in deals/{currentSlug}/
+                    </button>
+                    {showExistingMedia && (
+                      <div className="mt-2 rounded-lg border p-3">
+                        {isLoadingMedia ? (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
+                            <Loader2 className="w-4 h-4 animate-spin" />Loading media...
+                          </div>
+                        ) : existingMedia && existingMedia.files.length > 0 ? (
+                          <>
+                            <p className="text-[11px] text-muted-foreground mb-2">
+                              {existingMedia.total} file{existingMedia.total !== 1 ? 's' : ''} in this folder. Click to add to gallery.
+                            </p>
+                            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                              {existingMedia.files.filter((f) => f.contentType.startsWith('image/')).map((file) => {
+                                const alreadyInGallery = formData.gallery.includes(file.url);
+                                return (
+                                  <button
+                                    key={file.key}
+                                    type="button"
+                                    disabled={alreadyInGallery}
+                                    className={'relative rounded-md overflow-hidden border-2 aspect-square group transition-all ' + (alreadyInGallery ? 'border-primary opacity-50 cursor-default' : 'border-transparent hover:border-primary/50 cursor-pointer')}
+                                    onClick={() => {
+                                      if (!alreadyInGallery) {
+                                        setFormData((current) => ({ ...current, gallery: [...current.gallery, file.url] }));
+                                        toast.success('Added to gallery');
+                                      }
+                                    }}
+                                  >
+                                    <img src={file.url} alt={file.key.split('/').pop()} className="w-full h-full object-cover" loading="lazy" />
+                                    {alreadyInGallery && (
+                                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                                        <CheckCircle className="w-5 h-5 text-primary" />
+                                      </div>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-xs text-muted-foreground py-4 text-center">No media files in this folder yet.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Gallery grid */}
                 {formData.gallery.length > 0 && (
