@@ -75,6 +75,15 @@ function folderPath(key: string): string {
   return parts.join('/');
 }
 
+/**
+ * Whether a folder may be deleted. One segment ("deals/") is a whole namespace
+ * where deletion would take every deal image at once, so it is not offered —
+ * matching the endpoint, which refuses it.
+ */
+function canDeleteFolder(prefix: string): boolean {
+  return prefix.split('/').filter(Boolean).length >= 2;
+}
+
 export function MediaExplorer() {
   const queryClient = useQueryClient();
   const [prefix, setPrefix] = useState('');
@@ -455,7 +464,7 @@ export function MediaExplorer() {
            * delete subfolders, so without this the parent would have to be
            * re-entered just to remove the one you are looking at.
            */}
-          {prefix && (
+          {canDeleteFolder(prefix) && (
             <Button
               variant="ghost"
               size="sm"
@@ -604,22 +613,25 @@ export function MediaExplorer() {
                       {/*
                        * Always visible, not revealed on hover: a control that
                        * only exists under the pointer is invisible on a touch
-                       * screen and easy to miss with a mouse.
+                       * screen and easy to miss with a mouse. A top-level folder
+                       * has none, since deleting it would take a whole namespace.
                        */}
-                      <button
-                        type="button"
-                        title={`Delete folder ${folderName}`}
-                        aria-label={`Delete folder ${folderName} and all of its files`}
-                        disabled={deletingFolder === folderPrefix}
-                        onClick={() => handleDeleteFolder(folderPrefix, folderName)}
-                        className="absolute right-2 top-2 rounded-md border border-border bg-background/90 p-1.5 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        {deletingFolder === folderPrefix ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </button>
+                      {canDeleteFolder(folderPrefix) && (
+                        <button
+                          type="button"
+                          title={`Delete folder ${folderName}`}
+                          aria-label={`Delete folder ${folderName} and all of its files`}
+                          disabled={deletingFolder === folderPrefix}
+                          onClick={() => handleDeleteFolder(folderPrefix, folderName)}
+                          className="absolute right-2 top-2 rounded-md border border-border bg-background/90 p-1.5 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {deletingFolder === folderPrefix ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -776,25 +788,27 @@ export function MediaExplorer() {
                           <td className="py-3 px-3 hidden lg:table-cell text-sm text-muted-foreground">—</td>
                           <td className="py-3 px-3">
                             <div className="flex justify-end">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive"
-                                title={`Delete folder ${folderName}`}
-                                aria-label={`Delete folder ${folderName} and all of its files`}
-                                disabled={deletingFolder === folderPrefix}
-                                onClick={(event) => {
-                                  // The row itself navigates; deleting must not.
-                                  event.stopPropagation();
-                                  handleDeleteFolder(folderPrefix, folderName);
-                                }}
-                              >
-                                {deletingFolder === folderPrefix ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-4 h-4" />
-                                )}
-                              </Button>
+                              {canDeleteFolder(folderPrefix) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive"
+                                  title={`Delete folder ${folderName}`}
+                                  aria-label={`Delete folder ${folderName} and all of its files`}
+                                  disabled={deletingFolder === folderPrefix}
+                                  onClick={(event) => {
+                                    // The row itself navigates; deleting must not.
+                                    event.stopPropagation();
+                                    handleDeleteFolder(folderPrefix, folderName);
+                                  }}
+                                >
+                                  {deletingFolder === folderPrefix ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>

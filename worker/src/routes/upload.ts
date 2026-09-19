@@ -20,7 +20,7 @@ type DealImageUse = {
 };
 
 /** Every image URL a deal stores, wherever the deal keeps them. */
-function dealImageUrls(deal: Record<string, any>): string[] {
+export function dealImageUrls(deal: Record<string, any>): string[] {
   const urls: string[] = [];
   const push = (value: unknown) => {
     if (typeof value === 'string' && value && !urls.includes(value)) urls.push(value);
@@ -42,7 +42,7 @@ function dealImageUrls(deal: Record<string, any>): string[] {
 }
 
 /** Whether a stored URL resolves to an object inside `prefix`. */
-function pointsIntoFolder(url: unknown, prefix: string): boolean {
+export function pointsIntoFolder(url: unknown, prefix: string): boolean {
   const key = r2KeyFromImageUrl(url);
   return key !== null && key.startsWith(prefix);
 }
@@ -80,7 +80,7 @@ async function findDealsUsingPrefix(env: Env, prefix: string): Promise<DealImage
  * main image falls back to a surviving gallery photo rather than being left on
  * a missing file, and waypoints lose only their photo.
  */
-function stripFolderFromDeal(deal: Record<string, any>, prefix: string): Record<string, unknown> {
+export function stripFolderFromDeal(deal: Record<string, any>, prefix: string): Record<string, unknown> {
   const updates: Record<string, unknown> = {};
 
   const gallery = Array.isArray(deal.gallery)
@@ -349,10 +349,11 @@ upload.post('/delete-folder', authMiddleware, adminMiddleware, async (c) => {
 
   const prefix = raw.endsWith('/') ? raw : `${raw}/`;
 
-  // Without at least one slash this is a top-level name, and an empty prefix
-  // would list — and then delete — the entire bucket.
-  if (!prefix.includes('/') || prefix === '/') {
-    return c.json({ error: 'Refusing to delete the bucket root' }, 400);
+  // Two segments minimum - "deals/<slug>/" - because one segment is a whole
+  // namespace: deleting "deals/" would take every deal image at once, and an
+  // empty prefix would take the entire bucket.
+  if (prefix.split('/').filter(Boolean).length < 2) {
+    return c.json({ error: 'Refusing to delete a top-level folder' }, 400);
   }
 
   let users: DealImageUse[] = [];
