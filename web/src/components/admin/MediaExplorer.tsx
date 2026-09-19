@@ -22,7 +22,16 @@ import {
   Square,
   CheckSquare,
   PenLine,
+  AlertTriangle,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -79,6 +88,10 @@ export function MediaExplorer() {
   const [deleting, setDeleting] = useState<string | null>(null);
   // Prefix of the folder currently being deleted, so its own button can spin.
   const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
+  // The folder queued for deletion, and whether the deals pointing into it
+  // should have those references cleared as part of the delete.
+  const [folderToDelete, setFolderToDelete] = useState<{ prefix: string; name: string } | null>(null);
+  const [unlinkReferences, setUnlinkReferences] = useState(true);
   // Batch selection
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   // Batch rename dialog
@@ -258,14 +271,40 @@ export function MediaExplorer() {
    * prefixes, so `folderPrefix` is always the path up to and including its
    * trailing slash.
    */
+  // What the queued folder holds, and which deals still point into it. Fetched
+  // when the dialog opens so the warning can name them instead of guessing.
+  const {
+    data: folderUsage,
+    isFetching: isCheckingUsage,
+    error: usageError,
+  } = useQuery({
+    queryKey: ['media-folder-usage', folderToDelete?.prefix],
+    queryFn: () => api.getMediaFolderUsage(folderToDelete!.prefix),
+    enabled: !!folderToDelete,
+  });
+
+  const affectedDeals = folderUsage?.deals ?? [];
+  // An unanswered check is not the same as "nothing uses this folder", so the
+  // dialog says so and holds the delete back rather than implying it is safe.
+  const usageUnknown = !!usageError || (!isCheckingUsage && !folderUsage);
+
   const deleteFolderMutation = useMutation({
-    mutationFn: (folderPrefix: string) => api.deleteMediaFolder(folderPrefix),
+    mutationFn: ({ prefix, unlink }: { prefix: string; unlink: boolean }) =>
+      api.deleteMediaFolder(prefix, unlink),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['admin-media'] });
       queryClient.invalidateQueries({ queryKey: ['admin-storage-stats'] });
+      // Clearing references rewrote deal rows, so anything showing a deal needs
+      // to be refetched too.
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      queryClient.invalidateQueries({ queryKey: ['deal'] });
+
+      const unlinked = result.unlinkedDeals ?? 0;
       toast.success(
-        `Folder deleted with ${result.deleted} file${result.deleted !== 1 ? 's' : ''}`,
+        `Folder deleted with ${result.deleted} file${result.deleted !== 1 ? 's' : ''}` +
+          (unlinked > 0 ? ` · ${unlinked} deal${unlinked !== 1 ? 's' : ''} updated` : ''),
       );
+      setFolderToDelete(null);
       setDeletingFolder(null);
       clearSelection();
     },
@@ -275,13 +314,13 @@ export function MediaExplorer() {
     },
   });
 
+  /**
+   * Opens the deletion dialog rather than a bare confirm: the folder's usage has
+   * to be known before the admin can be told what breaks.
+   */
   const handleDeleteFolder = (folderPrefix: string, name: string) => {
-    const warning =
-      `Permanently delete the folder "${name}" and every file inside it?\n\n` +
-      'Deals still pointing at those images will show broken photos. This cannot be undone.';
-    if (!confirm(warning)) return;
-    setDeletingFolder(folderPrefix);
-    deleteFolderMutation.mutate(folderPrefix);
+    setUnlinkReferences(true);
+    setFolderToDelete({ prefix: folderPrefix, name });
   };
 
   const handleBatchDelete = () => {
@@ -1007,6 +1046,155 @@ export function MediaExplorer() {
             </div>
           </div>
         )}
+
+        {/*
+         * Folder deletion. Portalled by Radix, so its place in the tree does
+         * not matter; what does is that the deals still pointing into the
+         * folder are named before anything is removed.
+         */}
+        <Dialog
+          open={!!folderToDelete}
+          onOpenChange={(open) => {
+            if (!open) {
+              setFolderToDelete(null);
+              setDeletingFolder(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Delete folder "{folderToDelete?.name}"?</DialogTitle>
+              <DialogDescription>
+                Every file inside it is permanently removed from storage. This cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+
+            {isCheckingUsage ? (
+              <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Checking what uses this folder…
+              </div>
+            ) : usageUnknown ? (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                <p className="text-center text-xs text-destructive">
+                  Could not check what uses this folder
+                  {usageError instanceof Error && usageError.message
+                    ? `: ${usageError.message}`
+                    : '.'}
+                </p>
+                <p className="text-center text-xs text-muted-foreground">
+                  Deleting now could leave deals with broken photos. Close this and try again.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-foreground">
+                  {folderUsage?.fileCount ?? 0} file
+                  {(folderUsage?.fileCount ?? 0) === 1 ? '' : 's'} in{' '}
+                  <span className="font-mono text-xs">{folderUsage?.prefix ?? folderToDelete?.prefix}</span>
+                </p>
+
+                {affectedDeals.length > 0 ? (
+                  <>
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                      <p className="flex items-center gap-2 text-sm font-medium text-destructive">
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        Still used by {affectedDeals.length} deal
+                        {affectedDeals.length === 1 ? '' : 's'}
+                      </p>
+                      <p className="mt-1 text-xs text-destructive/80">
+                        They point at {folderUsage?.totalImages ?? 0} image
+                        {(folderUsage?.totalImages ?? 0) === 1 ? '' : 's'} in this folder, which
+                        would stop showing.
+                      </p>
+                      <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
+                        {affectedDeals.map((deal) => (
+                          <li
+                            key={deal.id}
+                            className="flex items-center justify-between gap-3 text-xs text-foreground"
+                          >
+                            <span className="truncate">{deal.title}</span>
+                            <span className="shrink-0 text-muted-foreground">
+                              {deal.imageCount} image{deal.imageCount === 1 ? '' : 's'}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/*
+                     * The safety net: without this the delete would leave
+                     * those deals with broken photos. On by default, because
+                     * that is the outcome that keeps the site correct.
+                     */}
+                    <label className="flex items-start gap-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={unlinkReferences}
+                        onChange={(event) => setUnlinkReferences(event.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-destructive"
+                      />
+                      <span>
+                        Also remove these images from those deals, so their galleries and main
+                        images don't point at deleted files.
+                      </span>
+                    </label>
+
+                    {!unlinkReferences && (
+                      <p className="text-xs text-destructive">
+                        Those deals would be left with broken photos. Tick the box to continue, or
+                        cancel.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No deal references this folder, so nothing else needs updating.
+                  </p>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={deleteFolderMutation.isPending}
+                onClick={() => setFolderToDelete(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={
+                  isCheckingUsage ||
+                  usageUnknown ||
+                  deleteFolderMutation.isPending ||
+                  // A referenced folder cannot be removed while the box is
+                  // unticked: the server refuses it anyway.
+                  (affectedDeals.length > 0 && !unlinkReferences)
+                }
+                onClick={() => {
+                  if (!folderToDelete) return;
+                  setDeletingFolder(folderToDelete.prefix);
+                  deleteFolderMutation.mutate({
+                    prefix: folderToDelete.prefix,
+                    unlink: unlinkReferences && affectedDeals.length > 0,
+                  });
+                }}
+              >
+                {deleteFolderMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                    Deleting…
+                  </>
+                ) : (
+                  'Delete folder'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

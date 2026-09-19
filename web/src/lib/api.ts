@@ -187,12 +187,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ keys, find, replace }),
     }),
-  /** Deletes a folder: every object under the prefix, in R2. */
-  deleteMediaFolder: (prefix: string) =>
-    fetchApi<{ prefix: string; deleted: number }>('/upload/delete-folder', {
+  /**
+   * Deletes a folder: every object under the prefix, in R2. A folder that deals
+   * still point into is refused with a 409 unless `unlinkReferences` asks for
+   * those references to be cleared as well.
+   */
+  deleteMediaFolder: (prefix: string, unlinkReferences = false) =>
+    fetchApi<{ prefix: string; deleted: number; unlinkedDeals?: number }>('/upload/delete-folder', {
       method: 'POST',
-      body: JSON.stringify({ prefix }),
+      body: JSON.stringify({ prefix, unlinkReferences }),
     }),
+  /** What a folder holds, and which deals still point into it. */
+  getMediaFolderUsage: (prefix: string) =>
+    fetchApi<{
+      prefix: string;
+      fileCount: number;
+      totalImages: number;
+      deals: Array<{ id: string; title: string; slug: string; imageCount: number }>;
+    }>(`/upload/folder-usage?prefix=${encodeURIComponent(prefix)}`),
   getMediaBySlug: (slug: string) =>
     fetchApi<{ slug: string; files: Array<{ key: string; url: string; size: number; contentType: string }>; total: number }>(
       `/upload/by-slug/${encodeURIComponent(slug)}`,

@@ -1,12 +1,118 @@
 import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
-import { publicImageUrl } from '../lib/r2';
+import { publicImageUrl, r2KeyFromImageUrl } from '../lib/r2';
 import { createSupabaseAdminClient } from '../lib/supabase';
 import { Env } from '../types';
 import { z } from 'zod';
 
 const upload = new Hono();
+
+/** A deal whose stored photos include at least one object under a folder. */
+type DealImageUse = {
+  id: string;
+  title: string;
+  slug: string;
+  /** The stored URLs that live under the folder in question. */
+  urls: string[];
+  /** The row itself, so clearing references needs no second read. */
+  row: Record<string, any>;
+};
+
+/** Every image URL a deal stores, wherever the deal keeps them. */
+function dealImageUrls(deal: Record<string, any>): string[] {
+  const urls: string[] = [];
+  const push = (value: unknown) => {
+    if (typeof value === 'string' && value && !urls.includes(value)) urls.push(value);
+  };
+
+  push(deal.image_url);
+  if (Array.isArray(deal.gallery)) deal.gallery.forEach(push);
+  if (Array.isArray(deal.hidden_gallery)) deal.hidden_gallery.forEach(push);
+  if (Array.isArray(deal.itinerary)) {
+    for (const phase of deal.itinerary) {
+      if (Array.isArray(phase?.photos)) phase.photos.forEach(push);
+    }
+  }
+  if (Array.isArray(deal.route_waypoints)) {
+    for (const waypoint of deal.route_waypoints) push(waypoint?.image);
+  }
+
+  return urls;
+}
+
+/** Whether a stored URL resolves to an object inside `prefix`. */
+function pointsIntoFolder(url: unknown, prefix: string): boolean {
+  const key = r2KeyFromImageUrl(url);
+  return key !== null && key.startsWith(prefix);
+}
+
+/**
+ * The deals still pointing at photos inside `prefix`. Deleting a folder without
+ * knowing this is how deals end up showing broken images.
+ */
+async function findDealsUsingPrefix(env: Env, prefix: string): Promise<DealImageUse[]> {
+  const admin = createSupabaseAdminClient(env);
+  const { data, error } = await admin
+    .from('tour_deals')
+    .select('id, title, slug, image_url, gallery, hidden_gallery, itinerary, route_waypoints');
+
+  if (error) throw new Error('Failed to fetch deals');
+
+  const uses: DealImageUse[] = [];
+  for (const deal of data || []) {
+    const urls = dealImageUrls(deal).filter((url) => pointsIntoFolder(url, prefix));
+    if (urls.length === 0) continue;
+    uses.push({
+      id: deal.id,
+      title: deal.title || 'Untitled deal',
+      slug: deal.slug || '',
+      urls,
+      row: deal,
+    });
+  }
+
+  return uses;
+}
+
+/**
+ * The columns to rewrite so a deal stops pointing into a deleted folder. The
+ * main image falls back to a surviving gallery photo rather than being left on
+ * a missing file, and waypoints lose only their photo.
+ */
+function stripFolderFromDeal(deal: Record<string, any>, prefix: string): Record<string, unknown> {
+  const updates: Record<string, unknown> = {};
+
+  const gallery = Array.isArray(deal.gallery)
+    ? deal.gallery.filter((url: unknown) => !pointsIntoFolder(url, prefix))
+    : null;
+
+  if (gallery) updates.gallery = gallery;
+
+  if (Array.isArray(deal.hidden_gallery)) {
+    updates.hidden_gallery = deal.hidden_gallery.filter((url: unknown) => !pointsIntoFolder(url, prefix));
+  }
+
+  if (pointsIntoFolder(deal.image_url, prefix)) {
+    updates.image_url = gallery?.[0] ?? '';
+  }
+
+  if (Array.isArray(deal.itinerary)) {
+    updates.itinerary = deal.itinerary.map((phase: any) =>
+      Array.isArray(phase?.photos)
+        ? { ...phase, photos: phase.photos.filter((url: unknown) => !pointsIntoFolder(url, prefix)) }
+        : phase,
+    );
+  }
+
+  if (Array.isArray(deal.route_waypoints)) {
+    updates.route_waypoints = deal.route_waypoints.map((waypoint: any) =>
+      pointsIntoFolder(waypoint?.image, prefix) ? { ...waypoint, image: null } : waypoint,
+    );
+  }
+
+  return updates;
+}
 
 /**
  * R2 only returns an object's metadata from `list()` when it is explicitly
@@ -180,16 +286,62 @@ upload.post('/batch-delete', authMiddleware, adminMiddleware, async (c) => {
   return c.json({ deleted: keys.length });
 });
 
+// What a folder holds and which deals still point into it (admin only).
+// The media explorer calls this before offering to delete a folder, so the
+// warning can name the deals instead of guessing that some might break.
+upload.get('/folder-usage', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  const raw = (c.req.query('prefix') || '').trim().replace(/^\/+/, '');
+  if (!raw) {
+    return c.json({ error: 'prefix is required' }, 400);
+  }
+
+  const prefix = raw.endsWith('/') ? raw : `${raw}/`;
+
+  let fileCount = 0;
+  let cursor: string | undefined = undefined;
+  do {
+    const page = await env.BLACKPEARL_BUCKET.list({ prefix, cursor, limit: 1000 });
+    fileCount += (page.objects || []).length;
+    cursor = page.truncated && page.cursor ? page.cursor : undefined;
+  } while (cursor);
+
+  let uses: DealImageUse[] = [];
+  try {
+    uses = await findDealsUsingPrefix(env, prefix);
+  } catch {
+    return c.json({ error: 'Failed to check which deals use this folder' }, 500);
+  }
+
+  return c.json({
+    prefix,
+    fileCount,
+    totalImages: uses.reduce((sum, deal) => sum + deal.urls.length, 0),
+    deals: uses.map((deal) => ({
+      id: deal.id,
+      title: deal.title,
+      slug: deal.slug,
+      imageCount: deal.urls.length,
+    })),
+  });
+});
+
 // Delete a whole folder — every object under a prefix — from R2 (admin only).
 // R2 has no real directories, so "the folder deals/kuakata-sea" is the set of
 // keys starting with that prefix; deleting the folder means deleting all of them.
+// A folder deals still point into is refused unless the caller asks for those
+// references to be cleared too, so images are never silently orphaned.
 upload.post('/delete-folder', authMiddleware, adminMiddleware, async (c) => {
   const env = c.env as Env;
   if (!env.BLACKPEARL_BUCKET) {
     return c.json({ error: 'Storage not configured' }, 500);
   }
 
-  const body = await c.req.json<{ prefix: string }>();
+  const body = await c.req.json<{ prefix: string; unlinkReferences?: boolean }>();
   const raw = (body.prefix || '').trim().replace(/^\/+/, '');
   if (!raw) {
     return c.json({ error: 'prefix is required' }, 400);
@@ -203,6 +355,42 @@ upload.post('/delete-folder', authMiddleware, adminMiddleware, async (c) => {
     return c.json({ error: 'Refusing to delete the bucket root' }, 400);
   }
 
+  let users: DealImageUse[] = [];
+  try {
+    users = await findDealsUsingPrefix(env, prefix);
+  } catch {
+    return c.json({ error: 'Failed to check which deals use this folder' }, 500);
+  }
+
+  if (users.length > 0 && !body.unlinkReferences) {
+    return c.json(
+      {
+        error: 'Folder is still used by deals',
+        totalImages: users.reduce((sum, deal) => sum + deal.urls.length, 0),
+        deals: users.map((deal) => ({
+          id: deal.id,
+          title: deal.title,
+          slug: deal.slug,
+          imageCount: deal.urls.length,
+        })),
+      },
+      409,
+    );
+  }
+
+  // Clear the references before removing the objects. The other order would
+  // leave deals pointing at photos that no longer exist if this step failed.
+  let unlinkedDeals = 0;
+  if (users.length > 0) {
+    const admin = createSupabaseAdminClient(env);
+    for (const deal of users) {
+      const updates = stripFolderFromDeal(deal.row, prefix);
+      if (Object.keys(updates).length === 0) continue;
+      const { error } = await admin.from('tour_deals').update(updates).eq('id', deal.id);
+      if (!error) unlinkedDeals++;
+    }
+  }
+
   let deleted = 0;
 
   // Delete the first page, then list again from the start. Re-listing (rather
@@ -213,13 +401,13 @@ upload.post('/delete-folder', authMiddleware, adminMiddleware, async (c) => {
     const page = await env.BLACKPEARL_BUCKET.list({ prefix, limit: 1000 });
     const keys = (page.objects || []).map((object) => object.key);
     if (keys.length === 0) {
-      return c.json({ prefix, deleted });
+      return c.json({ prefix, deleted, unlinkedDeals });
     }
     await env.BLACKPEARL_BUCKET.delete(keys);
     deleted += keys.length;
   }
 
-  return c.json({ error: 'Too many objects to delete in one call', deleted }, 500);
+  return c.json({ error: 'Too many objects to delete in one call', deleted, unlinkedDeals }, 500);
 });
 
 // Batch rename: add prefix/suffix to multiple R2 objects (admin only)
