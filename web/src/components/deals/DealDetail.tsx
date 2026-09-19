@@ -33,7 +33,7 @@ export function DealDetail({ deal }: DealDetailProps) {
   const [itineraryPhotoIndex, setItineraryPhotoIndex] = useState(0);
   const [repositionKey, setRepositionKey] = useState(0);
 
-  const { related: relatedDeals } = useRelatedDeals(deal);
+  const { related: relatedDeals, isLoading: isRelatedLoading } = useRelatedDeals(deal);
 
   const isSaved = savedDeals.some((sd) => sd.deal_id === deal.id);
   const savedDeal = savedDeals.find((sd) => sd.deal_id === deal.id);
@@ -293,7 +293,7 @@ export function DealDetail({ deal }: DealDetailProps) {
           )}
 
           <div className="mt-auto">
-            <RelatedPackages deals={relatedDeals} />
+            <RelatedPackages deals={relatedDeals} isLoading={isRelatedLoading} />
           </div>
         </div>
       </div>
@@ -310,7 +310,7 @@ export function DealDetail({ deal }: DealDetailProps) {
           onClick={() => setIsRouteOpen(true)}
           aria-expanded={false}
           aria-controls="tour-route-panel"
-          className="fixed bottom-28 left-1/2 z-50 hidden -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:bottom-6 md:flex"
+          className="fixed bottom-28 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden"
         >
           <Route className="h-5 w-5" />
           Tour route

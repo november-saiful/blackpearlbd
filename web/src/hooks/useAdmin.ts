@@ -114,11 +114,18 @@ export function usePackageDestinations() {
     queryFn: () => api.getAdminPackageDestinations(),
   });
 
+  const invalidateDestinationQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-package-destinations'] });
+    // Also invalidate the public package-builder destination list so the
+    // BuildPackageForm picks up admin changes without a page reload.
+    queryClient.invalidateQueries({ queryKey: ['package-destinations'] });
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: { category: string; name: string; value: string; sort_order?: number; is_active?: boolean }) =>
       api.createPackageDestination(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-package-destinations'] });
+      invalidateDestinationQueries();
       toast.success('Destination added');
     },
     onError: (error: Error) => {
@@ -130,7 +137,7 @@ export function usePackageDestinations() {
     mutationFn: ({ id, data }: { id: string; data: { category?: string; name?: string; value?: string; sort_order?: number; is_active?: boolean } }) =>
       api.updatePackageDestination(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-package-destinations'] });
+      invalidateDestinationQueries();
       toast.success('Destination updated');
     },
     onError: (error: Error) => {
@@ -141,7 +148,7 @@ export function usePackageDestinations() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deletePackageDestination(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-package-destinations'] });
+      invalidateDestinationQueries();
       toast.success('Destination deleted');
     },
     onError: (error: Error) => {

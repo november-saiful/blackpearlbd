@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -229,21 +230,21 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
   const [destination, setDestination] = useState(saved?.destination ?? '');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch package destinations from API
-  const [destinationGroups, setDestinationGroups] = useState<CategoryGroup[]>(FALLBACK_DESTINATION_GROUPS);
+  // Fetch package destinations from API via React Query so the list
+  // refreshes automatically after the admin creates / updates / deletes
+  // destinations (the admin hooks invalidate the same query key).
+  const destinationsQuery = useQuery({
+    queryKey: ['package-destinations'],
+    queryFn: () => api.getPackageDestinations(),
+  });
 
-  useEffect(() => {
-    api
-      .getPackageDestinations()
-      .then(({ destinations }) => {
-        if (destinations.length > 0) {
-          setDestinationGroups(groupDestinations(destinations));
-        }
-      })
-      .catch(() => {
-        // Keep fallback data on error
-      });
-  }, []);
+  const destinationGroups = useMemo<CategoryGroup[]>(
+    () =>
+      destinationsQuery.data && destinationsQuery.data.destinations.length > 0
+        ? groupDestinations(destinationsQuery.data.destinations)
+        : FALLBACK_DESTINATION_GROUPS,
+    [destinationsQuery.data],
+  );
 
   // Bangladesh customization state
   const [selectedDivision, setSelectedDivision] = useState<string>(saved?.selectedDivision ?? '');

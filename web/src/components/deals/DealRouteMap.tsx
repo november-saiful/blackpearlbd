@@ -249,7 +249,7 @@ function MapBounds({
     ];
     const resizeAndFit = () => {
       map.invalidateSize();
-      if (points.length === 1) map.setView(points[0], 11);
+      if (points.length === 1) map.setView(points[0], 13);
       if (points.length > 1) {
         // Polaroids hang above their pins, so the top and side edges need the extra
         // room; otherwise the outermost stops' prints are clipped by the map frame.
@@ -312,7 +312,7 @@ export function DealRouteMap({
     >
       <MapContainer
         center={center}
-        zoom={firstPoint ? 10 : 7}
+        zoom={firstPoint ? 12 : 9}
         scrollWheelZoom
         className="absolute inset-0"
         aria-label={editable ? 'Editable tour route map' : 'Tour route map'}
