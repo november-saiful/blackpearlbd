@@ -21,6 +21,8 @@ const AdminUsers = lazy(() => import('@/pages/Admin/Users'));
 const AdminDeals = lazy(() => import('@/pages/Admin/Deals'));
 const AdminBookings = lazy(() => import('@/pages/Admin/Bookings'));
 const AdminCustomPackages = lazy(() => import('@/pages/Admin/CustomPackages'));
+const AdminReviews = lazy(() => import('@/pages/Admin/Reviews'));
+const AdminMedia = lazy(() => import('@/pages/Admin/Media'));
 
 // ── Suspense wrapper ─────────────────────────────────────────────────
 function PageLoader() {
@@ -135,6 +137,26 @@ export const router = createBrowserRouter([
           <SuspenseWrapper>
             <ProtectedRoute requireAdmin>
               <AdminBookings />
+            </ProtectedRoute>
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'admin/reviews',
+        element: (
+          <SuspenseWrapper>
+            <ProtectedRoute requireAdmin>
+              <AdminReviews />
+            </ProtectedRoute>
+          </SuspenseWrapper>
+        ),
+      },
+      {
+        path: 'admin/media',
+        element: (
+          <SuspenseWrapper>
+            <ProtectedRoute requireAdmin>
+              <AdminMedia />
             </ProtectedRoute>
           </SuspenseWrapper>
         ),

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
-import type { PackageDistrict, PackageTourSpot } from '../types';
+import type { PackageDistrict, PackageTourSpot, Review } from '../types';
 
 export function useAdminStats() {
   const statsQuery = useQuery({
@@ -244,6 +244,37 @@ export function usePackageTourSpots(districtId?: string) {
     updateTourSpot: updateMutation.mutate,
     deleteTourSpot: deleteMutation.mutate,
     isCreating: createMutation.isPending,
+  };
+}
+
+export function useAdminReviews(page = 1) {
+  const queryClient = useQueryClient();
+
+  const reviewsQuery = useQuery({
+    queryKey: ['admin-reviews', page],
+    queryFn: () => api.getAdminReviews(page),
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, is_approved }: { id: string; is_approved: boolean }) =>
+      api.updateReviewStatus(id, is_approved),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
+      toast.success('Review status updated');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update review');
+    },
+  });
+
+  return {
+    reviews: reviewsQuery.data?.reviews || [],
+    total: reviewsQuery.data?.total || 0,
+    totalPages: reviewsQuery.data?.totalPages || 0,
+    isLoading: reviewsQuery.isLoading,
+    updateStatus: updateStatusMutation.mutate,
+    isUpdating: updateStatusMutation.isPending,
   };
 }
 

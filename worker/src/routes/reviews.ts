@@ -7,11 +7,34 @@ import { Env } from '../types';
 
 const reviews = new Hono();
 
-// ── Public: list approved reviews for a deal ───────────────────────────────
-reviews.get('/deals/:slug', async (c) => {
+// ── Public: latest approved reviews across all deals (for homepage testimonials) ─
+reviews.get('/featured', async (c) => {
+  const env = c.env as Env;
+  const admin = createSupabaseAdminClient(env);
+  const limit = Math.min(parseInt(c.req.query('limit') || '10', 10), 20);
+
+  const { data, error } = await admin
+    .from('reviews')
+    .select('*, user:profiles(full_name, avatar_url), deal:tour_deals(title, slug)')
+    .eq('is_approved', true)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    return c.json({ error: 'Failed to fetch reviews' }, 500);
+  }
+
+  return c.json({ reviews: data || [] });
+});
+
+// ── Public: list reviews for a deal ────────────────────────────────────────
+// Returns all approved reviews plus the current user's own unapproved reviews
+// so the author can see their pending review immediately.
+reviews.get('/deals/:slug', optionalAuthMiddleware, async (c) => {
   const slug = c.req.param('slug');
   const env = c.env as Env;
   const admin = createSupabaseAdminClient(env);
+  const userId = c.get('userId');
 
   // Resolve deal slug → id
   const { data: deal, error: dealError } = await admin
@@ -25,19 +48,43 @@ reviews.get('/deals/:slug', async (c) => {
     return c.json({ error: 'Deal not found' }, 404);
   }
 
-  const { data: reviewsData, error } = await admin
+  // Fetch all approved reviews for this deal
+  const { data: approvedData, error: approvedError } = await admin
     .from('reviews')
     .select('*, user:profiles(full_name, avatar_url)')
     .eq('deal_id', deal.id)
     .eq('is_approved', true)
     .order('created_at', { ascending: false });
 
-  if (error) {
+  if (approvedError) {
     return c.json({ error: 'Failed to fetch reviews' }, 500);
   }
 
-  // Compute stats
-  const allApproved = reviewsData || [];
+  const allApproved = approvedData || [];
+
+  // If the user is authenticated, also fetch their own unapproved review(s)
+  let userPending: typeof allApproved = [];
+  if (userId) {
+    const { data: pendingData } = await admin
+      .from('reviews')
+      .select('*, user:profiles(full_name, avatar_url)')
+      .eq('deal_id', deal.id)
+      .eq('user_id', userId)
+      .eq('is_approved', false)
+      .order('created_at', { ascending: false });
+
+    if (pendingData) {
+      userPending = pendingData;
+    }
+  }
+
+  // Merge: approved first (newest first), then user's pending reviews at the end.
+  // Deduplicate by id in case the user's review was just approved between queries.
+  const approvedIds = new Set(allApproved.map((r) => r.id));
+  const uniquePending = userPending.filter((r) => !approvedIds.has(r.id));
+  const mergedReviews = [...allApproved, ...uniquePending];
+
+  // Stats are computed from approved reviews only
   const total = allApproved.length;
   const avgRating = total > 0
     ? Math.round((allApproved.reduce((sum, r) => sum + r.rating, 0) / total) * 100) / 100
@@ -48,7 +95,7 @@ reviews.get('/deals/:slug', async (c) => {
   }
 
   return c.json({
-    reviews: allApproved,
+    reviews: mergedReviews,
     stats: { avg_rating: avgRating, review_count: total, distribution },
   });
 });

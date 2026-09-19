@@ -151,6 +151,29 @@ export const api = {
   deleteReview: (id: string) =>
     fetchApi(`/reviews/${id}`, { method: 'DELETE' }),
 
+  // Media (admin)
+  listMedia: (options?: { prefix?: string; cursor?: string; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (options?.prefix) params.set('prefix', options.prefix);
+    if (options?.cursor) params.set('cursor', options.cursor);
+    if (options?.limit) params.set('limit', String(options.limit));
+    const q = params.toString();
+    return fetchApi<{ files: MediaFile[]; truncated: boolean; cursor: string | null }>(
+      `/upload/list${q ? `?${q}` : ''}`,
+    );
+  },
+  renameMedia: (oldKey: string, newKey: string) =>
+    fetchApi<{ message: string; oldKey: string; newKey: string; url: string }>(
+      '/upload/rename',
+      { method: 'PATCH', body: JSON.stringify({ oldKey, newKey }) },
+    ),
+  deleteMedia: (key: string) =>
+    fetchApi(`/upload/image/${encodeURIComponent(key)}`, { method: 'DELETE' }),
+
+  // Featured Reviews (public)
+  getFeaturedReviews: (limit = 10) =>
+    fetchApi<{ reviews: Review[] }>(`/reviews/featured?limit=${limit}`),
+
   // Admin Reviews
   getAdminReviews: (page = 1) =>
     fetchApi<{ reviews: Review[]; total: number; totalPages: number }>(`/reviews/admin?page=${page}`),
@@ -220,4 +243,4 @@ export const api = {
 };
 
 // Import types at the top level for convenience
-import type { Profile, TourDeal, CustomPackage, Booking, SavedDeal, PearlsHistory, Destination, ProfileStats, AdminStats, PackageDestination, PackageDistrict, PackageTourSpot, GeoPlace, GeoRoute, GeoCachePurgeResult, Review, ReviewStats } from '../types';
+import type { Profile, TourDeal, CustomPackage, Booking, SavedDeal, PearlsHistory, Destination, ProfileStats, AdminStats, PackageDestination, PackageDistrict, PackageTourSpot, GeoPlace, GeoRoute, GeoCachePurgeResult, Review, ReviewStats, MediaFile } from '../types';

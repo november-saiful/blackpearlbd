@@ -9,6 +9,7 @@ import { GlobePolaroids } from '@/components/ui/component';
 import { StarsBackground } from '@/components/ui/stars-background';
 import { CTabs6 } from '@/components/examples/c-tabs-6';
 import BuildPackageForm from '@/components/package-builder/BuildPackageForm';
+import { AnimatedReviews } from '@/components/reviews/AnimatedReviews';
 import { Compass, Star, ArrowRight } from 'lucide-react';
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
 import type { TourDeal } from '@/types';
@@ -179,6 +180,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials / Reviews */}
+      <AnimatedReviews />
 
     </div>
   );

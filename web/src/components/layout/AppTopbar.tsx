@@ -113,17 +113,6 @@ function useCommandPaletteItems() {
       onSelect: () => window.open('https://blackpearl.travel/support', '_blank'),
     })
 
-    items.push({
-      id: 'logout',
-      label: 'Log Out',
-      group: 'Actions',
-      icon: LogOut as LucideIcon,
-      onSelect: () => {
-        logout()
-        navigate('/')
-      },
-    })
-
     return items
   }, [navigate, isAdmin, logout])
 
@@ -170,6 +159,7 @@ export function AppTopbar({ className }: { className?: string }) {
   const { items: commandItems, searchQuery, setSearchQuery } = useCommandPaletteItems()
   const { bookmarks, removeBookmark } = useBookmarkStore()
   const { bookmarkCount } = useBookmarkSync()
+  const navigate = useNavigate()
 
   const openPalette = useCallback(() => setPaletteOpen(true), [])
 
@@ -211,6 +201,14 @@ export function AppTopbar({ className }: { className?: string }) {
       },
     ],
   }))
+
+  const handleBookmarkClick = useCallback((item: SwipeableListItem) => {
+    const deal = bookmarks.find((b) => b.id === item.id);
+    if (deal?.slug) {
+      setBookmarkOpen(false);
+      navigate(`/deals/${deal.slug}`);
+    }
+  }, [bookmarks, navigate])
 
   const handleBookmarkOpen = useCallback((open: boolean) => {
     setBookmarkOpen(open)
@@ -344,6 +342,38 @@ export function AppTopbar({ className }: { className?: string }) {
                   <SwipeableList
                     items={bookmarkItems}
                     closeOnAction={true}
+                    renderItem={(item) => (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className="flex min-w-0 items-center gap-3 w-full cursor-pointer"
+                        onClick={() => handleBookmarkClick(item)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') handleBookmarkClick(item);
+                        }}
+                      >
+                        {item.leading && (
+                          <div className="shrink-0">{item.leading}</div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          {item.title && (
+                            <div className="truncate text-sm font-medium text-foreground">
+                              {item.title}
+                            </div>
+                          )}
+                          {item.description && (
+                            <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                              {item.description}
+                            </div>
+                          )}
+                        </div>
+                        {item.meta && (
+                          <div className="shrink-0 text-xs font-medium text-muted-foreground">
+                            {item.meta}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     classNames={{
                       item: "rounded-lg",
                       surface: "rounded-lg",

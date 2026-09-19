@@ -15,9 +15,12 @@ export function ReviewList({ dealSlug, dealId }: ReviewListProps) {
   const { reviews, stats, isLoading } = useDealReviews(dealSlug);
   const { user, isAuthenticated } = useAuth();
 
-  // Check if the current user already has a review
-  const userReview = user ? reviews.find((r) => r.user_id === user.id) : null;
-  const canReview = isAuthenticated && !userReview;
+  // Separate the user's own review(s) from the rest so pending ones show at top
+  const userReviews = user ? reviews.filter((r) => r.user_id === user.id) : [];
+  const otherReviews = user ? reviews.filter((r) => r.user_id !== user.id) : reviews;
+  // The user has any review (pending or approved)
+  const hasUserReview = userReviews.length > 0;
+  const canReview = isAuthenticated && !hasUserReview;
 
   return (
     <Card>
@@ -41,7 +44,12 @@ export function ReviewList({ dealSlug, dealId }: ReviewListProps) {
           <div className="text-center py-6 text-sm text-muted-foreground">Loading reviews…</div>
         ) : reviews.length > 0 ? (
           <div className="space-y-3">
-            {reviews.map((review) => (
+            {/* User's own review(s) shown first (pending + approved) */}
+            {userReviews.map((review) => (
+              <ReviewCard key={review.id} review={review} dealSlug={dealSlug} />
+            ))}
+            {/* Other users' approved reviews */}
+            {otherReviews.map((review) => (
               <ReviewCard key={review.id} review={review} dealSlug={dealSlug} />
             ))}
           </div>
@@ -56,7 +64,7 @@ export function ReviewList({ dealSlug, dealId }: ReviewListProps) {
         )}
 
         {/* Already reviewed */}
-        {userReview && (
+        {hasUserReview && (
           <div className="border-t border-border pt-6">
             <p className="text-sm text-muted-foreground">
               You&apos;ve already reviewed this deal. You can edit or delete your review above.

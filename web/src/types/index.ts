@@ -251,3 +251,15 @@ export interface PaginatedResponse<T> {
   limit: number;
   totalPages: number;
 }
+
+export interface MediaFile {
+  key: string;
+  size: number;
+  etag: string;
+  httpEtag: string;
+  uploaded: string | null;
+  httpMetadata: {
+    contentType: string;
+    cacheControl: string | null;
+  };
+}

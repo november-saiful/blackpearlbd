@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import { publicImageUrl } from '../lib/r2';
 import { Env } from '../types';
+import { z } from 'zod';
 
 const upload = new Hono();
 
@@ -94,6 +95,94 @@ upload.get('/image/*', async (c) => {
   headers.set('cache-control', 'public, max-age=31536000, immutable');
 
   return new Response(object.body, { headers });
+});
+
+// List all objects in R2 bucket (admin only)
+upload.get('/list', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  const prefix = c.req.query('prefix') || '';
+  const cursor = c.req.query('cursor') || undefined;
+  const limit = Math.min(parseInt(c.req.query('limit') || '50', 10), 100);
+
+  const listed = await env.BLACKPEARL_BUCKET.list({
+    prefix: prefix || undefined,
+    cursor,
+    limit,
+  });
+
+  const files = (listed.objects || []).map((obj) => ({
+    key: obj.key,
+    size: obj.size,
+    etag: obj.etag,
+    httpEtag: obj.httpEtag,
+    uploaded: obj.uploaded?.toISOString() || null,
+    httpMetadata: {
+      contentType: obj.httpMetadata?.contentType || 'application/octet-stream',
+      cacheControl: obj.httpMetadata?.cacheControl || null,
+    },
+  }));
+
+  return c.json({
+    files,
+    truncated: listed.truncated,
+    cursor: listed.truncated && listed.cursor ? listed.cursor : null,
+  });
+});
+
+// Rename/move an R2 object (admin only)
+// Copies the object to a new key then deletes the original.
+upload.patch('/rename', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+  const body = await c.req.json();
+
+  const schema = z.object({
+    oldKey: z.string().min(1),
+    newKey: z.string().min(1).regex(/^[a-zA-Z0-9._\-/]+$/),
+  });
+
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    return c.json({ error: 'Invalid input', details: result.error.issues }, 400);
+  }
+
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  const { oldKey, newKey } = result.data;
+
+  // Fetch the original object
+  const existing = await env.BLACKPEARL_BUCKET.get(oldKey);
+  if (!existing) {
+    return c.json({ error: 'File not found' }, 404);
+  }
+
+  // Check if new key already exists
+  const conflict = await env.BLACKPEARL_BUCKET.head(newKey);
+  if (conflict) {
+    return c.json({ error: 'A file with that name already exists' }, 409);
+  }
+
+  // Copy to new key
+  await env.BLACKPEARL_BUCKET.put(newKey, existing.body, {
+    httpMetadata: existing.httpMetadata,
+    customMetadata: existing.customMetadata,
+  });
+
+  // Delete the original
+  await env.BLACKPEARL_BUCKET.delete(oldKey);
+
+  return c.json({
+    message: 'File renamed',
+    oldKey,
+    newKey,
+    url: publicImageUrl(c.req.url, newKey),
+  });
 });
 
 // Delete image from R2 (admin only)

@@ -24,8 +24,22 @@ export function useCreateReview(slug: string) {
   return useMutation({
     mutationFn: (data: { rating: number; title: string; body: string }) =>
       api.createReview(slug, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deal-reviews', slug] });
+    onSuccess: (response) => {
+      // Optimistically add the new review to the cache so the author sees
+      // it immediately while waiting for admin approval.
+      queryClient.setQueryData(
+        ['deal-reviews', slug],
+        (old: { reviews: Review[]; stats: ReviewStats } | undefined) => {
+          if (!old) return old;
+          const newReview = response.review;
+          // Avoid duplicates
+          if (old.reviews.some((r) => r.id === newReview.id)) return old;
+          return {
+            ...old,
+            reviews: [...old.reviews, newReview],
+          };
+        },
+      );
       toast.success('Review submitted! It will appear after approval.');
     },
     onError: (error: Error) => {

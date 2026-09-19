@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Pencil, Trash2, ShieldCheck } from 'lucide-react';
+import { User, Pencil, Trash2, ShieldCheck, Clock } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { ReviewForm } from './ReviewForm';
 import { useUpdateReview, useDeleteReview } from '@/hooks/useReviews';
@@ -79,6 +79,12 @@ export function ReviewCard({ review, dealSlug }: ReviewCardProps) {
             </div>
             <div className="flex items-center gap-2">
               <StarRating value={review.rating} readonly size="sm" />
+              {!review.is_approved && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                  <Clock className="h-2.5 w-2.5" />
+                  Pending approval
+                </span>
+              )}
               <span className="text-[11px] text-muted-foreground">{timeAgo(review.created_at)}</span>
             </div>
           </div>
