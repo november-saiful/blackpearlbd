@@ -145,6 +145,77 @@ upload.get('/stats', authMiddleware, adminMiddleware, async (c) => {
   });
 });
 
+// Batch delete multiple R2 objects (admin only)
+upload.post('/batch-delete', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  const body = await c.req.json<{ keys: string[] }>();
+  const keys = body.keys;
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return c.json({ error: 'keys array is required' }, 400);
+  }
+  if (keys.length > 100) {
+    return c.json({ error: 'Maximum 100 files per batch' }, 400);
+  }
+
+  await env.BLACKPEARL_BUCKET.delete(keys);
+  return c.json({ deleted: keys.length });
+});
+
+// Batch rename: add prefix/suffix to multiple R2 objects (admin only)
+upload.post('/batch-rename', authMiddleware, adminMiddleware, async (c) => {
+  const env = c.env as Env;
+  if (!env.BLACKPEARL_BUCKET) {
+    return c.json({ error: 'Storage not configured' }, 500);
+  }
+
+  const body = await c.req.json<{ keys: string[]; find: string; replace: string }>();
+  const { keys, find, replace } = body;
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return c.json({ error: 'keys array is required' }, 400);
+  }
+  if (keys.length > 100) {
+    return c.json({ error: 'Maximum 100 files per batch' }, 400);
+  }
+  if (typeof find !== 'string') {
+    return c.json({ error: 'find is required' }, 400);
+  }
+
+  let renamed = 0;
+  let errors = 0;
+  for (const oldKey of keys) {
+    // Only rename the filename part (last segment), not folder paths
+    const parts = oldKey.split('/');
+    const filename = parts[parts.length - 1];
+    const newFilename = filename.split(find).join(replace);
+    if (newFilename === filename) {
+      continue; // No change needed
+    }
+    parts[parts.length - 1] = newFilename;
+    const newKey = parts.join('/');
+
+    try {
+      const existing = await env.BLACKPEARL_BUCKET.get(oldKey);
+      if (!existing) { errors++; continue; }
+      const conflict = await env.BLACKPEARL_BUCKET.head(newKey);
+      if (conflict) { errors++; continue; }
+      await env.BLACKPEARL_BUCKET.put(newKey, existing.body, {
+        httpMetadata: existing.httpMetadata,
+        customMetadata: existing.customMetadata,
+      });
+      await env.BLACKPEARL_BUCKET.delete(oldKey);
+      renamed++;
+    } catch {
+      errors++;
+    }
+  }
+
+  return c.json({ renamed, errors });
+});
+
 // List all objects in R2 bucket (admin only)
 upload.get('/list', authMiddleware, adminMiddleware, async (c) => {
   const env = c.env as Env;

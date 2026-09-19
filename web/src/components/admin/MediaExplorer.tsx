@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,10 @@ import {
   Loader2,
   Grid,
   List,
+  Check,
+  Square,
+  CheckSquare,
+  PenLine,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
@@ -62,6 +66,12 @@ export function MediaExplorer() {
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [deleting, setDeleting] = useState<string | null>(null);
+  // Batch selection
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  // Batch rename dialog
+  const [batchRenameOpen, setBatchRenameOpen] = useState(false);
+  const [batchFind, setBatchFind] = useState('');
+  const [batchReplace, setBatchReplace] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-media', prefix, cursor],
@@ -80,13 +90,42 @@ export function MediaExplorer() {
     const relative = prefix ? file.key.slice(prefix.length) : file.key;
     const slashIndex = relative.indexOf('/');
     if (slashIndex !== -1) {
-      // This is inside a subfolder
       const folder = relative.slice(0, slashIndex + 1);
       folders.add(folder);
     } else {
       fileItems.push(file);
     }
   }
+
+  const allSelected = fileItems.length > 0 && fileItems.every((f) => selectedKeys.has(f.key));
+  const someSelected = fileItems.some((f) => selectedKeys.has(f.key));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedKeys((prev) => {
+        const next = new Set(prev);
+        for (const f of fileItems) next.delete(f.key);
+        return next;
+      });
+    } else {
+      setSelectedKeys((prev) => {
+        const next = new Set(prev);
+        for (const f of fileItems) next.add(f.key);
+        return next;
+      });
+    }
+  };
+
+  const toggleSelect = (key: string) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedKeys(new Set());
 
   const navigateTo = useCallback(
     (newPrefix: string) => {
@@ -96,6 +135,7 @@ export function MediaExplorer() {
       setHistoryIndex(newHistory.length - 1);
       setPrefix(newPrefix);
       setCursor(undefined);
+      clearSelection();
     },
     [history, historyIndex],
   );
@@ -106,6 +146,7 @@ export function MediaExplorer() {
       setHistoryIndex(newIndex);
       setPrefix(history[newIndex]);
       setCursor(undefined);
+      clearSelection();
     }
   };
 
@@ -115,6 +156,7 @@ export function MediaExplorer() {
       setHistoryIndex(newIndex);
       setPrefix(history[newIndex]);
       setCursor(undefined);
+      clearSelection();
     }
   };
 
@@ -144,6 +186,36 @@ export function MediaExplorer() {
     },
   });
 
+  // Batch mutations
+  const batchDeleteMutation = useMutation({
+    mutationFn: (keys: string[]) => api.batchDeleteMedia(keys),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-media'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-storage-stats'] });
+      toast.success(`Deleted ${result.deleted} file${result.deleted !== 1 ? 's' : ''}`);
+      clearSelection();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete files');
+    },
+  });
+
+  const batchRenameMutation = useMutation({
+    mutationFn: ({ keys, find, replace }: { keys: string[]; find: string; replace: string }) =>
+      api.batchRenameMedia(keys, find, replace),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-media'] });
+      toast.success(`Renamed ${result.renamed} file${result.renamed !== 1 ? 's' : ''}${result.errors > 0 ? ` (${result.errors} errors)` : ''}`);
+      clearSelection();
+      setBatchRenameOpen(false);
+      setBatchFind('');
+      setBatchReplace('');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to rename files');
+    },
+  });
+
   const handleRename = (file: MediaFile) => {
     const name = fileName(file.key);
     setRenaming(file.key);
@@ -166,6 +238,25 @@ export function MediaExplorer() {
       deleteMutation.mutate(key);
       setTimeout(() => setDeleting(null), 1000);
     }
+  };
+
+  const handleBatchDelete = () => {
+    const count = selectedKeys.size;
+    if (count === 0) return;
+    if (!confirm(`Permanently delete ${count} file${count !== 1 ? 's' : ''}? This cannot be undone.`)) return;
+    batchDeleteMutation.mutate(Array.from(selectedKeys));
+  };
+
+  const handleBatchRename = () => {
+    if (!batchFind.trim()) {
+      toast.error('Search text is required');
+      return;
+    }
+    batchRenameMutation.mutate({
+      keys: Array.from(selectedKeys),
+      find: batchFind,
+      replace: batchReplace,
+    });
   };
 
   const reorganizeMutation = useMutation({
@@ -277,6 +368,98 @@ export function MediaExplorer() {
             );
           })}
         </div>
+
+        {/* Batch action bar */}
+        {selectedKeys.size > 0 && (
+          <div className="flex items-center gap-3 rounded-lg bg-primary/5 border border-primary/20 px-4 py-2 mt-1">
+            <span className="text-sm font-medium text-primary">
+              {selectedKeys.size} file{selectedKeys.size !== 1 ? 's' : ''} selected
+            </span>
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={batchRenameMutation.isPending}
+                onClick={() => {
+                  setBatchFind('');
+                  setBatchReplace('');
+                  setBatchRenameOpen(true);
+                }}
+              >
+                <PenLine className="w-3 h-3 mr-1" />
+                Rename…
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-7 text-xs"
+                disabled={batchDeleteMutation.isPending}
+                onClick={handleBatchDelete}
+              >
+                {batchDeleteMutation.isPending ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3 h-3 mr-1" />
+                )}
+                Delete
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearSelection}>
+                <X className="w-3 h-3 mr-1" />
+                Clear
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Batch rename dialog */}
+        {batchRenameOpen && (
+          <div className="rounded-lg bg-muted border border-border p-4 mt-1 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">
+                Batch rename {selectedKeys.size} file{selectedKeys.size !== 1 ? 's' : ''} — find &amp; replace in filename
+              </p>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setBatchRenameOpen(false)}>
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Find</label>
+                <Input
+                  value={batchFind}
+                  onChange={(e) => setBatchFind(e.target.value)}
+                  placeholder="e.g. IMG_"
+                  className="h-8 text-xs"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Replace with</label>
+                <Input
+                  value={batchReplace}
+                  onChange={(e) => setBatchReplace(e.target.value)}
+                  placeholder="e.g. hero-"
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setBatchRenameOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                className="h-7 text-xs"
+                disabled={!batchFind.trim() || batchRenameMutation.isPending}
+                onClick={handleBatchRename}
+              >
+                {batchRenameMutation.isPending && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                Rename
+              </Button>
+            </div>
+          </div>
+        )}
       </CardHeader>
 
       <CardContent>
@@ -311,71 +494,98 @@ export function MediaExplorer() {
                 ))}
 
                 {/* Files */}
-                {fileItems.map((file) => (
-                  <div
-                    key={file.key}
-                    className={cn(
-                      'group relative flex flex-col rounded-xl border border-border bg-card overflow-hidden transition-colors cursor-pointer hover:border-primary/50',
-                      selectedFile?.key === file.key && 'border-primary ring-1 ring-primary/20',
-                    )}
-                    onClick={() => setSelectedFile(file)}
-                  >
-                    {/* Thumbnail */}
-                    <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
-                      {isImage(file.httpMetadata?.contentType) ? (
-                        <img
-                          src={fileUrl(file)}
-                          alt={fileName(file.key)}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <File className="w-10 h-10 text-muted-foreground/40" />
+                {fileItems.map((file) => {
+                  const isSelected = selectedKeys.has(file.key);
+                  return (
+                    <div
+                      key={file.key}
+                      className={cn(
+                        'group relative flex flex-col rounded-xl border border-border bg-card overflow-hidden transition-colors cursor-pointer hover:border-primary/50',
+                        selectedFile?.key === file.key && 'border-primary ring-1 ring-primary/20',
+                        isSelected && 'border-primary/60 bg-primary/5',
                       )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="p-2">
-                      <p className="text-xs font-medium text-foreground truncate">
-                        {fileName(file.key)}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatFileSize(file.size)}
-                      </p>
-                    </div>
-
-                    {/* Quick actions overlay */}
-                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-7 w-7 shadow-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyUrl(file);
-                        }}
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        className="h-7 w-7 shadow-sm"
-                        disabled={deleting === file.key}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(file.key);
-                        }}
-                      >
-                        {deleting === file.key ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-3 h-3 text-destructive" />
+                    >
+                      {/* Checkbox */}
+                      <button
+                        type="button"
+                        className={cn(
+                          'absolute top-2 left-2 z-10 rounded-md p-0.5 transition-opacity',
+                          isSelected
+                            ? 'opacity-100 bg-primary text-primary-foreground'
+                            : 'opacity-0 group-hover:opacity-100 bg-background/80 text-muted-foreground hover:text-foreground',
                         )}
-                      </Button>
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelect(file.key);
+                        }}
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-4 h-4" />
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      {/* Thumbnail */}
+                      <div
+                        className="aspect-square bg-muted flex items-center justify-center overflow-hidden"
+                        onClick={() => !isSelected && setSelectedFile(file)}
+                      >
+                        {isImage(file.httpMetadata?.contentType) ? (
+                          <img
+                            src={fileUrl(file)}
+                            alt={fileName(file.key)}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <File className="w-10 h-10 text-muted-foreground/40" />
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="p-2" onClick={() => !isSelected && setSelectedFile(file)}>
+                        <p className="text-xs font-medium text-foreground truncate">
+                          {fileName(file.key)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {formatFileSize(file.size)}
+                        </p>
+                      </div>
+
+                      {/* Quick actions overlay */}
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7 shadow-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            copyUrl(file);
+                          }}
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7 shadow-sm"
+                          disabled={deleting === file.key}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(file.key);
+                          }}
+                        >
+                          {deleting === file.key ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3 h-3 text-destructive" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -385,6 +595,24 @@ export function MediaExplorer() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
+                      <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider w-10">
+                        <button
+                          type="button"
+                          onClick={toggleSelectAll}
+                          className="flex items-center justify-center w-full"
+                          title={allSelected ? 'Deselect all' : 'Select all'}
+                        >
+                          {allSelected ? (
+                            <CheckSquare className="w-4 h-4 text-primary" />
+                          ) : someSelected ? (
+                            <div className="w-4 h-4 rounded border border-primary bg-primary/20 flex items-center justify-center">
+                              <div className="w-2 h-0.5 bg-primary rounded" />
+                            </div>
+                          ) : (
+                            <Square className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </button>
+                      </th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">File</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Type</th>
                       <th className="text-left py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">Size</th>
@@ -400,6 +628,7 @@ export function MediaExplorer() {
                         className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
                         onClick={() => navigateTo(prefix + folder)}
                       >
+                        <td className="py-3 px-3"></td>
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
                             <Folder className="w-5 h-5 text-amber-500 shrink-0" />
@@ -416,107 +645,127 @@ export function MediaExplorer() {
                     ))}
 
                     {/* Files */}
-                    {fileItems.map((file) => (
-                      <tr
-                        key={file.key}
-                        className={cn(
-                          'border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer',
-                          selectedFile?.key === file.key && 'bg-accent/50',
-                        )}
-                        onClick={() => setSelectedFile(file)}
-                      >
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {isImage(file.httpMetadata?.contentType) ? (
-                              <div className="h-9 w-9 rounded-lg bg-muted overflow-hidden shrink-0">
-                                <img
-                                  src={fileUrl(file)}
-                                  alt={fileName(file.key)}
-                                  className="h-full w-full object-cover"
-                                  loading="lazy"
-                                />
-                              </div>
-                            ) : (
-                              <File className="w-5 h-5 text-muted-foreground shrink-0" />
-                            )}
-                            <div className="min-w-0">
-                              {renaming === file.key ? (
-                                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                                  <Input
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    className="h-7 text-xs w-40"
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') confirmRename(file);
-                                      if (e.key === 'Escape') setRenaming(null);
-                                    }}
-                                    onBlur={() => confirmRename(file)}
+                    {fileItems.map((file) => {
+                      const isSelected = selectedKeys.has(file.key);
+                      return (
+                        <tr
+                          key={file.key}
+                          className={cn(
+                            'border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer',
+                            selectedFile?.key === file.key && 'bg-accent/50',
+                            isSelected && 'bg-primary/5',
+                          )}
+                          onClick={() => setSelectedFile(file)}
+                        >
+                          <td
+                            className="py-3 px-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleSelect(file.key)}
+                              className="flex items-center justify-center"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="w-4 h-4 text-primary" />
+                              ) : (
+                                <Square className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                              )}
+                            </button>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {isImage(file.httpMetadata?.contentType) ? (
+                                <div className="h-9 w-9 rounded-lg bg-muted overflow-hidden shrink-0">
+                                  <img
+                                    src={fileUrl(file)}
+                                    alt={fileName(file.key)}
+                                    className="h-full w-full object-cover"
+                                    loading="lazy"
                                   />
                                 </div>
                               ) : (
-                                <p className="text-sm font-medium text-foreground truncate">
-                                  {fileName(file.key)}
-                                </p>
+                                <File className="w-5 h-5 text-muted-foreground shrink-0" />
                               )}
-                              <p className="text-[10px] text-muted-foreground truncate">{file.key}</p>
+                              <div className="min-w-0">
+                                {renaming === file.key ? (
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <Input
+                                      value={newName}
+                                      onChange={(e) => setNewName(e.target.value)}
+                                      className="h-7 text-xs w-40"
+                                      autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') confirmRename(file);
+                                        if (e.key === 'Escape') setRenaming(null);
+                                      }}
+                                      onBlur={() => confirmRename(file)}
+                                    />
+                                  </div>
+                                ) : (
+                                  <p className="text-sm font-medium text-foreground truncate">
+                                    {fileName(file.key)}
+                                  </p>
+                                )}
+                                <p className="text-[10px] text-muted-foreground truncate">{file.key}</p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 hidden sm:table-cell text-sm text-muted-foreground">
-                          {file.httpMetadata.contentType}
-                        </td>
-                        <td className="py-3 px-3 hidden md:table-cell text-sm text-muted-foreground">
-                          {formatFileSize(file.size)}
-                        </td>
-                        <td className="py-3 px-3 hidden lg:table-cell text-sm text-muted-foreground">
-                          {file.uploaded
-                            ? new Date(file.uploaded).toLocaleDateString()
-                            : '—'}
-                        </td>
-                        <td className="py-3 px-3">
-                          <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => window.open(fileUrl(file), '_blank')}
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => copyUrl(file)}
-                            >
-                              <Copy className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleRename(file)}
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive"
-                              disabled={deleting === file.key}
-                              onClick={() => handleDelete(file.key)}
-                            >
-                              {deleting === file.key ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
-                              )}
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-3 px-3 hidden sm:table-cell text-sm text-muted-foreground">
+                            {file.httpMetadata?.contentType}
+                          </td>
+                          <td className="py-3 px-3 hidden md:table-cell text-sm text-muted-foreground">
+                            {formatFileSize(file.size)}
+                          </td>
+                          <td className="py-3 px-3 hidden lg:table-cell text-sm text-muted-foreground">
+                            {file.uploaded
+                              ? new Date(file.uploaded).toLocaleDateString()
+                              : '—'}
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => window.open(fileUrl(file), '_blank')}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => copyUrl(file)}
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleRename(file)}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                disabled={deleting === file.key}
+                                onClick={() => handleDelete(file.key)}
+                              >
+                                {deleting === file.key ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -578,7 +827,7 @@ export function MediaExplorer() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-muted-foreground">Type:</span>{' '}
-                    <span className="text-foreground">{selectedFile.httpMetadata.contentType}</span>
+                    <span className="text-foreground">{selectedFile.httpMetadata?.contentType}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Size:</span>{' '}

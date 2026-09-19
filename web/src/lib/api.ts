@@ -177,6 +177,16 @@ export const api = {
     ),
   deleteMedia: (key: string) =>
     fetchApi(`/upload/image/${encodeURIComponent(key)}`, { method: 'DELETE' }),
+  batchDeleteMedia: (keys: string[]) =>
+    fetchApi<{ deleted: number }>('/upload/batch-delete', {
+      method: 'POST',
+      body: JSON.stringify({ keys }),
+    }),
+  batchRenameMedia: (keys: string[], find: string, replace: string) =>
+    fetchApi<{ renamed: number; errors: number }>('/upload/batch-rename', {
+      method: 'POST',
+      body: JSON.stringify({ keys, find, replace }),
+    }),
 
   // Featured Reviews (public)
   getFeaturedReviews: (limit = 10) =>
