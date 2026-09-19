@@ -1001,21 +1001,22 @@ export function DealsManager() {
                     </p>
 
                     {/* Create folder button */}
-                    {formData.slug.trim() && !slugError && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-8 text-xs"
-                        disabled={slugChecking || isCreatingFolder}
-                        onClick={handleCreateFolder}
-                      >
-                        {slugChecking || isCreatingFolder ? (
-                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                        ) : (
-                          <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
-                        )}
-                        Create Folder & Confirm
-                      </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8 text-xs"
+                      disabled={!formData.slug.trim() || !!slugError || slugChecking || isCreatingFolder}
+                      onClick={handleCreateFolder}
+                    >
+                      {slugChecking || isCreatingFolder ? (
+                        <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                      ) : (
+                        <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                      )}
+                      Create Folder & Confirm
+                    </Button>
+                    {!formData.slug.trim() && (
+                      <p className="text-[11px] text-muted-foreground">Type a title above to auto-generate a slug, or type a custom slug.</p>
                     )}
                   </div>
                 )}
