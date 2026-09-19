@@ -179,6 +179,7 @@ export function DealsManager() {
       setSlugConfirmed(true);
       setCreateFolderConfirmOpen(false);
       setSlugDropdownOpen(false);
+      setShowExistingMedia(true);
       toast.success(`Folder deals/${slug}/ created`);
     } catch (error: any) {
       toast.error(error?.message || 'Failed to create folder');
@@ -1148,7 +1149,7 @@ export function DealsManager() {
                 />
 
                 {/* Browse existing media from slug folder */}
-                {isEditModalOpen && currentSlug && (
+                {slugConfirmed && currentSlug && (
                   <div className="mt-3">
                     <button
                       type="button"
