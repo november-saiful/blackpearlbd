@@ -61,7 +61,7 @@ export const api = {
   getProfilePearls: () => fetchApi<{ history: PearlsHistory[] }>('/profile/pearls'),
 
   // Upload
-  uploadImage: async (file: File): Promise<{ url: string; key: string }> => {
+  uploadImage: async (file: File, slug?: string): Promise<{ url: string; key: string }> => {
     const { supabase } = await import('./supabase');
     const { data: { session } } = await supabase.auth.getSession();
     const headers: Record<string, string> = {};
@@ -70,6 +70,7 @@ export const api = {
     }
     const formData = new FormData();
     formData.append('file', file);
+    if (slug) formData.append('slug', slug);
     const response = await fetch(`${API_URL}/upload/image`, {
       method: 'POST',
       headers,

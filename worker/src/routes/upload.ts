@@ -38,10 +38,13 @@ upload.post('/image', authMiddleware, adminMiddleware, async (c) => {
       return c.json({ error: 'File too large. Maximum size: 5MB' }, 400);
     }
 
-    // Generate unique filename: deals/{timestamp}-{random}.{ext}
+    // Generate unique filename: deals/{slug}/{timestamp}-{random}.{ext}
+    // If no slug is provided, files go under deals/ root (legacy).
     const ext = file.name.split('.').pop() || 'jpg';
     const random = Math.random().toString(36).substring(2, 8);
-    const key = `deals/${Date.now()}-${random}.${ext}`;
+    const slug = (formData.get('slug') as string | null || '').trim();
+    const folder = slug ? `deals/${slug}` : 'deals';
+    const key = `${folder}/${Date.now()}-${random}.${ext}`;
 
     const arrayBuffer = await file.arrayBuffer();
 

@@ -548,7 +548,7 @@ export function DealsManager() {
       setIsUploading(true);
       try {
         const compressed = await compressImage(file);
-        const { url } = await api.uploadImage(compressed);
+        const { url } = await api.uploadImage(compressed, formData.slug || undefined);
         if (formData.gallery.includes(url)) {
           toast(`${file.name} is already in the gallery`, { icon: 'ℹ️' });
           continue;
