@@ -31,8 +31,8 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function isImage(contentType: string): boolean {
-  return contentType.startsWith('image/');
+function isImage(contentType: string | undefined | null): boolean {
+  return !!contentType && contentType.startsWith('image/');
 }
 
 function fileExtension(key: string): string {
@@ -183,14 +183,14 @@ export function MediaExplorer() {
   const apiUrl = import.meta.env.VITE_API_URL || '';
 
   const copyUrl = (file: MediaFile) => {
-    const url = `${apiUrl}/upload/image/${file.key}`;
+    const url = `${apiUrl}/upload/image/${encodeURIComponent(file.key)}`;
     navigator.clipboard.writeText(url).then(
       () => toast.success('URL copied to clipboard'),
       () => toast.error('Failed to copy URL'),
     );
   };
 
-  const fileUrl = (file: MediaFile) => `${apiUrl}/upload/image/${file.key}`;
+  const fileUrl = (file: MediaFile) => `${apiUrl}/upload/image/${encodeURIComponent(file.key)}`;
 
   return (
     <Card>
@@ -322,7 +322,7 @@ export function MediaExplorer() {
                   >
                     {/* Thumbnail */}
                     <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
-                      {isImage(file.httpMetadata.contentType) ? (
+                      {isImage(file.httpMetadata?.contentType) ? (
                         <img
                           src={fileUrl(file)}
                           alt={fileName(file.key)}
@@ -427,7 +427,7 @@ export function MediaExplorer() {
                       >
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2 min-w-0">
-                            {isImage(file.httpMetadata.contentType) ? (
+                            {isImage(file.httpMetadata?.contentType) ? (
                               <div className="h-9 w-9 rounded-lg bg-muted overflow-hidden shrink-0">
                                 <img
                                   src={fileUrl(file)}
@@ -560,7 +560,7 @@ export function MediaExplorer() {
 
               {/* Preview image */}
               <div className="bg-muted">
-                {isImage(selectedFile.httpMetadata.contentType) ? (
+                {isImage(selectedFile.httpMetadata?.contentType) ? (
                   <img
                     src={fileUrl(selectedFile)}
                     alt={fileName(selectedFile.key)}
