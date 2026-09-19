@@ -71,8 +71,10 @@ interface JobCardProps {
 }
 
 function JobCard({ job }: JobCardProps) {
-  const { addBookmark, removeBookmark, isBookmarked } = useBookmarkStore();
-  const bookmarked = isBookmarked(job.id);
+  const { isBookmarked, toggleBookmark } = useBookmarkStore();
+  // Keyed off the deal's own id, not the listing's: the two only match by
+  // coincidence today, and a mismatch silently breaks the toggle.
+  const bookmarked = isBookmarked(job.deal.id);
 
   return (
     <DealCard
@@ -80,7 +82,7 @@ function JobCard({ job }: JobCardProps) {
       action={
         <AnimatedBookmarkButton
           isBookmarked={bookmarked}
-          onClick={() => (bookmarked ? removeBookmark(job.id) : addBookmark(job.deal))}
+          onClick={() => toggleBookmark(job.deal)}
           className="rounded-full bg-white/90 shadow-md backdrop-blur-sm hover:bg-white"
         />
       }

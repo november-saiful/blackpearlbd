@@ -5,8 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn, formatCurrency } from '@/lib/utils';
 
-import { useAuth } from '@/hooks/useAuth';
-import { useSavedDeals } from '@/hooks/useDeals';
+import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { useRelatedDeals } from '@/hooks/useRelatedDeals';
 import { BookingModal } from '@/components/bookings/BookingModal';
 import { DealRouteMap, isValidWaypoint } from '@/components/deals/DealRouteMap';
@@ -22,8 +21,7 @@ interface DealDetailProps {
 }
 
 export function DealDetail({ deal }: DealDetailProps) {
-  const { isAuthenticated } = useAuth();
-  const { savedDeals } = useSavedDeals();
+  const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isRouteOpen, setIsRouteOpen] = useState(false);
   // Index of the photo open full-screen, or null while the viewer is closed.
@@ -36,8 +34,7 @@ export function DealDetail({ deal }: DealDetailProps) {
 
   const { related: relatedDeals, isLoading: isRelatedLoading } = useRelatedDeals(deal);
 
-  const isSaved = savedDeals.some((sd) => sd.deal_id === deal.id);
-  const savedDeal = savedDeals.find((sd) => sd.deal_id === deal.id);
+  const isSaved = isBookmarked(deal.id);
   const routeWaypoints = (deal.route_waypoints || []).filter(isValidWaypoint);
 
   // Every photo the deal has becomes one coverflow card: the main image first,
@@ -139,13 +136,9 @@ export function DealDetail({ deal }: DealDetailProps) {
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
-                if (!isAuthenticated) {
-                  alert('Please sign in to save deals');
-                  return;
-                }
-                // Toggle save
-              }}
+              aria-pressed={isSaved}
+              aria-label={isSaved ? 'Remove from bookmarks' : 'Save to bookmarks'}
+              onClick={() => toggleBookmark(deal)}
             >
               <Heart className={`w-4 h-4 mr-2 ${isSaved ? 'fill-rose-500 text-rose-500' : ''}`} />
               {isSaved ? 'Saved' : 'Save'}

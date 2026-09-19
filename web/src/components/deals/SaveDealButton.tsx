@@ -1,46 +1,37 @@
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
-import { useSavedDeals } from '@/hooks/useDeals';
-import { api } from '@/lib/api';
-import { useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { cn } from '@/lib/utils';
+import { useBookmarkStore } from '@/stores/bookmarkStore';
+import type { TourDeal } from '@/types';
 
 interface SaveDealButtonProps {
-  dealId: string;
+  /**
+   * The full deal, not just its id: the bookmark store keeps the deal itself so
+   * the topbar dropdown can render it without another fetch.
+   */
+  deal: TourDeal;
+  className?: string;
 }
 
-export function SaveDealButton({ dealId }: SaveDealButtonProps) {
-  const { isAuthenticated } = useAuth();
-  const { savedDeals } = useSavedDeals();
-  const queryClient = useQueryClient();
-
-  const isSaved = savedDeals.some((sd) => sd.deal_id === dealId);
-  const savedDeal = savedDeals.find((sd) => sd.deal_id === dealId);
-
-  const handleClick = async () => {
-    if (!isAuthenticated) {
-      toast.error('Please sign in to save deals');
-      return;
-    }
-
-    try {
-      if (isSaved && savedDeal) {
-        await api.unsaveDeal(savedDeal.id);
-        toast.success('Deal removed from bookmarks');
-      } else {
-        await api.saveDeal(dealId);
-        toast.success('Deal saved to bookmarks');
-      }
-      queryClient.invalidateQueries({ queryKey: ['saved-deals'] });
-    } catch (error) {
-      toast.error('Failed to update saved deal');
-    }
-  };
+/**
+ * Bookmark toggle for a deal card. Shares the bookmark store with the deal
+ * page, the tours grid and the topbar dropdown, so every button in the app
+ * reflects the same saved state — and guests can bookmark too.
+ */
+export function SaveDealButton({ deal, className }: SaveDealButtonProps) {
+  const { isBookmarked, toggleBookmark } = useBookmarkStore();
+  const isSaved = isBookmarked(deal.id);
 
   return (
-    <Button variant="ghost" size="icon" onClick={handleClick}>
-      <Heart className={`w-5 h-5 ${isSaved ? 'fill-rose-500 text-rose-500' : ''}`} />
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-pressed={isSaved}
+      aria-label={isSaved ? 'Remove from bookmarks' : 'Save to bookmarks'}
+      onClick={() => toggleBookmark(deal)}
+      className={className}
+    >
+      <Heart className={cn('w-5 h-5', isSaved && 'fill-rose-500 text-rose-500')} />
     </Button>
   );
 }

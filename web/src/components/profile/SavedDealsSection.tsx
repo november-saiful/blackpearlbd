@@ -4,35 +4,21 @@ import { Heart, MapPin, Clock, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { BookingModal } from '@/components/bookings/BookingModal';
-import { useSavedDeals } from '@/hooks/useDeals';
-import { useAuth } from '@/hooks/useAuth';
-import { api } from '@/lib/api';
-import { useQueryClient } from '@tanstack/react-query';
+import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { formatCurrency } from '@/lib/utils';
-import toast from 'react-hot-toast';
 import type { TourDeal } from '@/types';
 
 export function SavedDealsSection() {
-  const { savedDeals, isLoading } = useSavedDeals();
-  const { profile } = useAuth();
-  const queryClient = useQueryClient();
+  // Reads the shared bookmark store rather than a separate server query: the
+  // list, the topbar badge and the card buttons are then always in step.
+  const { bookmarks, removeBookmark, isInitialized } = useBookmarkStore();
   const [bookingDeal, setBookingDeal] = useState<TourDeal | null>(null);
 
-  const handleRemove = async (savedDealId: string) => {
-    try {
-      await api.unsaveDeal(savedDealId);
-      queryClient.invalidateQueries({ queryKey: ['saved-deals'] });
-      toast.success('Deal removed from bookmarks');
-    } catch {
-      toast.error('Failed to remove deal');
-    }
-  };
-
-  if (isLoading) {
+  if (!isInitialized) {
     return <p className="text-center text-muted-foreground py-8">Loading saved deals...</p>;
   }
 
-  if (savedDeals.length === 0) {
+  if (bookmarks.length === 0) {
     return (
       <div className="text-center py-12">
         <Heart className="w-12 h-12 text-primary-foreground/70 mx-auto mb-4" />
@@ -50,12 +36,9 @@ export function SavedDealsSection() {
   return (
     <>
       <div className="space-y-4">
-        {savedDeals.map((saved) => {
-          const deal = saved.deal;
-          if (!deal) return null;
-
+        {bookmarks.map((deal) => {
           return (
-            <Card key={saved.id} className="overflow-hidden">
+            <Card key={deal.id} className="overflow-hidden">
               <CardContent className="p-0">
                 <div className="flex flex-col sm:flex-row">
                   {/* Image */}
@@ -109,7 +92,7 @@ export function SavedDealsSection() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleRemove(saved.id)}
+                          onClick={() => removeBookmark(deal.id)}
                         >
                           <Trash2 className="w-4 h-4 mr-1" />
                           Remove

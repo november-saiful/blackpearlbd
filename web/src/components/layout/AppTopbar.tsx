@@ -372,6 +372,30 @@ export function AppTopbar({ className }: { className?: string }) {
                             {item.meta}
                           </div>
                         )}
+                        {/*
+                         * Always-visible delete, in addition to the row's own
+                         * swipe action: the swipe is undiscoverable on a
+                         * desktop, and reaching for it shouldn't be the only
+                         * way to remove a bookmark.
+                         */}
+                        <button
+                          type="button"
+                          title="Remove bookmark"
+                          aria-label={
+                            typeof item.title === 'string'
+                              ? `Remove ${item.title} from bookmarks`
+                              : 'Remove from bookmarks'
+                          }
+                          className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            removeBookmark(item.id);
+                          }}
+                          onKeyDown={(event) => event.stopPropagation()}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     )}
                     classNames={{

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useDeals, useSavedDeals } from './useDeals';
+import { useDeals } from './useDeals';
 import { useBookings } from './useBookings';
+import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { api } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import type { TourDeal, CustomPackage } from '@/types';
@@ -32,7 +33,9 @@ function fuzzyMatch(query: string, text: string): boolean {
 
 export function useGlobalSearch(query: string) {
   const { deals } = useDeals();
-  const { savedDeals } = useSavedDeals();
+  // The same store every bookmark button writes to, so a deal bookmarked a
+  // second ago is searchable, and guests' bookmarks show up too.
+  const { bookmarks } = useBookmarkStore();
   const { bookings } = useBookings();
 
   const { data: packagesData } = useQuery({
@@ -72,9 +75,7 @@ export function useGlobalSearch(query: string) {
     });
 
     // Search bookmarks
-    savedDeals.forEach((sd) => {
-      const deal = sd.deal;
-      if (!deal) return;
+    bookmarks.forEach((deal) => {
       const searchText = [
         deal.title,
         deal.destination,
@@ -122,7 +123,7 @@ export function useGlobalSearch(query: string) {
     });
 
     return all;
-  }, [query, deals, savedDeals, packages]);
+  }, [query, deals, bookmarks, packages]);
 
   return { results };
 }
