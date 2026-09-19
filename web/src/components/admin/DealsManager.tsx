@@ -27,6 +27,14 @@ import { Lightbox } from '@/components/ui/lightbox';
  */
 const geocodeCache = new Map<string, GeoPlace[]>();
 
+/**
+ * Stand-in value for "no folder chosen yet" in the gallery's folder picker.
+ * Radix Select needs a real string, and switching between `undefined` and a
+ * string would flip it between uncontrolled and controlled. Slugs only allow
+ * letters, digits and hyphens, so this can never collide with a folder name.
+ */
+const NO_FOLDER_VALUE = '__no_folder__';
+
 /** `lat,lon|lat,lon` — the form the Worker's /geo/route expects. */
 function waypointParam(points: Waypoint[]): string {
   // Rounded to 4 decimals (~11m): Geoapify can reject full-precision Leaflet
@@ -92,44 +100,28 @@ export function DealsManager() {
   const [isPurgingGeoCache, setIsPurgingGeoCache] = useState(false);
   const [snappingWaypointIndex, setSnappingWaypointIndex] = useState<number | null>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const slugDropdownRef = useRef<HTMLDivElement>(null);
-  // Slug system
+  // Slug system. The slug is typed and checked for uniqueness — it is not a
+  // picker: choosing an existing folder here would mean two deals sharing one
+  // folder, which is exactly what the per-deal folder exists to prevent.
   const [slugError, setSlugError] = useState('');
   const [slugChecking, setSlugChecking] = useState(false);
   const [slugConfirmed, setSlugConfirmed] = useState(false);
-  const [slugDropdownOpen, setSlugDropdownOpen] = useState(false);
-  const [slugFilter, setSlugFilter] = useState('');
   const [createFolderConfirmOpen, setCreateFolderConfirmOpen] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
-  // Close slug dropdown on outside click
-  useEffect(() => {
-    if (!slugDropdownOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (slugDropdownRef.current && !slugDropdownRef.current.contains(e.target as Node)) {
-        setSlugDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [slugDropdownOpen]);
-
-  // Existing media browser
-  const [showExistingMedia, setShowExistingMedia] = useState(false);
-
-  // Fetch existing slug folders from R2 for the combobox
+  // Every folder under deals/ in R2. Offered by the gallery's media picker so a
+  // deal can reuse photos that are already stored instead of re-uploading them.
   const { data: slugFoldersData } = useQuery({
     queryKey: ['slug-folders'],
     queryFn: () => api.getSlugFolders(),
-    enabled: isCreateModalOpen,
+    enabled: (isCreateModalOpen || isEditModalOpen) && slugConfirmed,
   });
   const slugFolders = slugFoldersData?.folders || [];
-  const filteredSlugFolders = slugFolders.filter((f) =>
-    f.toLowerCase().includes(slugFilter.toLowerCase()) && f !== formData.slug.trim()
-  );
 
   // Fetch existing media from the slug folder when slug is confirmed
   const currentSlug = formData.slug.trim();
+  // Which folder the gallery's media picker is browsing, and what it holds.
+  const [mediaFolder, setMediaFolder] = useState('');
   const [existingMedia, setExistingMedia] = useState<{ slug: string; files: Array<{ key: string; url: string; size: number; contentType: string }>; total: number } | null>(null);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -162,15 +154,15 @@ export function DealsManager() {
     }
   };
 
-  // Fetch media when slug is confirmed and modal is open
+  // Load the picker's media whenever the browsed folder changes.
   useEffect(() => {
-    if (slugConfirmed && currentSlug.length > 0 && (isCreateModalOpen || isEditModalOpen)) {
-      fetchSlugMedia(currentSlug);
+    if ((isCreateModalOpen || isEditModalOpen) && mediaFolder) {
+      fetchSlugMedia(mediaFolder);
     } else {
       setExistingMedia(null);
       setMediaError(null);
     }
-  }, [slugConfirmed, currentSlug, isCreateModalOpen, isEditModalOpen]);
+  }, [mediaFolder, isCreateModalOpen, isEditModalOpen]);
 
   /** Convert a title to a URL-safe slug */
   const titleToSlug = (title: string) =>
@@ -214,23 +206,16 @@ export function DealsManager() {
       await api.createSlugFolder(slug);
       setSlugConfirmed(true);
       setCreateFolderConfirmOpen(false);
-      setSlugDropdownOpen(false);
-      setShowExistingMedia(true);
+      // The new folder belongs in the picker's list straight away.
+      queryClient.invalidateQueries({ queryKey: ['slug-folders'] });
+      // Point the media picker at the folder that was just made.
+      setMediaFolder(slug);
       toast.success(`Folder deals/${slug}/ created`);
     } catch (error: any) {
       toast.error(error?.message || 'Failed to create folder');
     } finally {
       setIsCreatingFolder(false);
     }
-  };
-
-  /** Select an existing slug folder — already confirmed */
-  const selectSlugFolder = (slug: string) => {
-    setFormData((current) => ({ ...current, slug }));
-    setSlugConfirmed(true);
-    setSlugDropdownOpen(false);
-    setSlugFilter('');
-    setSlugError('');
   };
 
   /** Reset slug to edit mode (pre-confirmed) */
@@ -637,10 +622,8 @@ export function DealsManager() {
     setSlugError('');
     setSlugChecking(false);
     setSlugConfirmed(false);
-    setSlugDropdownOpen(false);
-    setSlugFilter('');
     setCreateFolderConfirmOpen(false);
-    setShowExistingMedia(false);
+    setMediaFolder('');
   };
 
   const openEditModal = (deal: TourDeal) => {
@@ -681,7 +664,8 @@ export function DealsManager() {
     setLightboxIndex(0);
     setSlugError('');
     confirmSlugForEdit(deal.slug);
-    setShowExistingMedia(true);
+    // Open the picker on this deal's own folder; the Select can switch it.
+    setMediaFolder(deal.slug);
     setIsEditModalOpen(true);
   };
 
@@ -689,6 +673,27 @@ export function DealsManager() {
     setIsCreateModalOpen(false);
     setIsEditModalOpen(false);
     resetForm();
+  };
+
+  /**
+   * Adds or removes an image from the gallery by URL. Images are referenced
+   * where they already live in storage — nothing is copied, so reusing one
+   * across deals never duplicates the file.
+   */
+  const toggleGalleryImage = (url: string) => {
+    setFormData((current) => {
+      const inGallery = current.gallery.includes(url);
+      const gallery = inGallery
+        ? current.gallery.filter((item) => item !== url)
+        : [...current.gallery, url];
+      return {
+        ...current,
+        gallery,
+        // The main image cannot point at a photo that is no longer in the
+        // gallery, so fall back to whatever is now first.
+        image_url: inGallery && current.image_url === url ? (gallery[0] ?? '') : current.image_url,
+      };
+    });
   };
 
   // Gallery management
@@ -721,8 +726,8 @@ export function DealsManager() {
           ? current
           : { ...current, gallery: [...current.gallery, url] });
         toast.success(`Uploaded: ${file.name}`);
-        // Refresh the existing media list after upload
-        if (slugConfirmed && currentSlug) fetchSlugMedia(currentSlug);
+        // The picker is showing the folder we just uploaded into, so refresh it.
+        if (mediaFolder && mediaFolder === formData.slug.trim()) fetchSlugMedia(mediaFolder);
       } catch (error: any) {
         toast.error(error?.message || `Failed to upload: ${file.name}`);
       } finally {
@@ -969,6 +974,7 @@ export function DealsManager() {
                       className="h-8 text-xs text-muted-foreground"
                       onClick={() => {
                         setSlugConfirmed(false);
+                        setMediaFolder('');
                         setFormData((c) => ({ ...c, slug: '', gallery: [], image_url: '' }));
                       }}
                     >
@@ -976,57 +982,24 @@ export function DealsManager() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-2 relative">
-                    <div className="relative">
-                      <Input
-                        value={formData.slug || slugFilter}
-                        onChange={(e) => {
-                          const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
-                          setFormData({ ...formData, slug: val });
-                          setSlugFilter(val);
-                          setSlugError('');
-                          setSlugDropdownOpen(val.length > 0);
-                        }}
-                        onFocus={() => setSlugDropdownOpen(true)}
-                        placeholder="Type a slug or pick existing folder"
-                        className={slugError ? 'border-destructive pr-20' : 'pr-20'}
-                        disabled={slugConfirmed}
-                      />
-                      {/* Dropdown indicator */}
-                      <button
-                        type="button"
-                        className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
-                        onClick={() => setSlugDropdownOpen(!slugDropdownOpen)}
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Combobox dropdown */}
-                    {slugDropdownOpen && !slugConfirmed && (
-                      <div ref={slugDropdownRef} className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-md border bg-popover shadow-md">
-                        {filteredSlugFolders.length > 0 ? (
-                          <>
-                            <p className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground uppercase">Existing folders</p>
-                            {filteredSlugFolders.map((folder) => (
-                              <button
-                                key={folder}
-                                type="button"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left"
-                                onClick={() => selectSlugFolder(folder)}
-                              >
-                                <FolderOpen className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                <span className="font-mono text-xs">deals/{folder}/</span>
-                              </button>
-                            ))}
-                          </>
-                        ) : (
-                          <p className="px-3 py-2 text-xs text-muted-foreground">
-                            {formData.slug.trim() ? `No existing folder matches "${formData.slug.trim()}"` : 'Type to search existing folders'}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                  <div className="space-y-2">
+                    <Input
+                      value={formData.slug}
+                      onChange={(e) => {
+                        const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
+                        setFormData({ ...formData, slug: val });
+                        setSlugError('');
+                      }}
+                      // Checking on blur keeps a full slug from being tested
+                      // against the database on every keystroke.
+                      onBlur={() => {
+                        const slug = formData.slug.trim();
+                        if (slug) void checkSlugUniqueness(slug);
+                      }}
+                      placeholder="unique-slug-url"
+                      className={slugError ? 'border-destructive font-mono text-sm' : 'font-mono text-sm'}
+                      disabled={slugConfirmed}
+                    />
 
                     {/* Error / status */}
                     {slugError && (
@@ -1187,71 +1160,93 @@ export function DealsManager() {
                   disabled={isUploading}
                 />
 
-                {/* Browse existing media from slug folder */}
-                {slugConfirmed && currentSlug && (
-                  <div className="mt-3">
+                {/* Pick images that are already stored, without copying them */}
+                {slugConfirmed && (
+                  <div className="mt-3 rounded-lg border p-3">
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="flex items-center gap-2 text-xs text-primary hover:underline"
-                        onClick={() => {
-                          const next = !showExistingMedia;
-                          setShowExistingMedia(next);
-                          if (next && currentSlug) fetchSlugMedia(currentSlug);
-                        }}
+                      <Label className="shrink-0 text-xs text-muted-foreground">
+                        <FolderOpen className="mr-1 inline w-3.5 h-3.5" />
+                        Reuse media from
+                      </Label>
+                      <Select
+                        value={mediaFolder || NO_FOLDER_VALUE}
+                        onValueChange={(value) =>
+                          setMediaFolder(value === NO_FOLDER_VALUE ? '' : value)
+                        }
                       >
-                        <FolderOpen className="w-3.5 h-3.5" />
-                        {showExistingMedia ? 'Hide' : 'Show'} existing media in deals/{currentSlug}/
-                      </button>
-                      {showExistingMedia && !isLoadingMedia && (
+                        <SelectTrigger className="h-8 flex-1 text-xs">
+                          <SelectValue placeholder="Choose a folder under deals/" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NO_FOLDER_VALUE} disabled>
+                            {slugFolders.length === 0
+                              ? 'No folders found under deals/'
+                              : 'Choose a folder under deals/'}
+                          </SelectItem>
+                          {slugFolders.map((folder) => (
+                            <SelectItem key={folder} value={folder} className="font-mono text-xs">
+                              deals/{folder}/
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {mediaFolder && !isLoadingMedia && (
                         <button
                           type="button"
-                          className="text-xs text-muted-foreground hover:text-primary"
-                          onClick={() => fetchSlugMedia(currentSlug)}
-                          title="Refresh"
+                          className="shrink-0 text-muted-foreground hover:text-primary"
+                          onClick={() => fetchSlugMedia(mediaFolder)}
+                          title="Refresh folder"
                         >
                           <RefreshCw className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
-                    {showExistingMedia && (
-                      <div className="mt-2 rounded-lg border p-3">
+
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      Chosen images are referenced where they already live — nothing is copied into
+                      this deal's folder, so no duplicates are created.
+                    </p>
+
+                    {mediaFolder && (
+                      <div className="mt-2">
                         {isLoadingMedia ? (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
+                          <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground justify-center">
                             <Loader2 className="w-4 h-4 animate-spin" />Loading media...
                           </div>
                         ) : mediaError ? (
                           <div className="flex flex-col items-center gap-2 py-4">
                             <AlertCircle className="w-5 h-5 text-destructive" />
-                            <p className="text-xs text-destructive text-center">{mediaError}</p>
-                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => fetchSlugMedia(currentSlug)}>
+                            <p className="text-center text-xs text-destructive">{mediaError}</p>
+                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => fetchSlugMedia(mediaFolder)}>
                               <RefreshCw className="w-3 h-3 mr-1" />Retry
                             </Button>
                           </div>
                         ) : existingImageFiles.length > 0 ? (
                           <>
-                            <p className="text-[11px] text-muted-foreground mb-3 text-center">
-                              {existingImageFiles.length} image{existingImageFiles.length !== 1 ? 's' : ''} in this folder — click one to add it to the gallery.
+                            <p className="mb-3 text-center text-[11px] text-muted-foreground">
+                              {existingImageFiles.filter((f) => formData.gallery.includes(f.url)).length} of{' '}
+                              {existingImageFiles.length} in the gallery — click an image to add or remove it.
                             </p>
                             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
                               {existingImageFiles.map((file) => {
-                                const alreadyInGallery = formData.gallery.includes(file.url);
+                                const inGallery = formData.gallery.includes(file.url);
                                 return (
                                   <button
                                     key={file.key}
                                     type="button"
-                                    disabled={alreadyInGallery}
-                                    className={'relative rounded-md overflow-hidden border-2 aspect-square group transition-all ' + (alreadyInGallery ? 'border-primary opacity-50 cursor-default' : 'border-transparent hover:border-primary/50 cursor-pointer')}
-                                    onClick={() => {
-                                      if (!alreadyInGallery) {
-                                        setFormData((current) => ({ ...current, gallery: [...current.gallery, file.url] }));
-                                        toast.success('Added to gallery');
-                                      }
-                                    }}
+                                    aria-pressed={inGallery}
+                                    title={inGallery ? 'Remove from gallery' : 'Add to gallery'}
+                                    className={
+                                      'relative aspect-square rounded-md overflow-hidden border-2 transition-all ' +
+                                      (inGallery
+                                        ? 'border-primary cursor-pointer'
+                                        : 'border-transparent hover:border-primary/50 cursor-pointer')
+                                    }
+                                    onClick={() => toggleGalleryImage(file.url)}
                                   >
                                     <img src={file.url} alt={file.key.split('/').pop()} className="w-full h-full object-cover" loading="lazy" />
-                                    {alreadyInGallery && (
-                                      <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                                    {inGallery && (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-background/55">
                                         <CheckCircle className="w-5 h-5 text-primary" />
                                       </div>
                                     )}
@@ -1261,10 +1256,10 @@ export function DealsManager() {
                             </div>
                           </>
                         ) : (
-                          <p className="text-xs text-muted-foreground py-4 text-center">
+                          <p className="py-4 text-center text-xs text-muted-foreground">
                             {existingMedia && existingMedia.files.length > 0
                               ? `This folder holds ${existingMedia.files.length} file${existingMedia.files.length !== 1 ? 's' : ''}, but none are images.`
-                              : 'No media files in this folder yet.'}
+                              : 'No media in this folder yet.'}
                           </p>
                         )}
                       </div>
