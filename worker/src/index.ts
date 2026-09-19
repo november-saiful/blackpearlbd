@@ -9,6 +9,7 @@ import savedDeals from './routes/saved-deals';
 import admin from './routes/admin';
 import upload from './routes/upload';
 import geo from './routes/geo';
+import reviews from './routes/reviews';
 
 const app = new Hono();
 
@@ -30,6 +31,7 @@ app.route('/saved-deals', savedDeals);
 app.route('/admin', admin);
 app.route('/upload', upload);
 app.route('/geo', geo);
+app.route('/reviews', reviews);
 
 // 404 handler
 app.notFound((c) => {

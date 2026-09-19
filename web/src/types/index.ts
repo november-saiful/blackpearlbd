@@ -93,9 +93,32 @@ export interface TourDeal {
   route_geometry: RouteGeometry | null;
   is_active: boolean;
   is_featured: boolean;
+  avg_rating: number | null;
+  review_count: number;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Review {
+  id: string;
+  user_id: string;
+  deal_id: string;
+  booking_id: string | null;
+  rating: number;
+  title: string;
+  body: string;
+  is_approved: boolean;
+  created_at: string;
+  updated_at: string;
+  user?: { full_name: string | null; avatar_url: string | null };
+  deal?: { title: string; slug: string };
+}
+
+export interface ReviewStats {
+  avg_rating: number;
+  review_count: number;
+  distribution: number[];
 }
 
 /**

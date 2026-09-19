@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Heart, Share2, Calendar, Users, MapPin, Hash, Route, Crosshair } from 'lucide-react';
+import { Heart, Share2, Calendar, Users, MapPin, Hash, Route, Crosshair, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { CoverflowCarousel, type CoverflowSlide } from '@/components/ruixen/cove
 import { Lightbox } from '@/components/ui/lightbox';
 import { Timeline, getThemeForDeal } from '@/components/ui/timeline';
 import { RelatedPackages } from '@/components/deals/RelatedPackages';
+import { ReviewList } from '@/components/reviews/ReviewList';
 import type { TourDeal } from '@/types';
 
 interface DealDetailProps {
@@ -109,6 +110,12 @@ export function DealDetail({ deal }: DealDetailProps) {
               <span className="flex items-center">
                 <Users className="w-4 h-4 mr-1" />
                 Max {deal.max_travelers} travelers
+              </span>
+            )}
+            {(deal.review_count ?? 0) > 0 && (
+              <span className="flex items-center">
+                <Star className="w-4 h-4 mr-1 fill-amber-400 text-amber-400" />
+                {(deal.avg_rating ?? 0).toFixed(1)} ({deal.review_count})
               </span>
             )}
           </div>
@@ -291,6 +298,8 @@ export function DealDetail({ deal }: DealDetailProps) {
               </CardContent>
             </Card>
           )}
+
+          <ReviewList dealSlug={deal.slug} dealId={deal.id} />
 
           <div className="mt-auto">
             <RelatedPackages deals={relatedDeals} isLoading={isRelatedLoading} />

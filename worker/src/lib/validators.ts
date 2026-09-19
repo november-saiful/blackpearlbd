@@ -181,6 +181,22 @@ export const GeoReverseQuerySchema = z.object({
   lon: z.coerce.number().finite().min(-180).max(180),
 });
 
+export const CreateReviewSchema = z.object({
+  rating: z.coerce.number().int().min(1).max(5),
+  title: z.string().min(3).max(200),
+  body: z.string().min(10).max(5000),
+});
+
+export const UpdateReviewSchema = z.object({
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  title: z.string().min(3).max(200).optional(),
+  body: z.string().min(10).max(5000).optional(),
+});
+
+export const UpdateReviewStatusSchema = z.object({
+  is_approved: z.boolean(),
+});
+
 /** `waypoints` is `lat,lon|lat,lon|...` — the same form Geoapify expects. */
 export const GeoRouteQuerySchema = z.object({
   waypoints: z

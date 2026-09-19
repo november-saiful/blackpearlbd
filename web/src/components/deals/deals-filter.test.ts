@@ -30,6 +30,8 @@ function deal(overrides: Partial<TourDeal> = {}): TourDeal {
     route_geometry: null,
     is_active: true,
     is_featured: false,
+    avg_rating: 0,
+    review_count: 0,
     created_by: null,
     created_at: '2026-01-01T00:00:00.000Z',
     updated_at: '2026-01-01T00:00:00.000Z',

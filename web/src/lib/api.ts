@@ -141,6 +141,22 @@ export const api = {
   getPackageDestinations: () =>
     fetchApi<{ destinations: PackageDestination[] }>('/custom-packages/package-destinations'),
 
+  // Reviews
+  getDealReviews: (slug: string) =>
+    fetchApi<{ reviews: Review[]; stats: ReviewStats }>(`/reviews/deals/${slug}`),
+  createReview: (slug: string, data: { rating: number; title: string; body: string }) =>
+    fetchApi<{ review: Review }>(`/reviews/deals/${slug}`, { method: 'POST', body: JSON.stringify(data) }),
+  updateReview: (id: string, data: { rating?: number; title?: string; body?: string }) =>
+    fetchApi<{ review: Review }>(`/reviews/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteReview: (id: string) =>
+    fetchApi(`/reviews/${id}`, { method: 'DELETE' }),
+
+  // Admin Reviews
+  getAdminReviews: (page = 1) =>
+    fetchApi<{ reviews: Review[]; total: number; totalPages: number }>(`/reviews/admin?page=${page}`),
+  updateReviewStatus: (id: string, is_approved: boolean) =>
+    fetchApi<{ review: Review }>(`/reviews/admin/${id}`, { method: 'PATCH', body: JSON.stringify({ is_approved }) }),
+
   // Admin
   getAdminStats: () => fetchApi<{ stats: AdminStats; recentBookings: Booking[] }>('/admin/stats'),
   getAdminUsers: (page = 1, search = '') =>
@@ -204,4 +220,4 @@ export const api = {
 };
 
 // Import types at the top level for convenience
-import type { Profile, TourDeal, CustomPackage, Booking, SavedDeal, PearlsHistory, Destination, ProfileStats, AdminStats, PackageDestination, PackageDistrict, PackageTourSpot, GeoPlace, GeoRoute, GeoCachePurgeResult } from '../types';
+import type { Profile, TourDeal, CustomPackage, Booking, SavedDeal, PearlsHistory, Destination, ProfileStats, AdminStats, PackageDestination, PackageDistrict, PackageTourSpot, GeoPlace, GeoRoute, GeoCachePurgeResult, Review, ReviewStats } from '../types';
