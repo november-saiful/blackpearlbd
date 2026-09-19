@@ -35,8 +35,19 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function isImage(contentType: string | undefined | null): boolean {
-  return !!contentType && contentType.startsWith('image/');
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg', 'bmp', 'ico'];
+
+/**
+ * Whether an R2 object is an image. Content type is preferred, but objects
+ * uploaded by older flows can carry no metadata at all, so fall back to the
+ * file extension rather than treating every one of them as a binary blob.
+ */
+function isImage(contentType: string | undefined | null, key?: string): boolean {
+  if (contentType && contentType.startsWith('image/')) return true;
+  if (!contentType || contentType === 'application/octet-stream') {
+    if (key && IMAGE_EXTENSIONS.includes(fileExtension(key))) return true;
+  }
+  return false;
 }
 
 function fileExtension(key: string): string {
@@ -531,7 +542,7 @@ export function MediaExplorer() {
                         className="aspect-square bg-muted flex items-center justify-center overflow-hidden"
                         onClick={() => !isSelected && setSelectedFile(file)}
                       >
-                        {isImage(file.httpMetadata?.contentType) ? (
+                        {isImage(file.httpMetadata?.contentType, file.key) ? (
                           <img
                             src={fileUrl(file)}
                             alt={fileName(file.key)}
@@ -675,7 +686,7 @@ export function MediaExplorer() {
                           </td>
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-2 min-w-0">
-                              {isImage(file.httpMetadata?.contentType) ? (
+                              {isImage(file.httpMetadata?.contentType, file.key) ? (
                                 <div className="h-9 w-9 rounded-lg bg-muted overflow-hidden shrink-0">
                                   <img
                                     src={fileUrl(file)}
@@ -809,7 +820,7 @@ export function MediaExplorer() {
 
               {/* Preview image */}
               <div className="bg-muted">
-                {isImage(selectedFile.httpMetadata?.contentType) ? (
+                {isImage(selectedFile.httpMetadata?.contentType, selectedFile.key) ? (
                   <img
                     src={fileUrl(selectedFile)}
                     alt={fileName(selectedFile.key)}

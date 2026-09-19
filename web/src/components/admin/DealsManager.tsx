@@ -134,6 +134,18 @@ export function DealsManager() {
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
 
+  // Files returned by the API may lack a usable content type (older uploads,
+  // and R2 listings that predate metadata being requested), so fall back to the
+  // extension when deciding what can be shown as a thumbnail.
+  const existingImageFiles = (existingMedia?.files || []).filter((f) => {
+    if (f.contentType && f.contentType.startsWith('image/')) return true;
+    if (!f.contentType || f.contentType === 'application/octet-stream') {
+      const ext = f.key.split('.').pop()?.toLowerCase() || '';
+      return ['jpg', 'jpeg', 'png', 'webp', 'avif', 'gif', 'svg', 'bmp', 'ico'].includes(ext);
+    }
+    return false;
+  });
+
   const fetchSlugMedia = async (slug: string) => {
     if (!slug || slug.length === 0) return;
     setIsLoadingMedia(true);
@@ -1216,13 +1228,13 @@ export function DealsManager() {
                               <RefreshCw className="w-3 h-3 mr-1" />Retry
                             </Button>
                           </div>
-                        ) : existingMedia && existingMedia.files.length > 0 ? (
+                        ) : existingImageFiles.length > 0 ? (
                           <>
-                            <p className="text-[11px] text-muted-foreground mb-2">
-                              {existingMedia.total} file{existingMedia.total !== 1 ? 's' : ''} in this folder. Click to add to gallery.
+                            <p className="text-[11px] text-muted-foreground mb-3 text-center">
+                              {existingImageFiles.length} image{existingImageFiles.length !== 1 ? 's' : ''} in this folder — click one to add it to the gallery.
                             </p>
                             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-                              {existingMedia.files.filter((f) => f.contentType.startsWith('image/')).map((file) => {
+                              {existingImageFiles.map((file) => {
                                 const alreadyInGallery = formData.gallery.includes(file.url);
                                 return (
                                   <button
@@ -1249,7 +1261,11 @@ export function DealsManager() {
                             </div>
                           </>
                         ) : (
-                          <p className="text-xs text-muted-foreground py-4 text-center">No media files in this folder yet.</p>
+                          <p className="text-xs text-muted-foreground py-4 text-center">
+                            {existingMedia && existingMedia.files.length > 0
+                              ? `This folder holds ${existingMedia.files.length} file${existingMedia.files.length !== 1 ? 's' : ''}, but none are images.`
+                              : 'No media files in this folder yet.'}
+                          </p>
                         )}
                       </div>
                     )}

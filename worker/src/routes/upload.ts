@@ -8,6 +8,21 @@ import { z } from 'zod';
 
 const upload = new Hono();
 
+/**
+ * R2 only returns an object's metadata from `list()` when it is explicitly
+ * requested, so `httpMetadata` was always missing and every file looked like a
+ * binary blob. The pinned @cloudflare/workers-types release does not type the
+ * `include` option yet, so it is widened here instead of at every call site.
+ */
+function listWithMetadata(options: {
+  prefix?: string;
+  cursor?: string;
+  limit?: number;
+  include?: ('httpMetadata' | 'customMetadata')[];
+}): Parameters<R2Bucket['list']>[0] {
+  return options as Parameters<R2Bucket['list']>[0];
+}
+
 // Allowed image types and max size
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -228,11 +243,12 @@ upload.get('/list', authMiddleware, adminMiddleware, async (c) => {
   const cursor = c.req.query('cursor') || undefined;
   const limit = Math.min(parseInt(c.req.query('limit') || '50', 10), 100);
 
-  const listed = await env.BLACKPEARL_BUCKET.list({
+  const listed = await env.BLACKPEARL_BUCKET.list(listWithMetadata({
     prefix: prefix || undefined,
     cursor,
     limit,
-  });
+    include: ['httpMetadata'],
+  }));
 
   const files = (listed.objects || []).map((obj) => ({
     key: obj.key,
@@ -496,7 +512,7 @@ upload.get('/by-slug/:slug', authMiddleware, adminMiddleware, async (c) => {
 
   // Paginate through all objects under this slug prefix
   do {
-    const page = await env.BLACKPEARL_BUCKET.list({ prefix, cursor, limit: 1000 });
+    const page = await env.BLACKPEARL_BUCKET.list(listWithMetadata({ prefix, cursor, limit: 1000, include: ['httpMetadata'] }));
     for (const obj of page.objects || []) {
       files.push({
         key: obj.key,
