@@ -1,3 +1,9 @@
-SUPABASE_URL=your-supabase-url
+# Worker-only secrets. Never prefix these with VITE_ or commit real values.
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+GEOAPIFY_API_KEY=your-geoapify-api-key
+
+# The R2 bucket is configured as BLACKPEARL_BUCKET in wrangler.toml.
+# OAuth redirect URLs are configured in Supabase and Google Cloud Console,
+# not in this file.

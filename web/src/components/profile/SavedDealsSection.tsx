@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BookingModal } from '@/components/bookings/BookingModal';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { formatCurrency } from '@/lib/utils';
+import { formatDealLocation } from '@/components/deals/deals-destination';
 import type { TourDeal } from '@/types';
 
 export function SavedDealsSection() {
@@ -58,7 +59,7 @@ export function SavedDealsSection() {
                     <div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                         <MapPin className="w-4 h-4" />
-                        {deal.destination}
+                        {formatDealLocation(deal.destination, deal.sub_destination)}
                       </div>
                       <Link
                         to={`/deals/${deal.slug}`}

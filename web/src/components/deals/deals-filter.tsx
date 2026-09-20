@@ -9,7 +9,7 @@ import type {
   FilterRule,
   FilterValueType,
 } from '@/components/reui/filters/filters-types';
-import { buildDestinationOptions } from './deals-destination';
+import { buildDestinationOptions, formatDealLocation } from './deals-destination';
 import { DEAL_CATEGORIES, getCategoryByKey, getDealCategory } from '@/lib/deal-category';
 import type { PackageDestination, TourDeal } from '@/types';
 
@@ -29,7 +29,7 @@ export type DealFilterFieldId = 'destination' | 'category' | 'price';
 type DealFilterValue = string | null;
 
 const DEAL_FILTER_ACCESSORS: Record<DealFilterFieldId, (deal: TourDeal) => DealFilterValue> = {
-  destination: (deal) => deal.destination?.trim() || '',
+  destination: (deal) => formatDealLocation(deal.destination, deal.sub_destination),
   category: (deal) => getDealCategory(deal).key,
   price: (deal) => priceBucketKey(deal.price),
 };

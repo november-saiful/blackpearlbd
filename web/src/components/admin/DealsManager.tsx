@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { DealRouteMap } from '@/components/deals/DealRouteMap';
 import { DealDestinationPicker } from '@/components/deals/DealDestinationPicker';
+import { formatDealLocation } from '@/components/deals/deals-destination';
 import type { GeoPlace, GeoRoute, ItineraryPhase, RouteGeometry, TourDeal, Waypoint } from '@/types';
 import { Lightbox } from '@/components/ui/lightbox';
 
@@ -49,6 +50,7 @@ type DealFormData = {
   /** How the About section is aligned. Stored per deal, so it is form state. */
   short_description: string;
   destination: string;
+  sub_destination: string;
   category: string;
   price: number;
   original_price: number;
@@ -67,7 +69,7 @@ type DealFormData = {
 
 const emptyForm: DealFormData = {
   title: '', slug: '', description: '',
-  short_description: '', destination: '', category: '',
+  short_description: '', destination: '', sub_destination: '', category: '',
   price: 0, original_price: 0, duration_days: 1, max_travelers: 0, image_url: '',
   gallery: [],
   inclusions: '', exclusions: '', is_featured: false, route_waypoints: [], route_geometry: null,
@@ -457,6 +459,9 @@ export function DealsManager() {
     if (slugError) return slugError;
     if (!slugConfirmed && !isEditModalOpen) return 'Create the slug folder first before saving';
     if (!formData.destination.trim()) return 'Destination is required';
+    if (formData.destination.toLowerCase().endsWith('division') && !formData.sub_destination.trim()) {
+      return 'Select a sub-destination for this division';
+    }
     if (!formData.description.trim()) return 'Description is required';
     if (!formData.price || formData.price <= 0) return 'Price must be greater than 0';
     if (!formData.image_url) return 'Pick a main thumbnail from the gallery first';
@@ -650,6 +655,7 @@ export function DealsManager() {
       // on the default rather than on an alignment no button could show.
 
       short_description: deal.short_description || '', destination: deal.destination,
+      sub_destination: deal.sub_destination || '',
       category: deal.category || '',
       price: deal.price, original_price: deal.original_price || 0, duration_days: deal.duration_days,
       max_travelers: deal.max_travelers || 0, image_url: deal.image_url || '',
@@ -916,9 +922,9 @@ export function DealsManager() {
                       onChange={() => toggleSelected(deal.id)}
                     />
                   </td>
-                  <td className="py-3 px-3"><div className="min-w-0"><p className="text-sm font-medium text-foreground truncate">{deal.title}</p><p className="text-xs text-muted-foreground truncate sm:hidden">{deal.destination}</p>{deal.is_featured && <span className="inline-block mt-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Featured</span>}</div></td>
+                  <td className="py-3 px-3"><div className="min-w-0"><p className="text-sm font-medium text-foreground truncate">{deal.title}</p><p className="text-xs text-muted-foreground truncate sm:hidden">{formatDealLocation(deal.destination, deal.sub_destination)}</p>{deal.is_featured && <span className="inline-block mt-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Featured</span>}</div></td>
                   <td className="py-3 px-3 text-sm text-muted-foreground font-mono hidden lg:table-cell">{deal.deal_code || '—'}</td>
-                  <td className="py-3 px-3 text-sm text-muted-foreground hidden sm:table-cell">{deal.destination}</td>
+                  <td className="py-3 px-3 text-sm text-muted-foreground hidden sm:table-cell">{formatDealLocation(deal.destination, deal.sub_destination)}</td>
                   <td className="py-3 px-3 text-sm font-medium text-foreground">{formatCurrency(deal.price)}</td>
                   <td className="py-3 px-3 text-sm text-muted-foreground hidden md:table-cell">{deal.duration_days} days</td>
                   <td className="py-3 px-3"><div className="flex gap-1 justify-end"><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(deal)}><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(deal.id)}><Trash2 className="w-4 h-4" /></Button></div></td>
@@ -1068,7 +1074,14 @@ export function DealsManager() {
                 <DealDestinationPicker
                   id="deal-destination"
                   value={formData.destination}
-                  onChange={(destination: string) => setFormData({ ...formData, destination })}
+                  subDestination={formData.sub_destination}
+                  onChange={({ destination, subDestination }) =>
+                    setFormData((current) => ({
+                      ...current,
+                      destination,
+                      sub_destination: subDestination,
+                    }))
+                  }
                 />
               </div>
               <div className="col-span-1 sm:col-span-2">

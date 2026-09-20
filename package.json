@@ -1,0 +1,8 @@
+{
+  "name": "blackpearl",
+  "private": true,
+  "scripts": {
+    "validate:env": "node scripts/validate-env.mjs",
+    "test:validate-env": "node --test scripts/validate-env.test.mjs"
+  }
+}

@@ -75,6 +75,7 @@ export const CreateDealSchema = z.object({
   description_align: optionalClean().pipe(z.enum(DEAL_DESCRIPTION_ALIGN_VALUES).optional()),
   short_description: optionalClean().pipe(z.string().max(300).optional()),
   destination: z.string().min(2),
+  sub_destination: optionalClean().pipe(z.string().max(200).optional()),
   price: z.coerce.number().positive(),
   original_price: optionalClean().pipe(z.coerce.number().positive().optional()),
   duration_days: z.coerce.number().int().positive(),

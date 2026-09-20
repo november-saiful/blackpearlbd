@@ -2,7 +2,8 @@ import { Hono } from 'hono';
 import { authMiddleware } from '../middleware/auth';
 import { CreateBookingSchema } from '../lib/validators';
 import { createSupabaseAdminClient } from '../lib/supabase';
-import { Env } from '../types';
+import { notify } from '../lib/notify';
+import type { Env } from '../types';
 
 const bookings = new Hono();
 
@@ -87,6 +88,36 @@ bookings.post('/', authMiddleware, async (c) => {
 
   if (error) {
     return c.json({ error: 'Failed to create booking' }, 500);
+  }
+
+  // In-app notification for the user
+  const dealTitle = data.deal?.title || data.custom_package?.title || 'your trip';
+  notify(env, {
+    userId,
+    type: 'booking_confirmed',
+    title: 'Booking submitted',
+    body: `Your booking for "${dealTitle}" has been received. We'll review it shortly.`,
+    link: '/profile?tab=tours',
+    metadata: { booking_id: data.id, amount: data.total_amount },
+  });
+
+  // Notify admins about new booking
+  const { data: admins } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('role', 'admin');
+
+  if (admins) {
+    for (const adminUser of admins) {
+      notify(env, {
+        userId: adminUser.id,
+        type: 'booking_confirmed',
+        title: 'New booking received',
+        body: `A new booking for "${dealTitle}" needs review.`,
+        link: '/admin/bookings',
+        metadata: { booking_id: data.id, amount: data.total_amount },
+      });
+    }
   }
 
   return c.json({ booking: data }, 201);

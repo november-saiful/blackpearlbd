@@ -17,6 +17,7 @@ import type { FilterQuery } from '@/components/reui/filters/filters-types';
 import { useDeals } from '@/hooks/useDeals';
 import { DealsPageSkeleton } from '@/components/skeletons/DealCardSkeleton';
 import { formatCurrency } from '@/lib/utils';
+import { formatDealLocation } from '@/components/deals/deals-destination';
 import type { TourDeal } from '@/types';
 
 /** One deal, in the shape the grid's card list expects. */
@@ -25,10 +26,10 @@ function toJobListing(deal: TourDeal): JobListing {
     id: deal.id,
     title: deal.title,
     description: deal.short_description || deal.description || '',
-    location: deal.destination,
+    location: formatDealLocation(deal.destination, deal.sub_destination),
     type: deal.duration_days === 1 ? '1 Day' : `${deal.duration_days} Days`,
     salaryRange: formatCurrency(deal.price),
-    department: deal.destination,
+    department: formatDealLocation(deal.destination, deal.sub_destination),
     href: `/deals/${deal.slug}`,
     tags: [
       deal.is_featured ? 'Featured' : null,

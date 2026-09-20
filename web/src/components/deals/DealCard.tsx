@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, CalendarDays, MapPin, Route as RouteIcon, Sparkles } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { getDealCategory } from '@/lib/deal-category';
+import { formatDealLocation } from './deals-destination';
 import type { TourDeal } from '@/types';
 
 interface DealCardProps {
@@ -23,6 +24,7 @@ interface DealCardProps {
 export function DealCard({ deal, action, className }: DealCardProps) {
   const image = deal.image_url || deal.gallery?.[0] || '';
   const category = getDealCategory(deal);
+  const location = formatDealLocation(deal.destination, deal.sub_destination);
   const originalPrice =
     deal.original_price && deal.original_price > deal.price ? deal.original_price : null;
   const discount = originalPrice ? Math.round((1 - deal.price / originalPrice) * 100) : 0;
@@ -32,7 +34,7 @@ export function DealCard({ deal, action, className }: DealCardProps) {
   return (
     <Link
       to={`/deals/${deal.slug}`}
-      aria-label={`${deal.title} — ${category.label} in ${deal.destination}`}
+      aria-label={`${deal.title} — ${category.label} in ${location}`}
       className={cn(
         'group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300',
         'hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -81,7 +83,7 @@ export function DealCard({ deal, action, className }: DealCardProps) {
         <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2">
           <span className="inline-flex max-w-[70%] items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
             <MapPin className="h-3 w-3 shrink-0" />
-            <span className="truncate">{deal.destination}</span>
+            <span className="truncate">{location}</span>
           </span>
           {discount > 0 && (
             <span className="shrink-0 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-sm">

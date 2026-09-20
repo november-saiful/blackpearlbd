@@ -36,3 +36,7 @@ npm-debug.log*
 # Supabase
 supabase/.temp/
 .wrangler/
+
+# Playwright
+test-results/
+web/test-results/

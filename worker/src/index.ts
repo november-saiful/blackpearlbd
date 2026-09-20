@@ -10,6 +10,7 @@ import admin from './routes/admin';
 import upload from './routes/upload';
 import geo from './routes/geo';
 import reviews from './routes/reviews';
+import notifications from './routes/notifications';
 
 const app = new Hono();
 
@@ -32,6 +33,7 @@ app.route('/admin', admin);
 app.route('/upload', upload);
 app.route('/geo', geo);
 app.route('/reviews', reviews);
+app.route('/notifications', notifications);
 
 // 404 handler
 app.notFound((c) => {

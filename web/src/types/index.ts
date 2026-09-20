@@ -71,6 +71,8 @@ export interface TourDeal {
   description: string | null;
   short_description: string | null;
   destination: string;
+  /** More specific place inside the selected destination division. */
+  sub_destination?: string | null;
   /**
    * Alignment of the About section ('left', 'center', 'right', 'justify'); null
    * on every deal saved before the choice existed, which reads as left.
@@ -242,6 +244,18 @@ export interface PackageTourSpot {
   is_active: boolean;
   created_at: string;
   district?: { name: string; division_value: string };
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  link: string | null;
+  read_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface PaginatedResponse<T> {

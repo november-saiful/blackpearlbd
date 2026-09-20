@@ -14,6 +14,7 @@ import { Lightbox } from '@/components/ui/lightbox';
 import { Timeline, getThemeForDeal } from '@/components/ui/timeline';
 import { RelatedPackages } from '@/components/deals/RelatedPackages';
 import { ReviewList } from '@/components/reviews/ReviewList';
+import { formatDealLocation } from './deals-destination';
 import type { TourDeal } from '@/types';
 
 interface DealDetailProps {
@@ -35,6 +36,7 @@ export function DealDetail({ deal }: DealDetailProps) {
   const { related: relatedDeals, isLoading: isRelatedLoading } = useRelatedDeals(deal);
 
   const isSaved = isBookmarked(deal.id);
+  const location = formatDealLocation(deal.destination, deal.sub_destination);
   const routeWaypoints = (deal.route_waypoints || []).filter(isValidWaypoint);
 
   // Every photo the deal has becomes one coverflow card: the main image first,
@@ -89,7 +91,7 @@ export function DealDetail({ deal }: DealDetailProps) {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <MapPin className="w-5 h-5 text-secondary" />
-            <span className="text-muted-foreground">{deal.destination}</span>
+            <span className="text-muted-foreground">{location}</span>
           </div>
           {deal.deal_code && (
             <div className="flex items-center gap-2 mb-2">

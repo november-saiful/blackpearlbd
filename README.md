@@ -28,146 +28,133 @@ A full-stack tours and travel agency web application built with React, Cloudflar
 ```
 blackpearl/
 ├── web/                    # React frontend
-│   ├── src/
-│   │   ├── components/     # UI components
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── lib/            # Utilities
-│   │   ├── pages/          # Page components
-│   │   └── stores/         # Zustand stores
-│   └── package.json
 ├── worker/                 # Cloudflare Worker API
-│   ├── src/
-│   │   ├── middleware/      # Auth, CORS
-│   │   ├── routes/         # API routes
-│   │   └── lib/            # Utilities
-│   └── package.json
-├── supabase/
-│   └── migrations/         # SQL migrations
+├── scripts/                # Local release and validation tools
+├── supabase/migrations/    # Ordered SQL migrations
+├── DEPLOYMENT_CHECKLIST.md # Full production release checklist
 └── README.md
 ```
 
-## Setup Instructions
+## Local setup
 
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-- Supabase account
-- Cloudflare account
-
-### 1. Database Setup
-
-1. Create a new Supabase project
-2. Go to SQL Editor in Supabase dashboard
-3. Run the migration file: `supabase/migrations/001_initial_schema.sql`
-4. Enable Google OAuth in Authentication → Providers
-5. Set Site URL and Redirect URLs
-
-### 2. Worker Setup
+Prerequisites: Node.js 18+, npm, a Supabase project, and a Cloudflare account for Worker/R2 deployment.
 
 ```bash
 cd worker
 npm install
 cp .dev.vars.example .dev.vars
-# Edit .dev.vars with your Supabase credentials
+# Edit .dev.vars with local Supabase and Geoapify values
 npm run dev
 ```
 
-### 3. Frontend Setup
+In another terminal:
 
 ```bash
 cd web
 npm install
-cp .env.example .env
-# Edit .env with your credentials
+cp .env.example .env.local
+# Set VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, and VITE_API_URL
 npm run dev
 ```
 
-### 4. Environment Variables
+Local OAuth callback: `http://localhost:3000/auth/callback`. Add the exact URL to Supabase Auth redirect URLs; add the Supabase provider callback URI to Google Cloud Console.
 
-#### Frontend (.env)
-```
+## Environment variables
+
+### Frontend (`web/.env.local` or Cloudflare Pages)
+
+These are build-time browser values and are public by design:
+
+```text
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_API_URL=http://localhost:8787
+VITE_API_URL=https://your-worker.workers.dev
 ```
 
-#### Worker (.dev.vars)
-```
+Never put `SUPABASE_SERVICE_ROLE_KEY` or `GEOAPIFY_API_KEY` in a `VITE_*` variable.
+
+### Worker (`worker/.dev.vars` or Cloudflare Worker secrets)
+
+```text
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 GEOAPIFY_API_KEY=your-geoapify-api-key
 ```
 
-Place search, routing and reverse geocoding are proxied through the Worker's
-`/geo` routes, so the Geoapify key stays server-side. In production set it with
-`npx wrangler secret put GEOAPIFY_API_KEY` from `worker/`.
+The R2 bucket is bound as `BLACKPEARL_BUCKET` in `worker/wrangler.toml`. Geoapify is proxied through Worker `/geo` routes so its key never ships to the browser.
 
 ## Deployment
 
+Read [`DEPLOYMENT_CHECKLIST.md`](./DEPLOYMENT_CHECKLIST.md) before every release. It covers Cloudflare Pages, Workers, R2, Supabase migrations/RLS, Google OAuth, smoke tests, validation, and rollback.
+
+Run the offline validator from the repository root:
+
+```bash
+node scripts/validate-env.mjs \
+  --env-file web/.env.production \
+  --env-file worker/.dev.vars \
+  --production --require-geo
+```
+
+Run optional live probes after deployment:
+
+```bash
+node scripts/validate-env.mjs \
+  --env-file web/.env.production \
+  --env-file worker/.dev.vars \
+  --production --require-geo --live \
+  --frontend-url https://your-pages-domain.example
+```
+
+The live mode checks Worker health/CORS, Supabase Auth settings, frontend routes, and optionally R2/media with an explicitly supplied short-lived admin access token. It never prints secret values.
+
 ### Frontend (Cloudflare Pages)
 
-1. Push code to GitHub
-2. Connect to Cloudflare Pages
-3. Set build command: `cd web && npm install && npm run build`
-4. Set output directory: `web/dist`
-5. Add environment variables
+- Root directory: `web`
+- Branch: `main`
+- Build command: `npm install && npm run build`
+- Output directory: `dist`
+- Set `NODE_VERSION=18` and the three `VITE_*` variables above.
 
 ### Worker (Cloudflare Workers)
 
 ```bash
 cd worker
+npm run typecheck
+npm test -- --run
 npm run deploy
 ```
 
-Optional: serve the API from a custom domain (e.g. `api.blackpearl.bd`) via
-*Workers & Pages → Settings → Domains & Routes*. Besides the tidier URL, this is
-what makes Cloudflare's edge cache functional — the Cache API is a no-op on
-`*.workers.dev`. See `CLOUDFLARE_SETUP.md` for the details and the
-`/geo/cache-stats` probe that confirms it.
+Set Worker secrets with `wrangler secret put` or the Cloudflare dashboard. Keep `workers.dev` enabled if existing database image URLs use it. A custom API domain is recommended for canonical URLs and shared edge cache behavior.
 
-## Features
+### Database migrations
 
-### Pearls Loyalty System
+Migrations are deployed by `.github/workflows/deploy-migrations.yml` on pushes to `main` when `supabase/migrations/**` changes. The workflow requires the GitHub secret `SUPABASE_ACCESS_TOKEN` and targets the configured Supabase project ref.
+
+## Verification
+
+```bash
+# Repository root
+node --test scripts/validate-env.test.mjs
+
+# Frontend
+cd web && npm run typecheck && npm test -- --run && npm run build
+
+# Worker
+cd worker && npm run typecheck && npm test -- --run
+```
+
+## Pearls loyalty system
 
 - Earn 10 pearls for each approved booking
-- Status tiers:
-  - New: 0-9 pearls
-  - Bronze: 10-49 pearls
-  - Platinum: 50-99 pearls
-  - Gold: 100-199 pearls
-  - Diamond: 200+ pearls
+- New: 0-9, Bronze: 10-49, Platinum: 50-99, Gold: 100-199, Diamond: 200+
 
-### Admin Features
+## Admin features
 
 - Dashboard with stats
-- Manage users
-- Create/edit/delete tour deals
-- Approve/reject bookings
-- Manage custom packages
-
-## Development
-
-### Type Checking
-
-```bash
-# Frontend
-cd web && npm run typecheck
-
-# Worker
-cd worker && npm run typecheck
-```
-
-### Building
-
-```bash
-# Frontend
-cd web && npm run build
-
-# Worker
-cd worker && npm run build
-```
+- Manage users, deals, bookings, reviews, media, and custom packages
+- Approve/reject bookings and manage package destinations
 
 ## License
 

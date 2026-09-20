@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
 import type { Profile } from '../types';
 import type { User } from '@supabase/supabase-js';
 
@@ -15,7 +16,7 @@ interface AuthState {
   initialize: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   profile: null,
   isAdmin: false,
@@ -42,18 +43,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (session?.user) {
         set({ user: session.user });
         
-        // Fetch profile from API
-        const API_URL = import.meta.env.VITE_API_URL;
-        const response = await fetch(`${API_URL}/profile`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (response.ok) {
-          const { profile } = await response.json();
+        try {
+          const { profile } = await api.getProfile();
           set({ profile, isAdmin: profile.role === 'admin' });
+        } catch {
+          // Profile fetch failed — session may have just been created
         }
       }
     } catch (error) {

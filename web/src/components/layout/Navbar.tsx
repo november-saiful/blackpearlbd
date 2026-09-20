@@ -9,12 +9,45 @@ import {
   Shield,
   ChevronDown
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 export function Navbar() {
   const { user, profile, isAdmin, isAuthenticated, signInWithGoogle, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const profileButtonRef = useRef<HTMLButtonElement>(null);
+
+  const closeProfileMenu = useCallback(() => setIsProfileMenuOpen(false), []);
+
+  // Click-outside + Escape key for profile dropdown
+  useEffect(() => {
+    if (!isProfileMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node) &&
+        profileButtonRef.current && !profileButtonRef.current.contains(e.target as Node)
+      ) {
+        closeProfileMenu();
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeProfileMenu();
+        profileButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isProfileMenuOpen, closeProfileMenu]);
 
   return (
     <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -38,9 +71,14 @@ export function Navbar() {
             </Link>
             
             {isAuthenticated ? (
-              <div className="relative">
+              <div className="flex items-center space-x-4">
+                <NotificationBell />
+                <div className="relative">
                 <button
+                  ref={profileButtonRef}
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  aria-expanded={isProfileMenuOpen}
+                  aria-haspopup="true"
                   className="flex items-center space-x-2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {profile?.avatar_url ? (
@@ -59,7 +97,11 @@ export function Navbar() {
                 </button>
 
                 {isProfileMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-background rounded-md shadow-lg py-1 border border-border">
+                  <div
+                    ref={profileMenuRef}
+                    role="menu"
+                    className="absolute right-0 mt-2 w-48 bg-background rounded-md shadow-lg py-1 border border-border"
+                  >
                     <Link
                       to="/profile"
                       className="flex items-center px-4 py-2 text-sm text-foreground hover:bg-accent"
@@ -90,6 +132,7 @@ export function Navbar() {
                     </button>
                   </div>
                 )}
+              </div>
               </div>
             ) : (
               <Button onClick={signInWithGoogle}>
@@ -135,6 +178,9 @@ export function Navbar() {
             
             {isAuthenticated ? (
               <>
+                <div className="px-3 py-2">
+                  <NotificationBell />
+                </div>
                 <Link
                   to="/profile"
                   className="block px-3 py-2 text-muted-foreground hover:bg-accent rounded-md"

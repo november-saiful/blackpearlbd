@@ -1,4 +1,5 @@
 import { normalizeDeal } from './itinerary';
+import { supabase } from './supabase';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -17,21 +18,23 @@ export class ApiError extends Error {
   }
 }
 
+async function authHeaders(extra?: Record<string, string>): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { ...extra };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+  return headers;
+}
+
 async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const { supabase } = await import('./supabase');
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  const headers: Record<string, string> = {
+  const headers = await authHeaders({
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
-  };
-
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`;
-  }
+  });
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
@@ -62,12 +65,7 @@ export const api = {
 
   // Upload
   uploadImage: async (file: File, slug?: string): Promise<{ url: string; key: string }> => {
-    const { supabase } = await import('./supabase');
-    const { data: { session } } = await supabase.auth.getSession();
-    const headers: Record<string, string> = {};
-    if (session?.access_token) {
-      headers['Authorization'] = `Bearer ${session.access_token}`;
-    }
+    const headers = await authHeaders();
     const formData = new FormData();
     formData.append('file', file);
     if (slug) formData.append('slug', slug);
@@ -141,6 +139,10 @@ export const api = {
   // Package Destinations (public)
   getPackageDestinations: () =>
     fetchApi<{ destinations: PackageDestination[] }>('/custom-packages/package-destinations'),
+  getPackageDistricts: (divisionValue: string) =>
+    fetchApi<{ districts: PackageDistrict[] }>(
+      `/admin/package-districts?division=${encodeURIComponent(divisionValue)}`,
+    ),
 
   // Reviews
   getDealReviews: (slug: string) =>
@@ -280,6 +282,18 @@ export const api = {
   deletePackageDistrict: (id: string) =>
     fetchApi(`/admin/package-districts/${id}`, { method: 'DELETE' }),
 
+  // Notifications
+  getNotifications: (page = 1) =>
+    fetchApi<{ notifications: Notification[]; total: number; page: number; limit: number; totalPages: number }>(
+      `/notifications?page=${page}`,
+    ),
+  getUnreadNotificationCount: () =>
+    fetchApi<{ count: number }>('/notifications/unread-count'),
+  markNotificationRead: (id: string) =>
+    fetchApi(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsRead: () =>
+    fetchApi('/notifications/read-all', { method: 'PATCH' }),
+
   // Admin Package Tour Spots
   getAdminPackageTourSpots: (districtId?: string) => {
     const q = districtId ? `?district_id=${encodeURIComponent(districtId)}` : '';
@@ -294,4 +308,4 @@ export const api = {
 };
 
 // Import types at the top level for convenience
-import type { Profile, TourDeal, CustomPackage, Booking, SavedDeal, PearlsHistory, Destination, ProfileStats, AdminStats, PackageDestination, PackageDistrict, PackageTourSpot, GeoPlace, GeoRoute, GeoCachePurgeResult, Review, ReviewStats, MediaFile, StorageStats } from '../types';
+import type { Profile, TourDeal, CustomPackage, Booking, SavedDeal, PearlsHistory, Destination, ProfileStats, AdminStats, PackageDestination, PackageDistrict, PackageTourSpot, GeoPlace, GeoRoute, GeoCachePurgeResult, Review, ReviewStats, MediaFile, StorageStats, Notification } from '../types';

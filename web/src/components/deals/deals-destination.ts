@@ -18,6 +18,14 @@ export type DestinationOption = {
 /** The heading an off-list destination is parked under. */
 export const UNLISTED_DESTINATION_GROUP = 'Saved on this deal';
 
+/** The public location label: the specific place first, then its division. */
+export function formatDealLocation(destination: string | null | undefined, subDestination?: string | null) {
+  const parent = destination?.trim() || '';
+  const child = subDestination?.trim() || '';
+  if (child && parent && child.toLowerCase() !== parent.toLowerCase()) return `${child}, ${parent}`;
+  return child || parent;
+}
+
 /** Case-insensitive "does this option match what was typed". */
 export function destinationOptionMatches(option: DestinationOption, search: string) {
   const haystack = `${option.name} ${option.category}`.toLowerCase();

@@ -4,6 +4,7 @@ import { DealDetail as DealDetailComponent } from '@/components/deals/DealDetail
 import { useDeal } from '@/hooks/useDeals';
 import { Loader2 } from 'lucide-react';
 import { applyDealMeta } from '@/components/layout/PageTitle';
+import { formatDealLocation } from '@/components/deals/deals-destination';
 
 export default function DealDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -13,7 +14,7 @@ export default function DealDetailPage() {
     if (deal) {
       applyDealMeta({
         title: deal.title,
-        destination: deal.destination,
+        destination: formatDealLocation(deal.destination, deal.sub_destination),
         short_description: deal.short_description,
         description: deal.description,
         image_url: deal.image_url,

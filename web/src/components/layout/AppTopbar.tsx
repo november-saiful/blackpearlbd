@@ -51,6 +51,7 @@ import { useBookmarkSync } from '@/hooks/useBookmarks';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 
 import { formatCurrency } from '@/lib/utils'
+import { formatDealLocation } from '@/components/deals/deals-destination'
 
 function useCommandPaletteItems() {
   const navigate = useNavigate()
@@ -182,7 +183,7 @@ export function AppTopbar({ className }: { className?: string }) {
   const bookmarkItems: SwipeableListItem[] = bookmarks.map((deal) => ({
     id: deal.id,
     title: deal.title,
-    description: deal.destination,
+    description: formatDealLocation(deal.destination, deal.sub_destination),
     meta: formatCurrency(deal.price),
     leading: (
       <img

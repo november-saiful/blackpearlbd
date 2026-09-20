@@ -3,7 +3,8 @@ import { authMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import { UpdateBookingStatusSchema, UpdateCustomPackageStatusSchema, UpdateAdminUserSchema, CreatePackageDestinationSchema, UpdatePackageDestinationSchema } from '../lib/validators';
 import { createSupabaseAdminClient } from '../lib/supabase';
-import { Env } from '../types';
+import { notify } from '../lib/notify';
+import type { Env } from '../types';
 
 const admin = new Hono();
 
@@ -186,6 +187,38 @@ admin.patch('/bookings/:id', authMiddleware, adminMiddleware, async (c) => {
     return c.json({ error: 'Failed to update booking' }, 500);
   }
 
+  // Send notification to the booking owner
+  const statusMessages: Record<string, { type: 'booking_approved' | 'booking_rejected' | 'booking_processing'; title: string; body: string }> = {
+    approved: { type: 'booking_approved', title: 'Booking approved!', body: 'Your booking has been approved. 10 Pearls have been awarded!' },
+    rejected: { type: 'booking_rejected', title: 'Booking update', body: 'Your booking was not approved. Please contact us for details.' },
+    processing: { type: 'booking_processing', title: 'Booking in progress', body: 'Your booking is being processed.' },
+  };
+
+  if (statusMessages[result.data.status] && data.user_id) {
+    // Fetch booking details for the notification
+    const { data: bookingDetail } = await adminClient
+      .from('bookings')
+      .select('deal:tour_deals(title), custom_package:custom_packages(title)')
+      .eq('id', id)
+      .single();
+
+    const dealTitle = (bookingDetail as any)?.deal?.title || (bookingDetail as any)?.custom_package?.title || 'your trip';
+    const msg = statusMessages[result.data.status];
+
+    notify(env, {
+      userId: data.user_id,
+      type: msg.type,
+      title: msg.title,
+      body: msg.title === 'Booking approved!'
+        ? `Your booking for "${dealTitle}" has been approved. 10 Pearls awarded! 🎉`
+        : msg.title === 'Booking update'
+        ? `Your booking for "${dealTitle}" was not approved. Please contact us for details.`
+        : `Your booking for "${dealTitle}" is being processed.`,
+      link: '/profile?tab=tours',
+      metadata: { booking_id: id, status: result.data.status },
+    });
+  }
+
   return c.json({ booking: data });
 });
 
@@ -252,6 +285,29 @@ admin.patch('/custom-packages/:id', authMiddleware, adminMiddleware, async (c) =
 
   if (error) {
     return c.json({ error: 'Failed to update custom package' }, 500);
+  }
+
+  // Notify the package owner
+  const pkgStatusMessages: Record<string, { type: 'package_approved' | 'package_rejected' | 'package_processing'; title: string }> = {
+    approved: { type: 'package_approved', title: 'Package approved!' },
+    rejected: { type: 'package_rejected', title: 'Package update' },
+    processing: { type: 'package_processing', title: 'Package in progress' },
+  };
+
+  if (pkgStatusMessages[result.data.status] && data.user_id) {
+    const msg = pkgStatusMessages[result.data.status];
+    notify(env, {
+      userId: data.user_id,
+      type: msg.type,
+      title: msg.title,
+      body: msg.title === 'Package approved!'
+        ? 'Your custom package has been approved!'
+        : msg.title === 'Package update'
+        ? 'Your custom package was not approved. Please contact us for details.'
+        : 'Your custom package is being processed.',
+      link: '/profile',
+      metadata: { package_id: id, status: result.data.status },
+    });
   }
 
   return c.json({ customPackage: data });

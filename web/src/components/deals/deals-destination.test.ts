@@ -4,6 +4,7 @@ import {
   buildDestinationOptions,
   destinationOptionMatches,
   groupDestinationOptions,
+  formatDealLocation,
   UNLISTED_DESTINATION_GROUP,
 } from './deals-destination';
 
@@ -100,6 +101,17 @@ describe('buildDestinationOptions', () => {
 
   it('is empty when the admin has no destinations and the deal has no value', () => {
     expect(buildDestinationOptions([], '')).toEqual([]);
+  });
+});
+
+describe('formatDealLocation', () => {
+  it('puts the specific place before its parent destination', () => {
+    expect(formatDealLocation('Dhaka Division', 'Dhaka')).toBe('Dhaka, Dhaka Division');
+  });
+
+  it('falls back cleanly for legacy deals without a sub-destination', () => {
+    expect(formatDealLocation('Cox’s Bazar', null)).toBe('Cox’s Bazar');
+    expect(formatDealLocation('', '')).toBe('');
   });
 });
 
