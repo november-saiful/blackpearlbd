@@ -1,0 +1,17 @@
+# Cloudflare Pages custom headers (copied to dist/ by Vite).
+# Docs: developers.cloudflare.com/pages/configuration/headers/
+#
+# Rules merge: /assets/* matches BOTH rules below, and duplicate Cache-Control
+# values would be comma-joined. The assets rule therefore detaches the broad
+# rule's value first (! Cache-Control) before setting its own.
+
+# HTML and unhashed public files must always revalidate — a stale index.html
+# references content-hashed chunks from an old deploy that no longer exist
+# ("Failed to fetch dynamically imported module").
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Vite fingerprints everything under /assets/, so it can be cached forever.
+/assets/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
