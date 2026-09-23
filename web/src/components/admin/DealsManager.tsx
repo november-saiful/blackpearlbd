@@ -708,7 +708,7 @@ export function DealsManager() {
     if (!files || files.length === 0) return;
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
-    const maxSize = 5 * 1024 * 1024;
+    const maxSize = 10 * 1024 * 1024;
 
     for (const file of Array.from(files)) {
       if (!allowedTypes.includes(file.type)) {
@@ -716,7 +716,7 @@ export function DealsManager() {
         continue;
       }
       if (file.size > maxSize) {
-        toast.error(`File too large: ${file.name}. Maximum size: 5MB`);
+        toast.error(`File too large: ${file.name}. Maximum size: 10MB`);
         continue;
       }
 
@@ -1161,7 +1161,7 @@ export function DealsManager() {
                   <p className="text-sm text-muted-foreground">
                     {isUploading ? 'Uploading...' : 'Drop images here or click to upload'}
                   </p>
-                  <p className="text-xs text-muted-foreground">JPEG, PNG, WebP, AVIF · Max 5MB each · Multiple files OK</p>
+                  <p className="text-xs text-muted-foreground">JPEG, PNG, WebP, AVIF · Max 10MB each · Multiple files OK</p>
                 </div>
                 <input
                   ref={galleryInputRef}

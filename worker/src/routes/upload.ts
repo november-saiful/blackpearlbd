@@ -131,7 +131,7 @@ function listWithMetadata(options: {
 
 // Allowed image types and max size
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
-const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 // Upload image to R2 (admin only)
 upload.post('/image', authMiddleware, adminMiddleware, async (c) => {
@@ -157,7 +157,7 @@ upload.post('/image', authMiddleware, adminMiddleware, async (c) => {
     }
 
     if (file.size > MAX_SIZE) {
-      return c.json({ error: 'File too large. Maximum size: 5MB' }, 400);
+      return c.json({ error: 'File too large. Maximum size: 10MB' }, 400);
     }
 
     // Generate unique filename: deals/{slug}/{timestamp}-{random}.{ext}
