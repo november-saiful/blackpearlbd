@@ -138,7 +138,8 @@ export interface ItineraryPhase {
 export interface CustomPackage {
   id: string;
   package_code: string | null;
-  user_id: string;
+  /** Null for a guest request, which carries contact details instead. */
+  user_id: string | null;
   title: string | null;
   /** Slug from package_destinations.value, as chosen in the package builder. */
   destination_value: string | null;
@@ -156,6 +157,10 @@ export interface CustomPackage {
   districts: string[];
   tour_spots: string[];
   special_requests: string | null;
+  /** Guest requests only: how the admin reaches the traveller. */
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_location: string | null;
   estimated_price: number | null;
   status: string;
   admin_notes: string | null;

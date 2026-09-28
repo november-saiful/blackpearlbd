@@ -28,6 +28,7 @@ vi.mock('../lib/supabase', () => ({
 // would answer the request with 401 instead of allowing the public route.
 vi.mock('../middleware/auth', () => ({
   authMiddleware: (c: any) => c.json({ error: 'auth middleware reached' }, 401),
+  optionalAuthMiddleware: (c: any) => c.json({ error: 'auth middleware reached' }, 401),
 }));
 
 import customPackages from './custom-packages';

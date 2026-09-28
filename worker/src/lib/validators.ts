@@ -137,6 +137,12 @@ export const CreateCustomPackageSchema = z
     districts: z.array(z.string()).optional(),
     tour_spots: z.array(z.string()).optional(),
     special_requests: z.string().max(2000).optional(),
+    // Guests have no account, so the request carries the details they typed.
+    // The route requires all three when no user is signed in; the mins here
+    // are the difference between "11" and a phone number that can be dialled.
+    contact_name: optionalClean().pipe(z.string().min(2).max(120).optional()),
+    contact_phone: optionalClean().pipe(z.string().min(6).max(30).optional()),
+    contact_location: optionalClean().pipe(z.string().min(2).max(200).optional()),
   })
   .refine((value) => !!value.destination_id || !!value.destination_value, {
     message: 'Provide either destination_value or destination_id',

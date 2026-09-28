@@ -41,6 +41,19 @@ export const MAX_TRAVELERS = 50;
 export const MAX_ACTIVITIES = 30;
 export const MAX_SPECIAL_REQUESTS = 2000;
 
+/** What a traveller without an account types so a quote can reach them. */
+export type GuestContact = {
+  name: string;
+  phone: string;
+  location: string;
+};
+
+/**
+ * Minimum lengths for a guest contact, matching the worker's schema and the
+ * `custom_packages_contact_check` constraint from migration 019.
+ */
+export const CONTACT_MIN_LENGTHS = { name: 2, phone: 6, location: 2 } as const;
+
 /** Everything the builder collects, in the form the request is built from. */
 export type PackageDraft = {
   /** package_destinations.value slug, e.g. 'thailand' or 'dhaka-division'. */
@@ -80,6 +93,15 @@ export function buildPackageTitle(
   return parts.join(' ').slice(0, 200);
 }
 
+/** A guest cannot be quoted unless all three details are usable. */
+export function isGuestContactComplete(contact: GuestContact): boolean {
+  return (
+    contact.name.trim().length >= CONTACT_MIN_LENGTHS.name &&
+    contact.phone.trim().length >= CONTACT_MIN_LENGTHS.phone &&
+    contact.location.trim().length >= CONTACT_MIN_LENGTHS.location
+  );
+}
+
 /** Step 2 is only finished once every field the API requires has a value. */
 export function isPreferencesComplete(draft: {
   numTravelers: number;
@@ -105,9 +127,17 @@ export function isPreferencesComplete(draft: {
  * schema types `division` and `special_requests` as strings and would reject
  * or store `''`, and `return_date` is only meaningful for a real range.
  */
-export function buildCustomPackagePayload(draft: PackageDraft): Partial<CustomPackage> {
+export function buildCustomPackagePayload(
+  draft: PackageDraft,
+  /**
+   * Pass the typed details for a guest request, or null when the traveller is
+   * signed in. An incomplete contact is omitted rather than sent half filled,
+   * because the worker rejects a guest request without all three.
+   */
+  contact?: GuestContact | null,
+): Partial<CustomPackage> {
   const requests = draft.specialRequests.trim();
-  return {
+  const payload: Partial<CustomPackage> = {
     title: buildPackageTitle(draft),
     destination_value: draft.destinationValue,
     budget: draft.budget,
@@ -122,4 +152,12 @@ export function buildCustomPackagePayload(draft: PackageDraft): Partial<CustomPa
     tour_spots: draft.tourSpots,
     special_requests: requests ? requests.slice(0, MAX_SPECIAL_REQUESTS) : undefined,
   };
+
+  if (contact && isGuestContactComplete(contact)) {
+    payload.contact_name = contact.name.trim();
+    payload.contact_phone = contact.phone.trim();
+    payload.contact_location = contact.location.trim();
+  }
+
+  return payload;
 }

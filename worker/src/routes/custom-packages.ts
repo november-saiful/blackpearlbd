@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth';
 import { CreateCustomPackageSchema } from '../lib/validators';
 import { createSupabaseAdminClient } from '../lib/supabase';
 import { Env } from '../types';
@@ -42,15 +42,31 @@ customPackages.get('/destinations', async (c) => {
 });
 
 // Create custom package
-customPackages.post('/', authMiddleware, async (c) => {
+//
+// Signed in or not: the builder is the top of the funnel, so a traveller who
+// declines to make an account still gets a quote instead of a dead end. A
+// guest request belongs to nobody, which is why it has to carry contact
+// details — the admin queue is the only place it can be answered from.
+customPackages.post('/', optionalAuthMiddleware, async (c) => {
   const body = await c.req.json();
   const result = CreateCustomPackageSchema.safeParse(body);
-  
+
   if (!result.success) {
     return c.json({ error: 'Invalid input', details: result.error.issues }, 400);
   }
 
   const userId = c.get('userId');
+
+  if (!userId) {
+    const { contact_name, contact_phone, contact_location } = result.data;
+    if (!contact_name || !contact_phone || !contact_location) {
+      return c.json(
+        { error: 'Sign in or provide a name, phone number and location' },
+        400,
+      );
+    }
+  }
+
   const env = c.env as Env;
   const admin = createSupabaseAdminClient(env);
 
@@ -90,7 +106,7 @@ customPackages.post('/', authMiddleware, async (c) => {
     .from('custom_packages')
     .insert({
       ...result.data,
-      user_id: userId,
+      user_id: userId ?? null,
       title,
       package_code,
     })

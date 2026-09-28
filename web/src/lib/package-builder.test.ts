@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   buildCustomPackagePayload,
   buildPackageTitle,
+  isGuestContactComplete,
   isPreferencesComplete,
   toIsoDate,
+  type GuestContact,
   type PackageDraft,
 } from './package-builder';
 
@@ -121,6 +123,30 @@ describe('buildCustomPackagePayload', () => {
     ).toHaveLength(2000);
   });
 
+  it('adds the contact details for a guest request', () => {
+    const payload = buildCustomPackagePayload(draft(), {
+      name: '  Rahat Hossain ',
+      phone: ' 01711223344 ',
+      location: ' Sylhet ',
+    });
+
+    expect(payload.contact_name).toBe('Rahat Hossain');
+    expect(payload.contact_phone).toBe('01711223344');
+    expect(payload.contact_location).toBe('Sylhet');
+  });
+
+  it('leaves a half-filled guest contact out entirely', () => {
+    const payload = buildCustomPackagePayload(draft(), {
+      name: 'Rahat Hossain',
+      phone: '',
+      location: 'Sylhet',
+    });
+
+    expect(payload.contact_name).toBeUndefined();
+    expect(payload.contact_phone).toBeUndefined();
+    expect(payload.contact_location).toBeUndefined();
+  });
+
   it('carries the Bangladeshi tour spots through', () => {
     const payload = buildCustomPackagePayload(
       draft({
@@ -132,5 +158,28 @@ describe('buildCustomPackagePayload', () => {
     );
     expect(payload.districts).toEqual(['Dhaka']);
     expect(payload.tour_spots).toEqual(['Ahsan Manzil']);
+  });
+});
+
+describe('isGuestContactComplete', () => {
+  const contact: GuestContact = { name: 'Rahat', phone: '01711223344', location: 'Sylhet' };
+
+  it('accepts a filled-in contact', () => {
+    expect(isGuestContactComplete(contact)).toBe(true);
+  });
+
+  it('ignores surrounding whitespace', () => {
+    expect(
+      isGuestContactComplete({ name: '  Ra  ', phone: ' 0171122 ', location: ' Sy ' }),
+    ).toBe(true);
+  });
+
+  it.each([
+    ['a one-character name', { name: 'R' }],
+    ['a five-digit phone', { phone: '01711' }],
+    ['a one-character location', { location: 'S' }],
+    ['blank values', { name: '   ', phone: '   ', location: '   ' }],
+  ])('rejects %s', (_label, overrides) => {
+    expect(isGuestContactComplete({ ...contact, ...overrides })).toBe(false);
   });
 });

@@ -27,8 +27,10 @@ import {
   MAX_TRAVELERS,
   TRANSPORT_TYPES,
   buildCustomPackagePayload,
+  isGuestContactComplete,
   isPreferencesComplete,
   toIsoDate,
+  type GuestContact,
   type PackageDraft,
 } from '@/lib/package-builder';
 import type { PackageDestination } from '@/types';
@@ -175,6 +177,9 @@ type SavedState = {
   budget?: number;
   activities?: string[];
   specialRequests?: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactLocation?: string;
 };
 
 function loadSavedState(): SavedState | null {
@@ -284,6 +289,11 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
   const [activities, setActivities] = useState<string[]>(saved?.activities ?? []);
   const [customActivity, setCustomActivity] = useState('');
   const [specialRequests, setSpecialRequests] = useState<string>(saved?.specialRequests ?? '');
+
+  // Only asked for when the traveller is not signed in.
+  const [contactName, setContactName] = useState<string>(saved?.contactName ?? '');
+  const [contactPhone, setContactPhone] = useState<string>(saved?.contactPhone ?? '');
+  const [contactLocation, setContactLocation] = useState<string>(saved?.contactLocation ?? '');
 
   // Reset BD sub-selections when destination changes
   useEffect(() => {
@@ -447,6 +457,15 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
 
   const preferencesComplete = isPreferencesComplete(draft);
 
+  const guestContact = useMemo<GuestContact>(
+    () => ({ name: contactName, phone: contactPhone, location: contactLocation }),
+    [contactName, contactPhone, contactLocation],
+  );
+  // A signed-in traveller is already reachable through their profile.
+  const needsGuestContact = !isAuthenticated;
+  const contactComplete = !needsGuestContact || isGuestContactComplete(guestContact);
+  const canSubmit = preferencesComplete && contactComplete;
+
   const persistState = useCallback((nextStep = step) => {
     const state: SavedState = {
       step: nextStep,
@@ -467,13 +486,16 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
       budget,
       activities,
       specialRequests,
+      contactName,
+      contactPhone,
+      contactLocation,
     };
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       // quota exceeded – silently ignore
     }
-  }, [step, destination, fromMonth, fromDay, fromYear, toMonth, toDay, toYear, selectedDivision, selectedDistrict, selectedDistricts, selectedTourSpots, numTravelers, accommodationType, transportType, budget, activities, specialRequests]);
+  }, [step, destination, fromMonth, fromDay, fromYear, toMonth, toDay, toYear, selectedDivision, selectedDistrict, selectedDistricts, selectedTourSpots, numTravelers, accommodationType, transportType, budget, activities, specialRequests, contactName, contactPhone, contactLocation]);
 
   // Persist to sessionStorage on every relevant change
   useEffect(() => {
@@ -530,29 +552,40 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
         setStep(1);
         return;
       }
-      if (!preferencesComplete) return;
+      if (!canSubmit) return;
 
-      if (!isAuthenticated) {
-        toast.error('Please sign in to submit your package');
+      // Guests are answered by phone, so the details are not optional.
+      if (needsGuestContact && !isGuestContactComplete(guestContact)) {
+        toast.error('Please add your name, phone number and location');
         return;
       }
 
       setIsSubmitting(true);
       try {
-        await api.createCustomPackage(buildCustomPackagePayload(draft));
+        await api.createCustomPackage(
+          buildCustomPackagePayload(draft, needsGuestContact ? guestContact : null),
+        );
         // The traveller's own package list and the admin queue both read this.
         queryClient.invalidateQueries({ queryKey: ['custom-packages'] });
         queryClient.invalidateQueries({ queryKey: ['admin-custom-packages'] });
         sessionStorage.removeItem(STORAGE_KEY);
-        toast.success('Package request submitted — our team will send you a quote.');
-        navigate('/profile');
+
+        if (needsGuestContact) {
+          toast.success(
+            `Request received — we'll call you on ${guestContact.phone.trim()} with a quote.`,
+          );
+          navigate('/');
+        } else {
+          toast.success('Package request submitted — our team will send you a quote.');
+          navigate('/profile');
+        }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to submit your package');
       } finally {
         setIsSubmitting(false);
       }
     },
-    [draft, preferencesComplete, isAuthenticated, navigate, queryClient],
+    [canSubmit, draft, guestContact, needsGuestContact, navigate, queryClient],
   );
 
   // "To" date is normalized by the range picker; keep aliases for display
@@ -1209,6 +1242,77 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                     </div>
                   </div>
 
+                  {/* Guests are quoted by phone, so ask for a way to reach them
+                      instead of blocking the request behind an account. */}
+                  {needsGuestContact ? (
+                    <div className="space-y-4 rounded-lg border border-border bg-muted/50 p-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-foreground">
+                          Where should we send your quote?
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          No account needed — we'll call or message you with the price.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="contact-name"
+                          className="text-sm font-medium text-foreground"
+                        >
+                          Name
+                        </label>
+                        <Input
+                          id="contact-name"
+                          value={contactName}
+                          onChange={(e) => setContactName(e.target.value)}
+                          placeholder="Your full name"
+                          autoComplete="name"
+                          maxLength={120}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="contact-phone"
+                          className="text-sm font-medium text-foreground"
+                        >
+                          Phone number
+                        </label>
+                        <Input
+                          id="contact-phone"
+                          type="tel"
+                          value={contactPhone}
+                          onChange={(e) => setContactPhone(e.target.value)}
+                          placeholder="01XXXXXXXXX"
+                          autoComplete="tel"
+                          maxLength={30}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="contact-location"
+                          className="text-sm font-medium text-foreground"
+                        >
+                          Location
+                        </label>
+                        <Input
+                          id="contact-location"
+                          value={contactLocation}
+                          onChange={(e) => setContactLocation(e.target.value)}
+                          placeholder="City or area you travel from"
+                          autoComplete="address-level2"
+                          maxLength={200}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        We only use these to send your quote.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Your request will show up on your profile, where the quote arrives.
+                    </p>
+                  )}
+
                   <p className="text-xs text-muted-foreground text-center">
                     Submitting sends this to our team, who reply with a quote before anything is
                     booked.
@@ -1216,7 +1320,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
 
                   <Button
                     type="submit"
-                    disabled={isSubmitting || !preferencesComplete}
+                    disabled={isSubmitting || !canSubmit}
                     className="w-full"
                   >
                     {isSubmitting ? (

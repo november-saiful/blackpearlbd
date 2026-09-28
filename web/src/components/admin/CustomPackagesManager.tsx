@@ -69,8 +69,17 @@ export function CustomPackagesManager() {
                     <tr key={pkg.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
                       <td className="py-3 px-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{pkg.user?.full_name || 'N/A'}</p>
-                          <p className="text-xs text-muted-foreground truncate">{pkg.user?.email}</p>
+                          <p className="flex items-center gap-1.5 text-sm font-medium text-foreground truncate">
+                            {pkg.user?.full_name || pkg.contact_name || 'N/A'}
+                            {!pkg.user_id && (
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                Guest
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {pkg.user?.email || pkg.contact_phone || ''}
+                          </p>
                         </div>
                       </td>
                       <td className="py-3 px-3 text-sm text-muted-foreground font-mono hidden lg:table-cell">{pkg.package_code || '—'}</td>
@@ -144,12 +153,20 @@ export function CustomPackagesManager() {
                 )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-muted-foreground">User</Label>
-                    <p className="font-medium">{selectedPackage.user?.full_name}</p>
+                    <Label className="text-muted-foreground">
+                      {selectedPackage.user_id ? 'User' : 'Guest'}
+                    </Label>
+                    <p className="font-medium">
+                      {selectedPackage.user?.full_name || selectedPackage.contact_name || '—'}
+                    </p>
                   </div>
                   <div>
-                    <Label className="text-muted-foreground">Email</Label>
-                    <p className="font-medium">{selectedPackage.user?.email}</p>
+                    <Label className="text-muted-foreground">
+                      {selectedPackage.user_id ? 'Email' : 'Phone'}
+                    </Label>
+                    <p className="font-medium">
+                      {selectedPackage.user?.email || selectedPackage.contact_phone || '—'}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Budget</Label>
@@ -182,6 +199,18 @@ export function CustomPackagesManager() {
                     </p>
                   </div>
                 </div>
+                {!selectedPackage.user_id && (
+                  <div className="rounded-lg bg-muted p-3 space-y-1">
+                    <p className="text-sm font-medium text-foreground">Guest request</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedPackage.contact_location
+                        ? `Travelling from ${selectedPackage.contact_location}. `
+                        : ''}
+                      They have no account, so there is no notification to send — call or message
+                      them with the quote.
+                    </p>
+                  </div>
+                )}
                 {/* What the traveller picked in the builder, so the quote can be
                     priced against the actual districts / spots / activities. */}
                 {selectedPackage.division && (
