@@ -292,10 +292,10 @@ export function AppTopbar({ className }: { className?: string }) {
                 <SlideActionButton
                   completeLabel="Calling…"
                   onComplete={() => {
-                    window.location.href = 'tel:+8801928319460'
+                    window.location.href = 'tel:+8801898766630'
                   }}
                 >
-                  Call +880 192-831-9460
+                  Call +880 1898766630
                 </SlideActionButton>
               </div>
             </PopoverContent>

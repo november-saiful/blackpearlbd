@@ -23,7 +23,7 @@ const navItems: NavItem[] = [
 
 const allItems: NavItem[] = [
   ...navItems,
-  { id: 'call', label: 'Call', icon: Phone, href: 'tel:+8801928319460', external: true },
+  { id: 'call', label: 'Call', icon: Phone, href: 'tel:+8801898766630', external: true },
 ]
 
 const idMap: Record<string, string> = {
@@ -138,10 +138,10 @@ export function MobileDock() {
               <SlideActionButton
                 completeLabel="Calling…"
                 onComplete={() => {
-                  window.location.href = 'tel:+8801928319460'
+                  window.location.href = 'tel:+8801898766630'
                 }}
               >
-                Call +880 192-831-9460
+                Call +880 1898766630
               </SlideActionButton>
             </div>
           </div>

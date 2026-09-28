@@ -66,7 +66,7 @@ export function ProfileEditPopover({ profile }: ProfileEditPopoverProps) {
                 <FormItem>
                   <FormLabel>Phone</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="01928319460" />
+                    <Input {...field} placeholder="+880 1898766630" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
