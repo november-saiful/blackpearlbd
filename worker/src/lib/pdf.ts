@@ -130,7 +130,7 @@ export function generateInvoiceHtml(data: InvoiceData): string {
 
       <div class="footer">
         <p>Thank you for choosing BlackPearl! 🐚</p>
-        <p>For queries, contact us at support@blackpearl.travel</p>
+        <p>For queries, contact us at team@blackpearl.bd</p>
       </div>
     </body>
     </html>

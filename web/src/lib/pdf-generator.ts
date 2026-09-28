@@ -333,7 +333,7 @@ export function generateInvoicePDF(booking: Booking) {
   doc.setTextColor(...MUTED);
   doc.setFont('helvetica', 'normal');
   doc.text('Thank you for choosing BlackPearl!', pageWidth / 2, footerY - 2, { align: 'center' });
-  doc.text('support@blackpearl.travel  |  blackpearl.travel', pageWidth / 2, footerY + 4, { align: 'center' });
+  doc.text('team@blackpearl.bd  |  blackpearl.bd', pageWidth / 2, footerY + 4, { align: 'center' });
 
   // ── Save ─────────────────────────────────────────────────────────
   doc.save(`BlackPearl-Invoice-${invoiceId}.pdf`);
