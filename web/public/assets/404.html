@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Asset not found</title>
+  </head>
+  <body>
+    <!--
+      Keep this file.
+
+      `_redirects` rewrites every unmatched path to /index.html with a 200 so the
+      SPA can own client-side routes. That also catches misses under /assets/,
+      which is where build output lives — so a request for a chunk from an older
+      deploy (or for a chunk that a CDN already answered while it was missing)
+      comes back as 200 + HTML instead of a 404. The browser then refuses to
+      treat HTML as a module or a stylesheet, and the `/assets/*` rule in
+      `_headers` lets that bogus response be cached `immutable` for a year, so
+      the failure sticks even after a deploy adds the real file.
+
+      A 404.html inside a directory makes Cloudflare Pages answer unmatched
+      requests under that directory with a real 404, while root-level SPA
+      routing keeps working. This is the documented workaround for exactly this
+      case: a missing asset should fail as a missing asset.
+    -->
+    <p>Asset not found.</p>
+  </body>
+</html>

@@ -8,17 +8,21 @@ import {
 import { RootLayout } from '@/components/layout/RootLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { CHUNK_RELOAD_FLAG } from '@/lib/preload-recovery';
+import { reloadForStaleBuild } from '@/lib/preload-recovery';
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 
 // ── Chunk-load recovery ───────────────────────────────────────────────────
 // A tab running an older build can request a hashed chunk that a redeploy
 // deleted, and a flaky network can drop the fetch outright; React.lazy turns
 // either into a rejected route ("Unexpected Application Error"). Recover in
-// two steps: retry once for transient failures, then hard-reload once per
-// session — a fresh index.html only references chunks that actually exist.
-// The flag is shared with the page-level `vite:preloadError` recovery in
-// src/lib/preload-recovery.ts so the two never reload-loop against each other.
+// two steps: retry once for transient failures, then reload — a fresh
+// index.html only references chunks that actually exist.
+//
+// The reload budget lives in src/lib/preload-recovery.ts and is shared with the
+// page-level `vite:preloadError` handler, so both paths together still reload
+// at most a couple of times per tab. An earlier version cleared the flag
+// whenever any chunk loaded successfully, which let a permanently broken asset
+// reload the page forever.
 
 function delay(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -27,23 +31,17 @@ function delay(ms: number) {
 function lazyPage(factory: () => Promise<{ default: ComponentType }>) {
   return lazy(async () => {
     try {
-      const mod = await factory();
-      sessionStorage.removeItem(CHUNK_RELOAD_FLAG);
-      return mod;
+      return await factory();
     } catch {
       // The failure may have been a transient network error — retry once.
       await delay(700);
       try {
-        const mod = await factory();
-        sessionStorage.removeItem(CHUNK_RELOAD_FLAG);
-        return mod;
+        return await factory();
       } catch (err) {
         // Still failing: most likely a stale chunk from a recent deploy.
-        if (!sessionStorage.getItem(CHUNK_RELOAD_FLAG)) {
-          sessionStorage.setItem(CHUNK_RELOAD_FLAG, '1');
-          window.location.reload();
+        if (reloadForStaleBuild()) {
           // Stay on the Suspense fallback while the page reloads; only throw
-          // if the reload was blocked, so we can never reload-loop.
+          // once the reload budget is spent, so we can never reload-loop.
           await delay(3000);
         }
         throw err;
@@ -95,12 +93,11 @@ function SuspenseWrapper({ children }: { children: React.ReactNode }) {
 function isChunkLoadError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? '');
   // Chrome: "Failed to fetch dynamically imported module"
+  // Chrome: "Failed to load module script" (the asset answered with HTML)
   // Firefox: "error loading dynamically imported module"
   // Safari:  "Importing a module script failed"
   // Vite:   "Unable to preload CSS for /assets/<chunk>.css" (chunk CSS gone)
-  return /dynamically imported module|module script failed|unable to preload css/i.test(
-    message
-  );
+  return /dynamically imported module|module script|unable to preload css/i.test(message);
 }
 
 function RouteErrorFallback() {
@@ -120,8 +117,8 @@ function RouteErrorFallback() {
       ? 'Page not found'
       : 'Something went wrong';
   const message = chunkLoad
-    ? 'The app was updated while this tab was open, so the page it tried to load no longer exists. Refreshing loads the latest version.'
-    : 'An unexpected error occurred. Refreshing often fixes it.';
+    ? 'The app was updated while this tab was open, so the page it tried to load no longer exists. Press Ctrl+Shift+R (⌘⇧R on Mac) to load the latest version with a fresh cache.'
+    : 'An unexpected error occurred. Press Ctrl+Shift+R (⌘⇧R on Mac) to load the latest version with a fresh cache.';
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-4 text-center">
