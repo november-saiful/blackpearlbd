@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { MapPin, Loader2, Plus } from 'lucide-react';
+import { cn, formatCurrency } from '@/lib/utils';
 import { Combobox, ComboboxTrigger, ComboboxValue, ComboboxContent, ComboboxInput, ComboboxList, ComboboxItem, ComboboxEmpty, ComboboxGroup, ComboboxSeparator } from '@/components/ui/combobox';
 import { DateRangePicker } from '@/components/base/date-picker/date-range-picker';
 import { parseDate } from '@internationalized/date';
@@ -13,8 +13,24 @@ import { PackageSummary } from './PackageSummary';
 import { useGeoLocation, formatDateInTimezone } from '@/hooks/useGeoLocation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { BANGLADESH_DIVISIONS, type Division, type District, type TourSpot } from '@/data/bangladesh-tourist-spots';
+import { BANGLADESH_DIVISIONS, type Division } from '@/data/bangladesh-tourist-spots';
 import { api } from '@/lib/api';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { BudgetInput } from './BudgetInput';
+import { useAuth } from '@/hooks/useAuth';
+import toast from 'react-hot-toast';
+import {
+  ACCOMMODATION_TYPES,
+  ACTIVITY_OPTIONS,
+  MAX_SPECIAL_REQUESTS,
+  MAX_TRAVELERS,
+  TRANSPORT_TYPES,
+  buildCustomPackagePayload,
+  isPreferencesComplete,
+  toIsoDate,
+  type PackageDraft,
+} from '@/lib/package-builder';
 import type { PackageDestination } from '@/types';
 
 // ── SVG Icons ────────────────────────────────────────────────────────
@@ -153,6 +169,12 @@ type SavedState = {
   selectedDistrict?: string;
   selectedDistricts?: string[];
   selectedTourSpots?: string[];
+  numTravelers?: number;
+  accommodationType?: string;
+  transportType?: string;
+  budget?: number;
+  activities?: string[];
+  specialRequests?: string;
 };
 
 function loadSavedState(): SavedState | null {
@@ -173,6 +195,8 @@ interface BuildPackageFormProps {
 // ── Main Component ───────────────────────────────────────────────────
 export default function BuildPackage({ embedded = false }: BuildPackageFormProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
   const saved = useMemo(() => loadSavedState(), []);
   const geo = useGeoLocation();
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -228,7 +252,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
 
   const [step, setStep] = useState(embedded ? 1 : (saved?.step ?? 1));
   const [destination, setDestination] = useState(saved?.destination ?? '');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch package destinations from API via React Query so the list
   // refreshes automatically after the admin creates / updates / deletes
@@ -251,6 +275,15 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
   const [selectedDistrict, setSelectedDistrict] = useState<string>(saved?.selectedDistrict ?? '');
   const [selectedDistricts, setSelectedDistricts] = useState<string[]>(saved?.selectedDistricts ?? []);
   const [selectedTourSpots, setSelectedTourSpots] = useState<string[]>(saved?.selectedTourSpots ?? []);
+
+  // Step 2 preferences
+  const [numTravelers, setNumTravelers] = useState<number>(saved?.numTravelers ?? 1);
+  const [accommodationType, setAccommodationType] = useState<string>(saved?.accommodationType ?? '');
+  const [transportType, setTransportType] = useState<string>(saved?.transportType ?? '');
+  const [budget, setBudget] = useState<number>(saved?.budget ?? 0);
+  const [activities, setActivities] = useState<string[]>(saved?.activities ?? []);
+  const [customActivity, setCustomActivity] = useState('');
+  const [specialRequests, setSpecialRequests] = useState<string>(saved?.specialRequests ?? '');
 
   // Reset BD sub-selections when destination changes
   useEffect(() => {
@@ -315,6 +348,19 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
     );
   };
 
+  const toggleActivity = (activity: string) => {
+    setActivities((prev) =>
+      prev.includes(activity) ? prev.filter((a) => a !== activity) : [...prev, activity],
+    );
+  };
+
+  const addCustomActivity = () => {
+    const value = customActivity.trim();
+    if (!value) return;
+    setActivities((prev) => (prev.includes(value) ? prev : [...prev, value]));
+    setCustomActivity('');
+  };
+
   // For customized mode: collect all districts and their tour spots from selected districts
   const customizedTourSpots = useMemo(() => {
     if (!currentDivision || !isCustomized || selectedDistricts.length === 0) return [];
@@ -348,6 +394,59 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
   const toDay = dateRange ? pad(dateRange.end.day) : '';
   const toYear = dateRange ? String(dateRange.end.year) : '';
 
+  /** Display name of the chosen destination, falling back to its slug. */
+  const destinationLabel = useMemo(() => {
+    const found = destinationGroups
+      .flatMap((group) => group.items)
+      .find((item) => item.value === destination);
+    return found?.name ?? destination;
+  }, [destinationGroups, destination]);
+
+  const travelDateIso =
+    fromYear && fromMonth && fromDay ? toIsoDate({ year: fromYear, month: fromMonth, day: fromDay }) : '';
+  const returnDateIso =
+    toYear && toMonth && toDay ? toIsoDate({ year: toYear, month: toMonth, day: toDay }) : '';
+
+  /** Single source of truth for the review step, the sidebar and the request. */
+  const draft = useMemo<PackageDraft>(
+    () => ({
+      destinationValue: destination,
+      destinationLabel,
+      fromDate: travelDateIso,
+      toDate: returnDateIso,
+      // Customized mode picks many districts and reads their spots off the
+      // catalogue; specific-division mode picks one district plus its spots.
+      division: isCustomized ? selectedDivision : '',
+      districts: isCustomized ? selectedDistricts : selectedDistrict ? [selectedDistrict] : [],
+      tourSpots: isCustomized ? [] : selectedTourSpots,
+      numTravelers,
+      accommodationType,
+      transportType,
+      budget,
+      activities,
+      specialRequests,
+    }),
+    [
+      destination,
+      destinationLabel,
+      travelDateIso,
+      returnDateIso,
+      isCustomized,
+      selectedDivision,
+      selectedDistrict,
+      selectedDistricts,
+      selectedTourSpots,
+      numTravelers,
+      accommodationType,
+      transportType,
+      budget,
+      activities,
+      specialRequests,
+    ],
+  );
+
+  const preferencesComplete = isPreferencesComplete(draft);
+
   const persistState = useCallback((nextStep = step) => {
     const state: SavedState = {
       step: nextStep,
@@ -362,13 +461,19 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
       selectedDistrict,
       selectedDistricts,
       selectedTourSpots,
+      numTravelers,
+      accommodationType,
+      transportType,
+      budget,
+      activities,
+      specialRequests,
     };
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       // quota exceeded – silently ignore
     }
-  }, [step, destination, fromMonth, fromDay, fromYear, toMonth, toDay, toYear, selectedDivision, selectedDistrict, selectedDistricts, selectedTourSpots]);
+  }, [step, destination, fromMonth, fromDay, fromYear, toMonth, toDay, toYear, selectedDivision, selectedDistrict, selectedDistricts, selectedTourSpots, numTravelers, accommodationType, transportType, budget, activities, specialRequests]);
 
   // Persist to sessionStorage on every relevant change
   useEffect(() => {
@@ -386,8 +491,9 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
         return !!selectedDistrict;
       }
     }
+    if (step === 2) return preferencesComplete;
     return true;
-  }, [step, destination, fromMonth, fromDay, fromYear, toMonth, toDay, toYear, selectedDistrict, selectedDistricts, isCustomized]);
+  }, [step, destination, fromMonth, fromDay, fromYear, toMonth, toDay, toYear, selectedDistrict, selectedDistricts, isCustomized, preferencesComplete]);
 
   const scrollToTop = () => {
     const container = document.querySelector('.overflow-y-auto');
@@ -416,12 +522,37 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
   }, [step]);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
-      setIsLoading(true);
-      setTimeout(() => setIsLoading(false), 2000);
+      // Only reachable from restored session state; step 1 normally gates both.
+      if (!draft.destinationValue || !draft.fromDate) {
+        toast.error('Please choose a destination and travel dates');
+        setStep(1);
+        return;
+      }
+      if (!preferencesComplete) return;
+
+      if (!isAuthenticated) {
+        toast.error('Please sign in to submit your package');
+        return;
+      }
+
+      setIsSubmitting(true);
+      try {
+        await api.createCustomPackage(buildCustomPackagePayload(draft));
+        // The traveller's own package list and the admin queue both read this.
+        queryClient.invalidateQueries({ queryKey: ['custom-packages'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-custom-packages'] });
+        sessionStorage.removeItem(STORAGE_KEY);
+        toast.success('Package request submitted — our team will send you a quote.');
+        navigate('/profile');
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed to submit your package');
+      } finally {
+        setIsSubmitting(false);
+      }
     },
-    [],
+    [draft, preferencesComplete, isAuthenticated, navigate, queryClient],
   );
 
   // "To" date is normalized by the range picker; keep aliases for display
@@ -748,7 +879,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                 </motion.div>
               )}
 
-              {/* ── Step 2: Preferences (placeholder) ── */}
+              {/* ── Step 2: Preferences ── */}
               {step === 2 && (
                 <motion.div
                   key="step2"
@@ -756,14 +887,173 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="space-y-4"
+                  className="space-y-5"
                 >
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    <p>Step 2 — Preferences</p>
-                    <p className="mt-1">Coming soon...</p>
+                  {/* Travelers */}
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="num-travelers"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Travelers
+                    </label>
+                    <Input
+                      id="num-travelers"
+                      type="number"
+                      min={1}
+                      max={MAX_TRAVELERS}
+                      value={numTravelers || ''}
+                      onChange={(e) => setNumTravelers(Number(e.target.value))}
+                      className="max-w-[140px]"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Up to {MAX_TRAVELERS} travelers on one request.
+                    </p>
                   </div>
 
-                  <Button type="button" onClick={handleNext} className="w-full">
+                  {/* Accommodation */}
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-foreground">Accommodation</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {ACCOMMODATION_TYPES.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          aria-pressed={accommodationType === option.value}
+                          onClick={() => setAccommodationType(option.value)}
+                          className={cn(
+                            'rounded-lg border px-3 py-2.5 text-left transition-colors',
+                            accommodationType === option.value
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border bg-card hover:bg-accent/50',
+                          )}
+                        >
+                          <span className="block text-sm font-medium text-foreground">
+                            {option.label}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {option.hint}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Transport */}
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-foreground">Transport</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {TRANSPORT_TYPES.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          aria-pressed={transportType === option.value}
+                          onClick={() => setTransportType(option.value)}
+                          className={cn(
+                            'rounded-lg border px-3 py-2.5 text-left transition-colors',
+                            transportType === option.value
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border bg-card hover:bg-accent/50',
+                          )}
+                        >
+                          <span className="block text-sm font-medium text-foreground">
+                            {option.label}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {option.hint}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Budget */}
+                  <div className="space-y-2">
+                    <BudgetInput value={budget} onChange={setBudget} />
+                    <p className="text-xs text-muted-foreground">
+                      An estimate is fine — our team confirms the final price.
+                    </p>
+                  </div>
+
+                  {/* Activities */}
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-foreground">
+                      Activities{' '}
+                      <span className="font-normal text-muted-foreground">
+                        ({activities.length} selected)
+                      </span>
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        ...ACTIVITY_OPTIONS,
+                        ...activities.filter(
+                          (activity) =>
+                            !(ACTIVITY_OPTIONS as readonly string[]).includes(activity),
+                        ),
+                      ].map((activity) => (
+                        <button
+                          key={activity}
+                          type="button"
+                          aria-pressed={activities.includes(activity)}
+                          onClick={() => toggleActivity(activity)}
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                            activities.includes(activity)
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border bg-card text-foreground hover:bg-accent/50',
+                          )}
+                        >
+                          {activity}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        value={customActivity}
+                        onChange={(e) => setCustomActivity(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addCustomActivity();
+                          }
+                        }}
+                        placeholder="Add your own activity"
+                        maxLength={60}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addCustomActivity}
+                        disabled={!customActivity.trim()}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Special requests */}
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="special-requests"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Special requests
+                    </label>
+                    <Textarea
+                      id="special-requests"
+                      value={specialRequests}
+                      onChange={(e) => setSpecialRequests(e.target.value)}
+                      placeholder="Dietary needs, accessibility, a celebration, must-see places..."
+                      rows={4}
+                      maxLength={MAX_SPECIAL_REQUESTS}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {specialRequests.length}/{MAX_SPECIAL_REQUESTS}
+                    </p>
+                  </div>
+
+                  <Button type="button" onClick={handleNext} disabled={!canNext} className="w-full">
                     Next Step
                     <ArrowRightIcon />
                   </Button>
@@ -871,11 +1161,65 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                           {formatDateDisplay(effectiveToMonth, effectiveToDay, effectiveToYear)}
                         </span>
                       </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-muted-foreground">Travelers:</span>
+                        <span className="text-foreground font-medium">{numTravelers}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-muted-foreground">Accommodation:</span>
+                        <span className="text-foreground font-medium capitalize">
+                          {accommodationType || '—'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-muted-foreground">Transport:</span>
+                        <span className="text-foreground font-medium capitalize">
+                          {transportType || '—'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-1">
+                        <span className="text-muted-foreground">Budget:</span>
+                        <span className="text-foreground font-medium">
+                          {budget > 0 ? formatCurrency(budget, geo.currency, geo.locale) : '—'}
+                        </span>
+                      </div>
+                      {activities.length > 0 && (
+                        <div className="py-1">
+                          <span className="text-muted-foreground">Activities:</span>
+                          <div className="flex flex-wrap gap-1.5 mt-1.5">
+                            {activities.map((activity) => (
+                              <span
+                                key={activity}
+                                className="inline-block rounded-full bg-primary/10 text-primary text-xs px-2.5 py-1 font-medium"
+                              >
+                                {activity}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {specialRequests.trim() && (
+                        <div className="py-1">
+                          <span className="text-muted-foreground">Special requests:</span>
+                          <p className="text-foreground mt-1 whitespace-pre-wrap">
+                            {specialRequests.trim()}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={isLoading} className="w-full">
-                    {isLoading ? (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Submitting sends this to our team, who reply with a quote before anything is
+                    booked.
+                  </p>
+
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !preferencesComplete}
+                    className="w-full"
+                  >
+                    {isSubmitting ? (
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Submitting...
@@ -907,14 +1251,18 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
           <div className="lg:col-span-1">
             <div className="lg:sticky lg:top-24">
               <PackageSummary
-                destination={destinationGroups.flatMap((g) => g.items.map((i) => ({ ...i, group: g.category }))).find((i) => i.value === destination)?.name ?? null}
-                travelDate={travelDateDisplay}
-                numTravelers={1}
-                accommodationType=""
-                transportType=""
-                budget={0}
-                activities={[]}
-                specialRequests=""
+                destination={destinationLabel || null}
+                travelDate={
+                  returnDateIso && returnDateIso !== travelDateIso
+                    ? `${travelDateDisplay} → ${formatDateDisplay(effectiveToMonth, effectiveToDay, effectiveToYear)}`
+                    : travelDateDisplay
+                }
+                numTravelers={numTravelers}
+                accommodationType={accommodationType}
+                transportType={transportType}
+                budget={budget}
+                activities={activities}
+                specialRequests={specialRequests}
                 currencyCode={geo.currency}
                 locale={geo.locale}
                 timezone={geo.timezone}

@@ -2,6 +2,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { ProfileCard } from '@/components/profile/ProfileCard';
 import { StatsCards } from '@/components/profile/StatsCards';
 import { ToursSection } from '@/components/profile/ToursSection';
+import { PackagesSection } from '@/components/profile/PackagesSection';
 import { OthersSection } from '@/components/profile/OthersSection';
 import { SavedDealsSection } from '@/components/profile/SavedDealsSection';
 import { ProfilePageSkeleton } from '@/components/skeletons/ProfilePageSkeleton';
@@ -29,6 +30,19 @@ export default function ProfilePage() {
 
       {/* Stats */}
       <StatsCards stats={stats} />
+
+      {/* Package Requests */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            My Packages
+            <span className="text-sm font-normal text-muted-foreground">(Custom requests)</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PackagesSection />
+        </CardContent>
+      </Card>
 
       {/* Tours Section */}
       <Card>

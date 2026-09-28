@@ -171,7 +171,70 @@ export function CustomPackagesManager() {
                     <Label className="text-muted-foreground">Transport</Label>
                     <p className="font-medium capitalize">{selectedPackage.transport_type || 'N/A'}</p>
                   </div>
+                  <div>
+                    <Label className="text-muted-foreground">Destination</Label>
+                    <p className="font-medium">{selectedPackage.title || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Return Date</Label>
+                    <p className="font-medium">
+                      {selectedPackage.return_date ? formatDate(selectedPackage.return_date) : '—'}
+                    </p>
+                  </div>
                 </div>
+                {/* What the traveller picked in the builder, so the quote can be
+                    priced against the actual districts / spots / activities. */}
+                {selectedPackage.division && (
+                  <div>
+                    <Label className="text-muted-foreground">Division</Label>
+                    <p className="font-medium">{selectedPackage.division}</p>
+                  </div>
+                )}
+                {selectedPackage.districts?.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">Districts</Label>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {selectedPackage.districts.map((district: string) => (
+                        <span
+                          key={district}
+                          className="inline-block rounded-full bg-primary/10 text-primary text-xs px-2.5 py-1 font-medium"
+                        >
+                          {district}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selectedPackage.tour_spots?.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">Tour Spots</Label>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {selectedPackage.tour_spots.map((spot: string) => (
+                        <span
+                          key={spot}
+                          className="inline-block rounded-full bg-primary/10 text-primary text-xs px-2.5 py-1 font-medium"
+                        >
+                          {spot}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {selectedPackage.activities?.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground">Activities</Label>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {selectedPackage.activities.map((activity: string) => (
+                        <span
+                          key={activity}
+                          className="inline-block rounded-full bg-muted text-foreground text-xs px-2.5 py-1 font-medium"
+                        >
+                          {activity}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {selectedPackage.special_requests && (
                   <div>
                     <Label className="text-muted-foreground">Special Requests</Label>

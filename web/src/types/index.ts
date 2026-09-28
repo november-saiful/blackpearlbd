@@ -140,13 +140,21 @@ export interface CustomPackage {
   package_code: string | null;
   user_id: string;
   title: string | null;
+  /** Slug from package_destinations.value, as chosen in the package builder. */
+  destination_value: string | null;
+  /** Geo destination id, set only by clients that resolve one. */
   destination_id: string | null;
   budget: number | null;
   travel_date: string | null;
+  return_date: string | null;
   num_travelers: number;
   accommodation_type: string | null;
   transport_type: string | null;
   activities: string[];
+  /** Bangladeshi custom tours: division / districts / tour spots picked. */
+  division: string | null;
+  districts: string[];
+  tour_spots: string[];
   special_requests: string | null;
   estimated_price: number | null;
   status: string;

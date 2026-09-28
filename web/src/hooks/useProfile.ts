@@ -60,3 +60,47 @@ export function useProfile() {
     isUpdating: updateProfileMutation.isPending,
   };
 }
+
+/**
+ * The traveller's own package requests, built in the 3-step builder.
+ *
+ * The builder invalidates `custom-packages` on submit and the admin queue
+ * invalidates `admin-custom-packages`, so a fresh request and a newly issued
+ * quote both appear without a page reload. Booking a package creates a booking
+ * row, which is why the booking queries are invalidated too.
+ */
+export function useCustomPackages() {
+  const queryClient = useQueryClient();
+
+  const packagesQuery = useQuery({
+    queryKey: ['custom-packages'],
+    queryFn: () => api.getCustomPackages(),
+  });
+
+  const bookMutation = useMutation({
+    mutationFn: ({
+      id,
+      travelerDetails,
+    }: {
+      id: string;
+      travelerDetails: Record<string, unknown>;
+    }) => api.bookCustomPackage(id, { traveler_details: travelerDetails }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['custom-packages'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['profile-tours'] });
+      queryClient.invalidateQueries({ queryKey: ['profile-pending'] });
+      toast.success('Booking request submitted!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to book this package');
+    },
+  });
+
+  return {
+    packages: packagesQuery.data?.customPackages || [],
+    isLoading: packagesQuery.isLoading,
+    bookPackage: bookMutation.mutate,
+    isBooking: bookMutation.isPending,
+  };
+}

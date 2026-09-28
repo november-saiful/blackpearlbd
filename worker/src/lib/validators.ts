@@ -104,17 +104,44 @@ export const CreateDealSchema = z.object({
   is_featured: z.boolean().optional(),
 });
 
-export const CreateCustomPackageSchema = z.object({
-  title: z.string().max(200).optional(),
-  destination_id: z.string().uuid(),
-  budget: z.number().positive(),
-  travel_date: z.string(),
-  num_travelers: z.number().int().min(1).max(50),
-  accommodation_type: z.enum(['budget', 'standard', 'luxury']),
-  transport_type: z.enum(['flight', 'bus', 'train', 'self']),
-  activities: z.array(z.string()).optional(),
-  special_requests: z.string().max(2000).optional(),
-});
+/**
+ * A package built in the 3-step builder. The builder picks a destination from
+ * the admin-managed `package_destinations` list, so it sends the slug
+ * (`destination_value`, e.g. 'thailand', 'dhaka-division') and has no id for
+ * the geo `destinations` tree. `destination_id` stays accepted for clients that
+ * do have one, and at least one of the two must be present — otherwise the
+ * package would not say where the traveller wants to go.
+ */
+export const CreateCustomPackageSchema = z
+  .object({
+    title: z.string().max(200).optional(),
+    destination_value: optionalClean().pipe(
+      z
+        .string()
+        .min(1)
+        .max(200)
+        .regex(/^[a-z0-9-]+$/, 'Destination must be a slug')
+        .optional(),
+    ),
+    destination_id: optionalClean().pipe(z.string().uuid().optional()),
+    budget: z.number().positive(),
+    travel_date: z.string(),
+    return_date: optionalClean().pipe(z.string().optional()),
+    num_travelers: z.number().int().min(1).max(50),
+    accommodation_type: z.enum(['budget', 'standard', 'luxury']),
+    transport_type: z.enum(['flight', 'bus', 'train', 'self']),
+    activities: z.array(z.string()).optional(),
+    // Bangladeshi custom tours: the division / districts / tour spots the
+    // traveller chose in step 1, stored as structured choices.
+    division: optionalClean().pipe(z.string().max(200).optional()),
+    districts: z.array(z.string()).optional(),
+    tour_spots: z.array(z.string()).optional(),
+    special_requests: z.string().max(2000).optional(),
+  })
+  .refine((value) => !!value.destination_id || !!value.destination_value, {
+    message: 'Provide either destination_value or destination_id',
+    path: ['destination_value'],
+  });
 
 export const CreateBookingSchema = z.object({
   booking_type: z.enum(['deal', 'custom']),
