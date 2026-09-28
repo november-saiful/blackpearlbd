@@ -19,8 +19,13 @@
 
       A 404.html inside a directory makes Cloudflare Pages answer unmatched
       requests under that directory with a real 404, while root-level SPA
-      routing keeps working. This is the documented workaround for exactly this
-      case: a missing asset should fail as a missing asset.
+      routing keeps working. Verified against production and at any depth:
+      /assets/zzz.js, /assets/sub/zzz.js and /assets/zzz.js/ all return 404
+      with `no-store`, so the miss cannot be cached either.
+
+      scripts/check-pages-fallbacks.mjs runs as part of `npm run build` and
+      fails the build if this file disappears, or if a `_redirects` rule starts
+      matching /assets/* and shadows it.
     -->
     <p>Asset not found.</p>
   </body>

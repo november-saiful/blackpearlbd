@@ -39,5 +39,5 @@
     "react-hooks/config": "off",
     "react-hooks/gating": "off"
   },
-  "ignorePatterns": ["dist", "node_modules", "*.config.*", "src/components/reui/**", "src/components/ui/markdown-editor.tsx", "src/components/ui/testimonial.tsx", "src/components/ui/combobox/**"]
+  "ignorePatterns": ["dist", "node_modules", "*.config.*", "scripts", "src/components/reui/**", "src/components/ui/markdown-editor.tsx", "src/components/ui/testimonial.tsx", "src/components/ui/combobox/**"]
 }
