@@ -8,6 +8,7 @@ import {
 import { RootLayout } from '@/components/layout/RootLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
+import { CHUNK_RELOAD_FLAG } from '@/lib/preload-recovery';
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 
 // ── Chunk-load recovery ───────────────────────────────────────────────────
@@ -16,7 +17,8 @@ import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 // either into a rejected route ("Unexpected Application Error"). Recover in
 // two steps: retry once for transient failures, then hard-reload once per
 // session — a fresh index.html only references chunks that actually exist.
-const CHUNK_RELOAD_FLAG = 'bp-chunk-reload';
+// The flag is shared with the page-level `vite:preloadError` recovery in
+// src/lib/preload-recovery.ts so the two never reload-loop against each other.
 
 function delay(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -95,7 +97,10 @@ function isChunkLoadError(error: unknown): boolean {
   // Chrome: "Failed to fetch dynamically imported module"
   // Firefox: "error loading dynamically imported module"
   // Safari:  "Importing a module script failed"
-  return /dynamically imported module|module script failed/i.test(message);
+  // Vite:   "Unable to preload CSS for /assets/<chunk>.css" (chunk CSS gone)
+  return /dynamically imported module|module script failed|unable to preload css/i.test(
+    message
+  );
 }
 
 function RouteErrorFallback() {
