@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DealCard } from '@/components/deals/DealCard';
+import { api } from '@/lib/api';
 import { DealGrid } from '@/components/deals/DealGrid';
-import { useDeals } from '@/hooks/useDeals';
 import { GlobePolaroids } from '@/components/ui/component';
 import { StarsBackground } from '@/components/ui/stars-background';
 import { CTabs6 } from '@/components/examples/c-tabs-6';
@@ -13,7 +13,7 @@ import { AnimatedReviews } from '@/components/reviews/AnimatedReviews';
 import { Compass, Star, ArrowRight } from 'lucide-react';
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
 import type { TourDeal } from '@/types';
-
+import { useQueries } from '@tanstack/react-query';
 function TourDealsPreview({ deals }: { deals: TourDeal[] }) {
   return (
     <div>
@@ -41,10 +41,20 @@ function BuildPackagePreview() {
 }
 
 export default function Home() {
-  const { deals, isLoading } = useDeals();
+  // Parallelise the independent public reads so the homepage never waits on one
+  // API call before starting the next: the deals list and the homepage
+  // testimonial strip both hit Supabase through the Worker's edge cache, and
+  // running them in the same tick removes the serial waterline.
+  const [dealsQuery, reviewsQuery] = useQueries({
+    queries: [
+      { queryKey: ['deals'], queryFn: () => api.getDeals(), staleTime: 5 * 60 * 1000 },
+      { queryKey: ['featured-reviews'], queryFn: () => api.getFeaturedReviews(), staleTime: 2 * 60 * 1000 },
+    ] as const,
+  });
   const navigate = useNavigate();
-  const allDeals = deals;
-  const featuredDeals = deals.filter((d) => d.is_featured).slice(0, 6);
+  const allDeals = dealsQuery.data?.deals || [];
+  const featuredDeals = allDeals.filter((d: { is_featured: boolean }) => d.is_featured).slice(0, 6);
+  const isLoading = dealsQuery.isLoading || reviewsQuery.isLoading;
 
   const globeMotionRef = React.useRef<{ phi: number; theta: number }>({ phi: 0, theta: 0 });
 

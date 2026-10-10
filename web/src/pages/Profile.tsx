@@ -1,4 +1,5 @@
-import { useProfile } from '@/hooks/useProfile';
+import { useQueries } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 import { ProfileCard } from '@/components/profile/ProfileCard';
 import { StatsCards } from '@/components/profile/StatsCards';
 import { ToursSection } from '@/components/profile/ToursSection';
@@ -8,8 +9,28 @@ import { SavedDealsSection } from '@/components/profile/SavedDealsSection';
 import { ProfilePageSkeleton } from '@/components/skeletons/ProfilePageSkeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+// Parallelise the profile reads so no single query blocks the next: the
+// profile record, its stats, tours, pending bookings, pearls history and the
+// custom package requests are all independent and all hit the Worker's edge
+// cache after the first request.
 export default function ProfilePage() {
-  const { profile, stats, tours, pendingBookings, isLoading } = useProfile();
+  const queries = useQueries({
+    queries: [
+      { queryKey: ['profile'], queryFn: () => api.getProfile(), staleTime: 5 * 60 * 1000 },
+      { queryKey: ['profile-stats'], queryFn: () => api.getProfileStats(), staleTime: 5 * 60 * 1000 },
+      { queryKey: ['profile-tours'], queryFn: () => api.getProfileTours(), staleTime: 5 * 60 * 1000 },
+      { queryKey: ['profile-pending'], queryFn: () => api.getProfilePending(), staleTime: 5 * 60 * 1000 },
+      { queryKey: ['profile-pearls'], queryFn: () => api.getProfilePearls(), staleTime: 5 * 60 * 1000 },
+      { queryKey: ['custom-packages'], queryFn: () => api.getCustomPackages(), staleTime: 5 * 60 * 1000 },
+    ] as const,
+  });
+  const profile = queries[0].data?.profile;
+  const stats = queries[1].data;
+  const tours = queries[2].data?.tours || [];
+  const pendingBookings = queries[3].data?.bookings || [];
+  const pearlsHistory = queries[4].data?.history || [];
+  const customPackages = queries[5].data?.customPackages || [];
+  const isLoading = queries.some((q) => q.isLoading);
 
   if (isLoading) {
     return <ProfilePageSkeleton />;

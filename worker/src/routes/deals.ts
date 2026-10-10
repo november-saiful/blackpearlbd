@@ -4,46 +4,138 @@ import { adminMiddleware } from '../middleware/admin';
 import { CreateDealSchema, BulkRemoveDealsSchema } from '../lib/validators';
 import { createSupabaseAdminClient } from '../lib/supabase';
 import { collectR2ImageKeys } from '../lib/r2';
+import { readThroughCache, type CachePolicy } from '../lib/http-cache';
 import { Env } from '../types';
 
 const deals = new Hono();
 
+// ── Cache policy: public read-only data, TTLed, Vary'd on the request identity.
+const PUBLIC_DEALS_POLICY: CachePolicy = {
+  maxAgeSeconds: 60,
+  public: true,
+  vary: ['Authorization'],
+};
+
+const PUBLIC_DEAL_POLICY: CachePolicy = {
+  maxAgeSeconds: 30,
+  public: true,
+  mustRevalidate: true,
+};
+
 // List all active deals (public)
 deals.get('/', async (c) => {
   const env = c.env as Env;
-  const admin = createSupabaseAdminClient(env);
 
-  const { data, error } = await admin
-    .from('tour_deals')
-    .select('*')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
+  // Public, read-only, sort-order-stable data. Cache it at the edge for 60s so
+  // repeat visitors (and the next deploy's hero walkthroughs) never hit
+  // Supabase again until the entry goes stale.
+  const { value, source } = await readThroughCache(
+    'deals',
+    c.req.raw,
+    PUBLIC_DEALS_POLICY,
+    async () => {
+      const admin = createSupabaseAdminClient(env);
+      const { data, error } = await admin
+        .from('tour_deals')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return { deals: data || [] };
+    },
+  );
 
-  if (error) {
-    return c.json({ error: 'Failed to fetch deals' }, 500);
-  }
+  return c.json(value, 200, {
+    'X-Geo-Cache': source,
+    'Cache-Control': `public, max-age=${PUBLIC_DEALS_POLICY.maxAgeSeconds}, ${PUBLIC_DEALS_POLICY.public ? 'public' : 'private'}, must-revalidate`,
+    'Vary': PUBLIC_DEALS_POLICY.vary?.join(', ')!,
+  });
+});
 
-  return c.json({ deals: data || [] });
+// Related deals for a slug: siblings in the same category or within a similar
+// price band, closest matches first. Cached at the edge so DealDetail only
+// needs one round trip to fetch the deal, its reviews and the sibling list.
+deals.get('/related', async (c) => {
+  const slug = c.req.query('slug');
+  const env = c.env as Env;
+
+  const related = await readThroughCache(
+    'related-deals:' + slug,
+    c.req.raw,
+    PUBLIC_DEAL_POLICY,
+    async () => {
+      const admin = createSupabaseAdminClient(env);
+      const currentResult = await admin
+        .from('tour_deals')
+        .select('id, category, price')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single();
+      if (currentResult.error) return { deals: [] };
+      const current = currentResult.data;
+
+      const { data, error: fetchError } = await admin
+        .from('tour_deals')
+        .select('id, category, price')
+        .eq('is_active', true)
+        .neq('id', current.id);
+      if (fetchError) return { deals: [] };
+
+      const others = (data || []) as Array<{ id: string; category: string; price: number }>;
+      const currentCategory = current.category;
+
+      // 1. Same category, closest price first
+      const sameCategory = others
+        .filter((d) => d.category === currentCategory)
+        .sort((a, b) => Math.abs(a.price - current.price) - Math.abs(b.price - current.price));
+
+      // 2. Within a 35% price band, closest first
+      const priceLow = current.price * 0.65;
+      const priceHigh = current.price * 1.35;
+      const nearbyPrice = others
+        .filter((d) => d.price >= priceLow && d.price <= priceHigh && d.category !== currentCategory)
+        .sort((a, b) => Math.abs(a.price - current.price) - Math.abs(b.price - current.price));
+
+      const combined = [...sameCategory, ...nearbyPrice];
+      return { deals: combined.slice(0, 4) };
+    },
+  );
+
+  return c.json(related.value, 200, {
+    'X-Geo-Cache': related.source,
+    'Cache-Control': `public, max-age=${PUBLIC_DEALS_POLICY.maxAgeSeconds}, must-revalidate`,
+  });
 });
 
 // Get single deal details
 deals.get('/:slug', async (c) => {
   const slug = c.req.param('slug');
   const env = c.env as Env;
-  const admin = createSupabaseAdminClient(env);
 
-  const { data, error } = await admin
-    .from('tour_deals')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
+  // Public deal record. It changes only when an admin publishes or retires a
+  // deal, so a 30-second short-TTL means anogin traffic keeps hitting the
+  // edge cache while a change lands within a half minute.
+  const { value, source } = await readThroughCache(
+    'deal/' + slug,
+    c.req.raw,
+    PUBLIC_DEAL_POLICY,
+    async () => {
+      const admin = createSupabaseAdminClient(env);
+      const { data, error } = await admin
+        .from('tour_deals')
+        .select('*')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single();
+      if (error || !data) throw new Error('Deal not found');
+      return { deal: data };
+    },
+  );
 
-  if (error || !data) {
-    return c.json({ error: 'Deal not found' }, 404);
-  }
-
-  return c.json({ deal: data });
+  return c.json(value, 200, {
+    'X-Geo-Cache': source,
+    'Cache-Control': `public, max-age=${PUBLIC_DEAL_POLICY.maxAgeSeconds}, must-revalidate`,
+  });
 });
 
 // Create new deal (admin only)
