@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { DealCard } from '@/components/deals/DealCard';
 import { api } from '@/lib/api';
@@ -14,6 +15,7 @@ import { Compass, Star, ArrowRight } from 'lucide-react';
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
 import type { TourDeal } from '@/types';
 import { useQueries } from '@tanstack/react-query';
+
 function TourDealsPreview({ deals }: { deals: TourDeal[] }) {
   return (
     <div>
@@ -72,28 +74,29 @@ export default function Home() {
         globeOffset={globeMotionRef.current}
       >
         {/* Edge-to-edge first screen: full viewport — topbar and mobile dock float above it */}
-        <div className="flex min-h-[100dvh] flex-col items-center justify-center px-4 pt-20 pb-24 sm:px-6 md:pt-24 md:pb-12">
+        <div className="flex h-screen flex-col items-center justify-center px-4 pt-28 pb-24 sm:px-6 md:pt-32 md:pb-12">
           <div className="w-full max-w-5xl mx-auto text-center">
             {/* Globe — scales with visible screen height, big on every breakpoint.
                 Width = min(<dvh>, 100%) so it can never exceed its container:
                 a dvh-only width overflows on tall/narrow phones, and an
                 overflowing block with mx-auto gets margin:0 → shifts left. */}
-            <div className="mx-auto mb-3 w-[min(50dvh,100%)] min-w-[240px] max-w-[440px] sm:mb-5 md:mb-6 md:w-[min(58dvh,100%)] md:max-w-[720px] lg:w-[min(62dvh,100%)] lg:max-w-[840px]">
+            <div className="mx-auto w-[min(50dvh,100%)] min-w-[240px] max-w-[440px] sm:mb-5 md:mb-6 md:w-[min(58dvh,100%)] md:max-w-[720px] lg:w-[min(62dvh,100%)] lg:max-w-[840px]">
+              <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 py-12 text-center">
+                <h1 className="text-[clamp(1.875rem,9.8vw,3.75rem)] leading-[1.1] tracking-tight md:text-6xl md:leading-none md:tracking-normal font-bold">
+                  Discover Your Next
+                  <span className="text-hero-foreground"> Adventure</span>
+                </h1>
+                <p className="mx-auto max-w-md text-base sm:max-w-lg sm:text-xl md:max-w-2xl text-hero-foreground/70">
+                  BlackPearl brings you curated tour deals and custom packages
+                  to the world's most amazing destinations.
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto relative z-20 w-[min(50dvh,100%)] min-w-[240px] max-w-[440px] sm:mb-5 md:mb-6 md:w-[min(58dvh,100%)] md:max-w-[720px] lg:w-[min(62dvh,100%)] lg:max-w-[840px]">
               <GlobePolaroids
                 onMotionChange={handleGlobeMotion}
                 onSelect={(m) => navigate(`/deals?destination=${encodeURIComponent(m.caption)}`)}
               />
-            </div>
-
-            <div className="z-10 space-y-4">
-              <h1 className="text-[clamp(1.875rem,9.8vw,3.75rem)] leading-[1.1] tracking-tight md:text-6xl md:leading-none md:tracking-normal font-bold">
-                Discover Your Next
-                <span className="text-hero-foreground"> Adventure</span>
-              </h1>
-              <p className="mx-auto max-w-md text-base sm:max-w-lg sm:text-xl md:max-w-2xl text-hero-foreground/70">
-                BlackPearl brings you curated tour deals and custom packages 
-                to the world's most amazing destinations.
-              </p>
             </div>
           </div>
         </div>
@@ -160,9 +163,7 @@ export default function Home() {
                   <Compass className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-primary mb-2">Choose Your Destination</h3>
-                <p className="text-muted-foreground">
-                  Browse our curated tour deals or build your own custom package
-                </p>
+                <p className="text-muted-foreground">Browse our curated tour deals or build your own custom package</p>
               </CardContent>
             </Card>
             <Card className="text-center">
@@ -171,9 +172,7 @@ export default function Home() {
                   <BuildPackageIcon className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-primary mb-2">Customize Your Trip</h3>
-                <p className="text-muted-foreground">
-                  Select dates, accommodation, activities, and set your budget
-                </p>
+                <p className="text-muted-foreground">Select dates, accommodation, activities, and set your budget</p>
               </CardContent>
             </Card>
             <Card className="text-center">
@@ -182,9 +181,7 @@ export default function Home() {
                   <Star className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-primary mb-2">Book & Earn Pearls</h3>
-                <p className="text-muted-foreground">
-                  Confirm your booking, get your invoice, and earn loyalty pearls
-                </p>
+                <p className="text-muted-foreground">Confirm your booking, get your invoice, and earn loyalty pearls</p>
               </CardContent>
             </Card>
           </div>

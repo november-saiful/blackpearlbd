@@ -16,13 +16,48 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
+import { Button, type ButtonProps } from '@/components/ui/button'
+
+function NavButton({
+  href,
+  icon: Icon,
+  label,
+  navigate,
+  className,
+}: {
+  href: string
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  navigate: (href: string) => void
+  className?: ButtonProps['className']
+}) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "group relative flex items-center gap-3 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        className,
+      )}
+      onClick={() => navigate(href)}
+    >
+      <Icon className="shrink-0" />
+      <span className="flex flex-col leading-tight">
+        <span className="hover:underline">{label}</span>
+      </span>
+    </button>
+  )
+}
+
+function NavMenuContent() {
+  return null;
+}
+
+import { NavigationSelect } from './NavigationSelect'
 import { UserDropdown, type UserDropdownAction } from '@/components/ui/user-dropdown'
 import {
   CommandPalette,
   type CommandItem,
 } from '@/components/ui/command-palette'
-import { NavigationSelect } from './NavigationSelect'
 import { useTheme } from '@/lib/theme-provider'
 import {
   Popover,
@@ -261,10 +296,19 @@ export function AppTopbar({ className }: { className?: string }) {
           </span>
         </Link>
 
-        {/* Right: Navigation select + Search + Profile */}
+        {/* Right: Navigation buttons + Search + Profile */}
         <div className="flex shrink-0 items-center gap-2 z-10">
-          {/* Navigation select */}
-          <NavigationSelect className="w-48" hideMobile />
+          {/* Desktop mega menu */}
+          <div className="relative hidden md:flex items-center gap-2">
+            <NavButton href="/deals" icon={Compass} label="Tour Deals" navigate={navigate} />
+            <NavButton href="/build-package" icon={BuildPackageIcon} label="Build Package" navigate={navigate} />
+            <NavMenuContent />
+          </div>
+
+          {/* Mobile: icon only */}
+          <div className="flex shrink-0 items-center md:hidden">
+            <NavigationSelect className="w-10" hideMobile />
+          </div>
 
           {/* Call button */}
           <Popover open={callOpen} onOpenChange={setCallOpen}>
