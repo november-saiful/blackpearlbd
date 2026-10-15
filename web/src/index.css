@@ -84,6 +84,8 @@
 
   html {
     height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
@@ -91,6 +93,16 @@
     min-height: 100%;
     margin: 0;
     font-family: 'Times New Roman', 'SolaimanLipi', serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif tracking-tight;
+  }
+
+  p {
+    @apply leading-relaxed;
   }
 }
 
@@ -177,7 +189,52 @@
     margin-inline: auto;
     padding-inline: var(--site-gutter);
   }
-}
+
+  /*
+   * High-end card shadows — four predefined elevations that feel expensive:
+   * · shadow-card: subtle, for default cards
+   * · shadow-elevated: medium, for modals and important panels
+   * · shadow-prominent: strong, for popovers and menus
+   * · shadow-hero: extra strong, for hero surfaces
+   */
+  .shadow-card {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  }
+
+  .shadow-elevated {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 15%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  }
+
+  .shadow-prominent {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 20%), 0 4px 6px -4px rgb(0 0 0 / 15%);
+  }
+
+  .shadow-hero {
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%), 0 0px 0 1px rgb(0 0 0 / 10%);
+  }
+
+  /*
+   * Border radius scale — consistent rounding across the UI:
+   * · radius-sm: 0.125rem ( tight, for chips, small inputs )
+   * · radius: 0.5rem ( default, for cards, buttons )
+   * · radius-lg: 0.75rem ( spacious, for modals )
+   * · radius-full: 9999px ( pills, avatars )
+   */
+  .radius-sm {
+    border-radius: 0.125rem;
+  }
+
+  .radius-full {
+    border-radius: 9999px;
+  }
+
+  /*
+   * Selection color — subtle highlight that feels intentional:
+   */
+  ::selection {
+    background-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+
 
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {

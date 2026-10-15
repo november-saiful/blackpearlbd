@@ -36,8 +36,8 @@ export function DealCard({ deal, action, className }: DealCardProps) {
       to={`/deals/${deal.slug}`}
       aria-label={`${deal.title} — ${category.label} in ${location}`}
       className={cn(
-        'group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-300',
-        'hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-card transition-all duration-300',
+        'hover:-translate-y-1 hover:border-primary/30 hover:shadow-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         className,
       )}
     >

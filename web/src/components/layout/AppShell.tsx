@@ -18,6 +18,8 @@ export function AppShell({ children }: AppShellProps) {
         <ScrollToTop />
         <PhonePrompt />
         <AppTopbar />
+        {/* Skip link for keyboard navigation */}
+        <a href="#main" className="sr-only focus-visible:focus focus-visible:bg-primary focus-visible:text-primary-foreground py-2 px-4" onClick={() => setTimeout(() => {}, 0)}>Skip to main content</a>
         <main className="flex flex-1 flex-col pb-16 md:pb-0">
           {children}
         </main>
