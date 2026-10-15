@@ -178,17 +178,12 @@
 }
 
 @layer components {
-  /*
-   * Intentionally has no max-width. A cap (the previous `max-w-7xl`) makes wide
-   * sections stop short of the margin line while narrow ones sit on it, which is
-   * exactly the inconsistency this replaces. Percentage padding also resolves
-   * against the real containing block, so it ignores scrollbar width.
-   */
   .site-container {
     width: 100%;
     margin-inline: auto;
     padding-inline: var(--site-gutter);
   }
+}
 
   /*
    * High-end card shadows — four predefined elevations that feel expensive:
