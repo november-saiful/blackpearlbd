@@ -19,14 +19,21 @@ export function useBookings() {
       total_amount: number;
       traveler_details: Record<string, unknown>;
     }) => api.createBooking(data as any),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['profile'] });
-      
-      // Generate PDF
-      generateInvoicePDF(data.booking);
-      
-      toast.success('Booking request submitted! Invoice downloaded.');
+
+      // Deal-only invoice layout: skip PDF for non-deal bookings.
+      if (data.booking?.booking_type === 'deal' && data.booking?.deal) {
+        try {
+          await generateInvoicePDF(data.booking);
+          toast.success('Booking request submitted! Invoice downloaded.');
+        } catch {
+          toast.success('Booking request submitted!');
+        }
+      } else {
+        toast.success('Booking request submitted!');
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to create booking');
@@ -49,9 +56,18 @@ export function useInvoice(bookingId: string) {
   });
 
   const downloadInvoice = async () => {
-    if (invoiceQuery.data?.invoice) {
-      generateInvoicePDF(invoiceQuery.data.invoice);
+    const invoice = invoiceQuery.data?.invoice;
+    if (!invoice) return;
+    // Invoice layout covers deal bookings only.
+    if (invoice.booking_type !== 'deal' || !invoice.deal) {
+      toast.error('Invoices are available for deal bookings only.');
+      return;
+    }
+    try {
+      await generateInvoicePDF(invoice);
       toast.success('Invoice downloaded');
+    } catch {
+      toast.error('Failed to generate invoice');
     }
   };
 
