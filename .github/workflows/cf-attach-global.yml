@@ -10,26 +10,23 @@ jobs:
   attach:
     runs-on: ubuntu-latest
     steps:
-      - name: Attach global.blackpearl.bd (Pages) + global-api.blackpearl.bd (Worker)
+      - name: Verify global.blackpearl.bd status and branch
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -x
           H="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
           ACC="8cfdbf7a8b04a63f887ebdb4eaa033b1"
-          ZONE="1a82f70e8fd5cacd0d029d67c4817ed2"
-          echo "=== PAGES PROJECTS (raw) ==="
-          curl -s -H "$H" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects?per_page=20" | head -c 3000; echo
-          echo "=== TRY PAGES CUSTOM DOMAIN global.blackpearl.bd on project blackpearlbd ==="
+          echo "=== PAGES DOMAIN DETAILS ==="
+          curl -s -H "$H" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/blackpearlbd/domains/global.blackpearl.bd" | head -c 3000; echo
+          echo "=== PAGES DEPLOYMENTS for branch global ==="
+          curl -s -H "$H" "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/blackpearlbd/deployments?branch=global&per_page=5" | head -c 3000; echo
+          echo "=== TRY PATCH DOMAIN to branch global ==="
           curl -s -H "$H" -H "Content-Type: application/json" \
-            -X POST "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/blackpearlbd/domains" \
-            -d '{"name":"global.blackpearl.bd"}' | head -c 2000; echo
-          echo "=== WORKERS SCRIPTS (raw) ==="
-          curl -s -H "$H" "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts?per_page=20" | head -c 2000; echo
-          echo "=== TRY WORKER CUSTOM DOMAIN global-api.blackpearl.bd on blackpearl-api-global ==="
-          curl -s -H "$H" -H "Content-Type: application/json" \
-            -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/blackpearl-api-global/domains" \
-            -d '{"hostname":"global-api.blackpearl.bd","service":"blackpearl-api-global","environment":"production"}' | head -c 2000; echo
-          echo "=== DNS CNAME global (raw) ==="
-          curl -s -H "$H" "https://api.cloudflare.com/client/v4/zones/$ZONE/dns_records?name=global.blackpearl.bd" | head -c 2000; echo
-          echo "DONE — check outputs above. Pages custom-domain failure usually means token lacks Pages scope: finish in dashboard (Workers & Pages → project → Custom domains)."
+            -X PATCH "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/blackpearlbd/domains/global.blackpearl.bd" \
+            -d '{"branch":"global"}' | head -c 2000; echo
+          echo "=== WORKER GLOBAL DOMAINS ==="
+          curl -s -H "$H" "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/scripts/blackpearl-api-global/domains" | head -c 2000; echo
+          echo "=== WORKER GLOBAL HEALTH ==="
+          curl -s -m 20 -i https://blackpearl-api-global.ms-blackpearlbd.workers.dev/ | head -n 15; echo
+          echo "DONE"
