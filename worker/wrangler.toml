@@ -31,6 +31,17 @@ r2_buckets = [{ binding = "BLACKPEARL_BUCKET", bucket_name = "blackpearl-assets"
 # main = "src/index.ts"
 # compatibility_date = "2024-01-01"
 
+# ── Global environment (separate Worker for the `global` branch) ────────────
+# Deploys as `blackpearl-api-global` so `main` (blackpearl-api) is untouched.
+# Inherits top-level r2_buckets. Secrets are per-environment — copy them once:
+#   cd worker
+#   echo "<SUPABASE_URL>"     | npx wrangler secret put SUPABASE_URL --env global
+#   echo "<SUPABASE_ANON_KEY>" | npx wrangler secret put SUPABASE_ANON_KEY --env global
+#   echo "<SERVICE_ROLE_KEY>"  | npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --env global
+#   echo "<GEOAPIFY_KEY>"     | npx wrangler secret put GEOAPIFY_API_KEY --env global
+[env.global]
+name = "blackpearl-api-global"
+
 # Plain-text env vars for production (non-secret config only).
 # Secrets (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY) are
 # uploaded separately via `wrangler secret put` and never stored in this file.

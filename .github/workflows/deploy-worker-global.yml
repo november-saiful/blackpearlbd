@@ -1,0 +1,50 @@
+name: Deploy Worker (global)
+
+on:
+  push:
+    branches:
+      - global
+    paths:
+      - 'worker/**'
+      - '.github/workflows/deploy-worker-global.yml'
+
+jobs:
+  deploy-global:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Deploy global Worker to Cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy --env global
+
+# Deploys the `global` branch as a SEPARATE Worker: blackpearl-api-global
+# (see worker/wrangler.toml [env.global]). Production `blackpearl-api` is untouched.
+# Required repo secret: CLOUDFLARE_API_TOKEN (already present).
+# After first deploy, copy secrets to the global env once (values never committed):
+#   cd worker
+#   echo "<SUPABASE_URL>"     | npx wrangler secret put SUPABASE_URL --env global
+#   echo "<SUPABASE_ANON_KEY>" | npx wrangler secret put SUPABASE_ANON_KEY --env global
+#   echo "<SERVICE_ROLE_KEY>"  | npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --env global
+#   echo "<GEOAPIFY_KEY>"     | npx wrangler secret put GEOAPIFY_API_KEY --env global
