@@ -1,6 +1,11 @@
 name: CF Discover (temporary)
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - global
+    paths:
+      - '.github/workflows/cf-discover.yml'
 jobs:
   discover:
     runs-on: ubuntu-latest
