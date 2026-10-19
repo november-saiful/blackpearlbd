@@ -41,6 +41,9 @@ r2_buckets = [{ binding = "BLACKPEARL_BUCKET", bucket_name = "blackpearl-assets"
 #   echo "<GEOAPIFY_KEY>"     | npx wrangler secret put GEOAPIFY_API_KEY --env global
 [env.global]
 name = "blackpearl-api-global"
+# NOTE: environments do NOT inherit top-level bindings — must repeat R2 here,
+# otherwise deploy reports "No bindings found" and uploads 500.
+r2_buckets = [{ binding = "BLACKPEARL_BUCKET", bucket_name = "blackpearl-assets" }]
 
 # Plain-text env vars for production (non-secret config only).
 # Secrets (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY) are
