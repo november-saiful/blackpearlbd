@@ -97,7 +97,8 @@ drop policy if exists "reviews admin update" on public.reviews;
 drop policy if exists "bp media read" on storage.objects;
 drop policy if exists "bp media admin write" on storage.objects;
 drop policy if exists "bp media admin update" on storage.objects;
-delete from storage.objects where bucket_id = 'media';
+-- NOTE: storage.objects cannot be deleted via SQL (guard trigger); the
+-- redesign never went live so the 'media' bucket is empty.
 delete from storage.buckets where id = 'media';
 
 /* ------------------------------------------------------------------ */
