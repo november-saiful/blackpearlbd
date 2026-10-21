@@ -51,8 +51,12 @@ begin
     where table_schema = 'public' and table_name = 'custom_packages'
       and column_name = 'activities' and data_type = 'ARRAY'
   ) then
+    alter table public.custom_packages alter column activities drop default;
     alter table public.custom_packages
       alter column activities type jsonb using to_jsonb(activities);
+    alter table public.custom_packages
+      alter column activities set default '[]'::jsonb;
+    alter table public.custom_packages alter column activities drop not null;
   end if;
 end
 $$;
