@@ -18,5 +18,11 @@
     "typescript": "^5.3.0",
     "vitest": "^2.1.9",
     "wrangler": "^3.22.0"
+  },
+  "allowScripts": {
+    "esbuild@0.17.19": true,
+    "esbuild@0.21.5": true,
+    "workerd@1.20250718.0": true,
+    "sharp@0.33.5": true
   }
 }
