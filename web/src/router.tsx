@@ -6,6 +6,7 @@ import {
   useRouteError,
 } from 'react-router-dom';
 import { RootLayout } from '@/components/layout/RootLayout';
+import Home from '@/pages/Home';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { reloadForStaleBuild } from '@/lib/preload-recovery';
@@ -50,8 +51,13 @@ function lazyPage(factory: () => Promise<{ default: ComponentType }>) {
   });
 }
 
-// ── Lazy-loaded page components (each becomes its own chunk) ──────────
-const Home = lazyPage(() => import('@/pages/Home'));
+// ── Page components ──────────────────────────────────────────────────
+// Home ships with the entry bundle: it is the landing route, and as a lazy
+// chunk the shell painted first and held the page skeleton for the whole
+// download, measured at 80 ms on a fast link and longer on a slow one. Every
+// other route stays split, and the document names the chunk its URL needs so
+// the download starts before React asks for it (see routePreloadPlugin in
+// vite.config.ts).
 const Deals = lazyPage(() => import('@/pages/Deals'));
 const DealDetailPage = lazyPage(() => import('@/pages/DealDetail'));
 const BuildPackage = lazyPage(() => import('@/pages/BuildPackage'));
