@@ -158,14 +158,14 @@ export const Timeline = ({ data, theme = DEFAULT_THEME, className, hideHeader }:
 
   return (
     <div
-      className={cn("w-full bg-white dark:bg-neutral-950 font-sans md:px-10 lg:px-0", className)}
+      className={cn("glass w-full rounded-2xl font-sans md:px-10 lg:px-0", className)}
       ref={containerRef}
     >
       {/*
         Nested inside the deal page's site-container, so from lg up it drops all
         of its own horizontal padding: the root's md:px-10 and this block's
         px-4/md:px-8/lg:px-10 stacked to put the heading 112px in while the
-        timeline body sat at 72px and the page's own cards at 32px — three
+        timeline body sat at 72px and the page's own cards at 32px, three
         different lines. Below lg the original paddings are untouched.
       */}
       {!hideHeader && (
@@ -182,7 +182,7 @@ export const Timeline = ({ data, theme = DEFAULT_THEME, className, hideHeader }:
       <div ref={ref} className="relative pb-20">
         {/* Sticky phase counter sidebar */}
         <div className="hidden lg:block fixed right-2 top-1/2 -translate-y-1/2 z-50">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-lg border border-neutral-200 dark:border-neutral-700 p-4 min-w-[80px]">
+          <div className="glass-strong rounded-2xl p-4 min-w-[80px]">
             <div className="text-center">
               <motion.div
                 key={activeIndex}
@@ -231,7 +231,7 @@ export const Timeline = ({ data, theme = DEFAULT_THEME, className, hideHeader }:
           >
             <div className="sticky flex flex-col md:flex-row z-40 items-center top-20 md:top-28 self-start max-w-xs lg:max-w-sm md:w-full">
               <motion.div
-                className="h-10 absolute left-3 md:left-3 w-10 rounded-full bg-white dark:bg-black flex items-center justify-center"
+                className="glass-strong h-10 absolute left-3 md:left-3 w-10 rounded-full flex items-center justify-center"
                 initial={{ scale: 0 }}
                 whileInView={{ scale: 1 }}
                 viewport={{ margin: "-30% 0px -30% 0px", once: false }}

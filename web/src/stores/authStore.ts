@@ -47,7 +47,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           const { profile } = await api.getProfile();
           set({ profile, isAdmin: profile.role === 'admin' });
         } catch {
-          // Profile fetch failed — session may have just been created
+          // Profile fetch failed: session may have just been created
         }
       }
     } catch (error) {

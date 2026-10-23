@@ -1,16 +1,25 @@
 import * as React from "react"
+import { Glass } from "open-glass-ui"
 import { cn } from "@/lib/utils"
 
+/*
+ * Cards are OpenGlass surfaces now: `<Glass>` computes the material inline from
+ * the provider's liquid tokens, so light/dark and the reduced-transparency /
+ * forced-colours fallbacks come from the library rather than the app stylesheet.
+ *
+ * The interior parts stay plain elements. The library's `.ogui-card` recipe is a
+ * self-contained grid with its own padding and would double up on the
+ * CardHeader/CardContent convention every call site already follows.
+ */
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div
+  <Glass
+    as="div"
     ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-card",
-      className
-    )}
+    material="regular"
+    className={cn("relative rounded-lg text-card-foreground", className)}
     {...props}
   />
 ))

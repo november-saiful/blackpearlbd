@@ -15,7 +15,7 @@ export interface Profile {
 export interface Waypoint {
   /**
    * Free-text title the admin assigns to this stop, shown on the tour route map
-   * and the stop list. Independent of where the pin actually sits — `address`
+   * and the stop list. Independent of where the pin actually sits, `address`
    * carries the geocoded description.
    */
   name: string;

@@ -4,7 +4,7 @@ import type { CustomPackage } from '@/types';
  * Shared vocabulary and request shaping for the 3-step package builder.
  *
  * The option values here must stay in sync with `CreateCustomPackageSchema` in
- * worker/src/lib/validators.ts — the worker rejects anything outside these
+ * worker/src/lib/validators.ts: the worker rejects anything outside these
  * enums, so a mismatch shows up as a failed submit rather than a type error.
  */
 

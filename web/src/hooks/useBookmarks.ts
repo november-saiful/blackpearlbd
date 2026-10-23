@@ -5,9 +5,9 @@ import { useBookmarkStore } from '@/stores/bookmarkStore';
 /**
  * Mount once in the router tree (RootLayout).
  * Handles:
- *  1. Initial load — loads localStorage for guests, server for logged-in users.
- *  2. Mid-session login — syncs local bookmarks to server, switches to server mode.
- *  3. Mid-session logout — clears bookmarks.
+ *  1. Initial load: loads localStorage for guests, server for logged-in users.
+ *  2. Mid-session login: syncs local bookmarks to server, switches to server mode.
+ *  3. Mid-session logout: clears bookmarks.
  */
 export function useInitializeBookmarks() {
   const { isAuthenticated, isLoading } = useAuth();

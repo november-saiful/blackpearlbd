@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, MessageSquare, Star, ShieldCheck, User } fro
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils';
 import { useAdminReviews } from '@/hooks/useAdmin';
+import { TableSkeleton } from '@/components/skeletons/TableSkeleton';
 import { useNavigate } from 'react-router-dom';
 
 function StarDisplay({ value }: { value: number }) {
@@ -43,7 +44,7 @@ export function ReviewsManager() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+          <TableSkeleton columns={7} />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -61,10 +62,10 @@ export function ReviewsManager() {
                 </thead>
                 <tbody>
                   {reviews.map((review) => (
-                    <tr key={review.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                    <tr key={review.id} className="border-b border-border last:border-0 hover:bg-white/45 dark:hover:bg-white/10 transition-colors">
                       <td className="py-3 px-3">
                         <div className="min-w-0 flex items-center gap-2">
-                          <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+                          <div className="glass-soft h-7 w-7 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
                             {review.user?.avatar_url ? (
                               <img
                                 src={review.user.avatar_url}

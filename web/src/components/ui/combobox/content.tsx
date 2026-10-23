@@ -58,7 +58,10 @@ export function ComboboxContent({
     <div
       ref={contentRef}
       className={cn(
-        'absolute z-50 mt-1 min-w-[200px] overflow-hidden rounded-lg border bg-popover p-1 text-popover-foreground shadow-md',
+        // The list floats over its own trigger's form, which is already glass;
+        // 66% white over another translucent layer leaves the text behind it
+        // legible. A heavier fill keeps the popover itself readable.
+        'glass-strong absolute z-50 mt-1 min-w-[200px] overflow-hidden rounded-xl bg-white/85 p-1 text-popover-foreground dark:bg-[hsl(222_24%_17%/0.88)]',
         'animate-in fade-in-0 zoom-in-95',
         align === 'start' && 'left-0',
         align === 'center' && 'left-1/2 -translate-x-1/2',

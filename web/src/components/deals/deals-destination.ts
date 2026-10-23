@@ -1,4 +1,5 @@
 import type { PackageDestination } from '@/types';
+import { humanizeDashes } from '@/lib/text';
 
 /** One row of the destination picker, flattened out of `package_destinations`. */
 export type DestinationOption = {
@@ -20,8 +21,8 @@ export const UNLISTED_DESTINATION_GROUP = 'Saved on this deal';
 
 /** The public location label: the specific place first, then its division. */
 export function formatDealLocation(destination: string | null | undefined, subDestination?: string | null) {
-  const parent = destination?.trim() || '';
-  const child = subDestination?.trim() || '';
+  const parent = humanizeDashes(destination?.trim() || '');
+  const child = humanizeDashes(subDestination?.trim() || '');
   if (child && parent && child.toLowerCase() !== parent.toLowerCase()) return `${child}, ${parent}`;
   return child || parent;
 }
@@ -37,8 +38,8 @@ export function destinationOptionMatches(option: DestinationOption, search: stri
  * The pickable destinations: the admin's active list, plus whatever this deal
  * already holds.
  *
- * Retired (`is_active = false`) rows are not offered for new picks — that flag
- * is how the destinations sheet takes an option out of circulation — but a deal
+ * Retired (`is_active = false`) rows are not offered for new picks, that flag
+ * is how the destinations sheet takes an option out of circulation, but a deal
  * that already points at one keeps it, so opening the edit dialog never
  * silently rewrites a destination (or leaves the trigger showing a value the
  * menu cannot name).

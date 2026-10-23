@@ -27,7 +27,7 @@ export function useRowCursor<T extends Row>(rows: T[], key: string | number) {
     // We don't know the index without the rows array, so we store the id
     // and resolve in the next render via the rows dependency.
     setActiveIndex((prev) => {
-      // Find by searching rows — but we don't have them here.
+      // Find by searching rows, but we don't have them here.
       // Store the id and resolve later.
       return prev // Will be overridden by the effect below
     })

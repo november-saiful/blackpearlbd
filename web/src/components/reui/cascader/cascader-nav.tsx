@@ -136,7 +136,7 @@ function CascaderBack({
       aria-label={labels.back}
       onClick={() => popLevel()}
       className={cn(
-        "text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/50 flex shrink-0 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2",
+        "text-muted-foreground hover:bg-white/50 hover:text-accent-foreground focus-visible:ring-ring/50 flex shrink-0 items-center justify-center rounded-md outline-none transition-colors focus-visible:ring-2 dark:hover:bg-white/10",
         /* A notch under the row height: an affordance, not a second field. */
         "size-6",
         className

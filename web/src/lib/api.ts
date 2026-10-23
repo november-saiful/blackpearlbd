@@ -98,7 +98,7 @@ export const api = {
       { method: 'POST', body: JSON.stringify({ ids }) },
     ),
 
-  // Geo — place search, reverse geocoding and routing, proxied through the
+  // Geo: place search, reverse geocoding and routing, proxied through the
   // Worker so the Geoapify key never ships to the browser. Admin-only.
   // `refresh` forces a fresh upstream lookup instead of a cached one.
   searchPlaces: (query: string, limit = 5, refresh = false) =>

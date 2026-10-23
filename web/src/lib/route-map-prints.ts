@@ -34,7 +34,7 @@ export const polaroidRoof = printSize.height + printReach + printTilt + 5;
 /**
  * Ceiling for that reservation. On a short map the roof is padded out to a share of
  * the height instead, because a taller reservation would zoom the route out to
- * nothing — a slightly tighter crop of one print is the better trade there.
+ * nothing: a slightly tighter crop of one print is the better trade there.
  */
 export const polaroidRoofMax = 122;
 /** Width a polaroid claims either side of its pin (half a print, plus margin). */
@@ -79,7 +79,7 @@ export interface PrintPlacement {
 export interface PrintLayoutRequest {
   /**
    * Every stop's pin, in the map's stop order: index into this array *is* the stop's
-   * index. Stops without a photo still need their pin here — they are obstacles.
+   * index. Stops without a photo still need their pin here, they are obstacles.
    */
   pins: PrintPoint[];
   /** Stops that carry a print, in the order they should be placed (route order). */
@@ -136,7 +136,7 @@ export function printReachFor(scale: number): number {
  * Where a print of `scale` lands on its own pin before any decluttering, with the
  * tilt overhang discounted. Worked out from the pin rather than measured off the
  * element: a layout can be asked for before the prints have painted, and an empty
- * tooltip measures as nothing at all — which would read as an empty map.
+ * tooltip measures as nothing at all, which would read as an empty map.
  */
 export function naturalPrintBox(pin: PrintPoint, scale: number, anchorDrop = printAnchorDrop): PrintBox {
   const halfWidth = (printSize.width * scale) / 2;
@@ -165,7 +165,7 @@ export function placedPrintBox(
 
 /**
  * Spots a print may take, nearest to its pin first: hug the pin, sidestep, then climb
- * a tier — repeated, so a dense cluster becomes readable tiers of prints instead of
+ * a tier: repeated, so a dense cluster becomes readable tiers of prints instead of
  * one pile. Distances are in pixels and side steps are half a print, so a neighbour
  * only ever covers a print's edge, never its photo.
  */
@@ -229,7 +229,7 @@ export function layoutPrintsAtScale(
 
 /**
  * Picks the largest size the map can hold the prints apart at, falling back to the
- * smallest one when a cluster is simply too tight for the frame — a crowded map of
+ * smallest one when a cluster is simply too tight for the frame, a crowded map of
  * smaller prints reads better than a pile of full-size ones.
  */
 export function planPrintLayout(request: PrintLayoutRequest): PrintLayout {

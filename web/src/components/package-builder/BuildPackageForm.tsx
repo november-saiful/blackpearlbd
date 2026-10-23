@@ -206,7 +206,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
   const geo = useGeoLocation();
   const pad = (n: number) => String(n).padStart(2, '0');
 
-  // Date defaults – today / tomorrow, resolved in the visitor's timezone
+  // Date defaults: today / tomorrow, resolved in the visitor's timezone
   const today = useMemo(() => new Date(), []);
   const tomorrow = useMemo(() => {
     const d = new Date(today);
@@ -267,13 +267,14 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
     queryFn: () => api.getPackageDestinations(),
   });
 
-  const destinationGroups = useMemo<CategoryGroup[]>(
-    () =>
-      destinationsQuery.data && destinationsQuery.data.destinations.length > 0
-        ? groupDestinations(destinationsQuery.data.destinations)
-        : FALLBACK_DESTINATION_GROUPS,
-    [destinationsQuery.data],
-  );
+  // The hardcoded list is a last resort for a request that failed or returned
+  // nothing, never a preview: rendering it during the first fetch would paint
+  // options that are not in the database and then swap them out.
+  const destinationGroups = useMemo<CategoryGroup[]>(() => {
+    const rows = destinationsQuery.data?.destinations;
+    if (rows && rows.length > 0) return groupDestinations(rows);
+    return destinationsQuery.isLoading ? [] : FALLBACK_DESTINATION_GROUPS;
+  }, [destinationsQuery.data, destinationsQuery.isLoading]);
 
   // Bangladesh customization state
   const [selectedDivision, setSelectedDivision] = useState<string>(saved?.selectedDivision ?? '');
@@ -303,14 +304,14 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
       setSelectedDistricts([]);
       setSelectedTourSpots([]);
     } else if (destination !== 'bangladesh-customized') {
-      // A specific division was selected directly — sync it
+      // A specific division was selected directly, sync it
       const div = getDivisionForValue(destination);
       setSelectedDivision(div?.name ?? '');
       setSelectedDistrict('');
       setSelectedDistricts([]);
       setSelectedTourSpots([]);
     } else {
-      // 'bangladesh-customized' selected — reset sub-selections
+      // 'bangladesh-customized' selected: reset sub-selections
       setSelectedDivision('');
       setSelectedDistrict('');
       setSelectedDistricts([]);
@@ -493,7 +494,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-      // quota exceeded – silently ignore
+      // quota exceeded, silently ignore
     }
   }, [step, destination, fromMonth, fromDay, fromYear, toMonth, toDay, toYear, selectedDivision, selectedDistrict, selectedDistricts, selectedTourSpots, numTravelers, accommodationType, transportType, budget, activities, specialRequests, contactName, contactPhone, contactLocation]);
 
@@ -572,11 +573,11 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
 
         if (needsGuestContact) {
           toast.success(
-            `Request received — we'll call you on ${guestContact.phone.trim()} with a quote.`,
+            `Request received: we'll call you on ${guestContact.phone.trim()} with a quote.`,
           );
           navigate('/');
         } else {
-          toast.success('Package request submitted — our team will send you a quote.');
+          toast.success('Package request submitted: our team will send you a quote.');
           navigate('/profile');
         }
       } catch (error) {
@@ -613,9 +614,9 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                 {Math.round((step / 3) * 100)}%
               </span>
             </div>
-            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+            <div className="w-full rounded-full bg-foreground/10 h-2 overflow-hidden">
               <motion.div
-                className="bg-primary h-2 rounded-full"
+                className="glass-primary h-2 rounded-full"
                 initial={false}
                 animate={{ width: `${(step / 3) * 100}%` }}
                 transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
@@ -632,12 +633,12 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
               "rounded-lg p-6 min-w-0",
               embedded
                 ? "w-full"
-                : "bg-card border border-border shadow-sm",
+                : "glass",
             )}
           >
           {/* Header */}
           <div className="relative text-center mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-muted rounded-full mb-4">
+            <div className="glass-chip inline-flex items-center justify-center w-12 h-12 rounded-full mb-4">
               <MapPin className="h-5 w-5 text-foreground" />
             </div>
             <h1 className="text-2xl font-semibold text-foreground mb-2">
@@ -715,7 +716,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.25 }}
-                        className="rounded-lg border border-border bg-muted/50 overflow-hidden"
+                        className="glass-soft rounded-lg overflow-hidden"
                       >
                         <div className="p-4">
                           <h4 className="text-sm font-medium text-foreground mb-1">
@@ -736,7 +737,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.25 }}
-                      className="rounded-lg border border-border bg-muted/50 overflow-hidden space-y-4"
+                      className="glass-soft rounded-lg overflow-hidden space-y-4"
                     >
                       <div className="p-4 space-y-4">
                         {/* Division select (only when "Customized" is chosen) */}
@@ -777,8 +778,8 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                                   className={cn(
                                     'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors',
                                     selectedDistricts.includes(dist.name)
-                                      ? 'border-primary bg-primary/5'
-                                      : 'border-border bg-card hover:bg-accent/50',
+                                      ? 'glass-chip border-primary/40 text-primary'
+                                      : 'glass-field hover:bg-white/60 dark:hover:bg-white/10',
                                   )}
                                 >
                                   <input
@@ -796,7 +797,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                           </div>
                         )}
 
-                        {/* District select — single (for specific division selections) */}
+                        {/* District select: single (for specific division selections) */}
                         {currentDivision && !isCustomized && (
                           <div>
                             <Label className="text-sm font-medium text-foreground">District</Label>
@@ -818,7 +819,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                           </div>
                         )}
 
-                        {/* Tour spots — read-only details (customized mode) */}
+                        {/* Tour spots: read-only details (customized mode) */}
                         {isCustomized && customizedTourSpots.length > 0 && (
                           <div>
                             <Label className="text-sm font-medium text-foreground">
@@ -828,7 +829,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                               {customizedTourSpots.map((group) => (
                                 <div
                                   key={group.district}
-                                  className="rounded-lg border border-border bg-card p-3"
+                                  className="glass-field rounded-lg p-3"
                                 >
                                   <h5 className="text-sm font-semibold text-foreground mb-2">
                                     {group.district}
@@ -849,7 +850,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                           </div>
                         )}
 
-                        {/* Tour spots checkboxes (cascading from district — specific division mode) */}
+                        {/* Tour spots checkboxes (cascading from district, specific division mode) */}
                         {!isCustomized && currentDistrict && (
                           <div>
                             <Label className="text-sm font-medium text-foreground">
@@ -865,8 +866,8 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                                   className={cn(
                                     'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors',
                                     selectedTourSpots.includes(spot.name)
-                                      ? 'border-primary bg-primary/5'
-                                      : 'border-border bg-card hover:bg-accent/50',
+                                      ? 'glass-chip border-primary/40 text-primary'
+                                      : 'glass-field hover:bg-white/60 dark:hover:bg-white/10',
                                   )}
                                 >
                                   <input
@@ -957,8 +958,8 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                           className={cn(
                             'rounded-lg border px-3 py-2.5 text-left transition-colors',
                             accommodationType === option.value
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border bg-card hover:bg-accent/50',
+                              ? 'glass-chip border-primary/40'
+                              : 'glass-field hover:bg-white/60 dark:hover:bg-white/10',
                           )}
                         >
                           <span className="block text-sm font-medium text-foreground">
@@ -985,8 +986,8 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                           className={cn(
                             'rounded-lg border px-3 py-2.5 text-left transition-colors',
                             transportType === option.value
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border bg-card hover:bg-accent/50',
+                              ? 'glass-chip border-primary/40'
+                              : 'glass-field hover:bg-white/60 dark:hover:bg-white/10',
                           )}
                         >
                           <span className="block text-sm font-medium text-foreground">
@@ -1004,7 +1005,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                   <div className="space-y-2">
                     <BudgetInput value={budget} onChange={setBudget} />
                     <p className="text-xs text-muted-foreground">
-                      An estimate is fine — our team confirms the final price.
+                      An estimate is fine: our team confirms the final price.
                     </p>
                   </div>
 
@@ -1032,8 +1033,8 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                           className={cn(
                             'rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                             activities.includes(activity)
-                              ? 'border-primary bg-primary/10 text-primary'
-                              : 'border-border bg-card text-foreground hover:bg-accent/50',
+                              ? 'glass-chip border-primary/40 text-primary'
+                              : 'glass-chip text-foreground hover:bg-white/60 dark:hover:bg-white/10',
                           )}
                         >
                           {activity}
@@ -1104,7 +1105,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                   className="space-y-4"
                 >
                   {/* Review summary */}
-                  <div className="bg-muted border border-border p-4 rounded-md">
+                  <div className="glass-soft p-4 rounded-xl">
                     <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
                       <CheckSvg />
                       Review Details
@@ -1115,7 +1116,7 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                         <span className="text-foreground font-medium">
                           {destination === 'bangladesh-customized'
                             ? 'Bangladesh (Customized)'
-                            : destinationGroups.flatMap((g) => g.items.map((i) => ({ ...i, group: g.category }))).find((i) => i.value === destination)?.name ?? '—'}
+                            : destinationGroups.flatMap((g) => g.items.map((i) => ({ ...i, group: g.category }))).find((i) => i.value === destination)?.name ?? 'Not set'}
                         </span>
                       </div>
                       {isBangladeshDestination(destination) && selectedDivision && (
@@ -1201,19 +1202,19 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                       <div className="flex justify-between items-center py-1">
                         <span className="text-muted-foreground">Accommodation:</span>
                         <span className="text-foreground font-medium capitalize">
-                          {accommodationType || '—'}
+                          {accommodationType || 'Not set'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-1">
                         <span className="text-muted-foreground">Transport:</span>
                         <span className="text-foreground font-medium capitalize">
-                          {transportType || '—'}
+                          {transportType || 'Not set'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-1">
                         <span className="text-muted-foreground">Budget:</span>
                         <span className="text-foreground font-medium">
-                          {budget > 0 ? formatCurrency(budget, geo.currency, geo.locale) : '—'}
+                          {budget > 0 ? formatCurrency(budget, geo.currency, geo.locale) : 'Not set'}
                         </span>
                       </div>
                       {activities.length > 0 && (
@@ -1245,13 +1246,13 @@ export default function BuildPackage({ embedded = false }: BuildPackageFormProps
                   {/* Guests are quoted by phone, so ask for a way to reach them
                       instead of blocking the request behind an account. */}
                   {needsGuestContact ? (
-                    <div className="space-y-4 rounded-lg border border-border bg-muted/50 p-4">
+                    <div className="glass-soft space-y-4 rounded-xl p-4">
                       <div>
                         <h3 className="text-sm font-medium text-foreground">
                           Where should we send your quote?
                         </h3>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          No account needed — we'll call or message you with the price.
+                          No account needed: we'll call or message you with the price.
                         </p>
                       </div>
                       <div className="space-y-2">

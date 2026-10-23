@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Check, Loader2, MapPin, Plus, Search, X } from 'lucide-react';
+import { Check, MapPin, Plus, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { usePackageDestinations, usePackageDistricts, usePackageTourSpots } from '@/hooks/useAdmin';
+import { TableSkeleton } from '@/components/skeletons/TableSkeleton';
 import type { PackageDistrict, PackageTourSpot } from '@/types';
 import {
   SheetBody,
@@ -444,7 +445,7 @@ export function BangladeshDataManager() {
     try {
       const existing = findDistrict(draft.divisionValue, districtName);
       if (existing && !spotName) {
-        setDraftError(draft.key, 'That district already exists — add a tour spot or edit its existing row.');
+        setDraftError(draft.key, 'That district already exists, add a tour spot or edit its existing row.');
         return;
       }
 
@@ -572,7 +573,7 @@ export function BangladeshDataManager() {
             <select
               value={divisionFilter}
               onChange={(event) => setDivisionFilter(event.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="glass-field h-9 rounded-md px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">All divisions</option>
               {divisionOptions.map((option) => (
@@ -605,10 +606,7 @@ export function BangladeshDataManager() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading regions…
-          </div>
+          <TableSkeleton columns={7} rows={6} />
         ) : (
           <>
             <SheetGrid>
@@ -644,7 +642,7 @@ export function BangladeshDataManager() {
                         onFocus={() => setActiveRowKey(row.key)}
                         className={cn(
                           'group',
-                          row.kind === 'district' && 'bg-muted/25',
+                          row.kind === 'district' && 'bg-white/30 dark:bg-white/5',
                           reorder.draggingId === row.key && 'opacity-50',
                           dropIndicatorClass(reorder.dropTarget?.id === row.key ? reorder.dropTarget.position : null),
                         )}
@@ -856,7 +854,7 @@ export function BangladeshDataManager() {
                         />
                         <td
                           className="border-b border-r border-border p-0 align-middle"
-                          title="Position comes from where this row sits — it is numbered on save"
+                          title="Position comes from where this row sits, it is numbered on save"
                         >
                           <span className="block px-3 text-right text-xs text-muted-foreground">auto</span>
                         </td>
@@ -882,7 +880,7 @@ export function BangladeshDataManager() {
                               type="button"
                               title="Discard this row"
                               onClick={() => dropDraft(draft.key)}
-                              className="rounded border border-border p-1 text-muted-foreground transition-colors hover:bg-accent"
+                              className="glass-chip rounded p-1 text-muted-foreground transition-colors hover:bg-white/60 dark:hover:bg-white/10"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
@@ -902,7 +900,7 @@ export function BangladeshDataManager() {
                   {renderedRows.length === 0 && (
                     <SheetEmptyRow colSpan={7}>
                       {divisions.length === 0
-                        ? 'No Bangladesh divisions found — add divisions under Package Builder Destinations first.'
+                        ? 'No Bangladesh divisions found, add divisions under Package Builder Destinations first.'
                         : 'No regions match this filter.'}
                     </SheetEmptyRow>
                   )}
@@ -917,7 +915,7 @@ export function BangladeshDataManager() {
                 </span>
                 <span className="inline-flex items-center gap-1.5">districts reorder within a division, spots within a district</span>
                 <span className="inline-flex items-center gap-1.5">
-                  unsaved rows can be dragged too — they are numbered where you drop them
+                  unsaved rows can be dragged too, they are numbered where you drop them
                 </span>
               </SheetHints>
               <p className="pt-3 text-[11px] text-muted-foreground">

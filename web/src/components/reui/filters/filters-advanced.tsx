@@ -273,13 +273,13 @@ const PANEL_CLASS = "flex w-full min-w-0 flex-col gap-2 py-[var(--filter-panel-p
 /** A RING and not a border, the whole answer to the staggered trailing
  * controls: a border pushes the content edge inward a pixel per level. */
 const GROUP_CARD_CLASS = cn(
-  "bg-muted/40 min-w-0 flex-1 rounded-md",
+  "glass-soft min-w-0 flex-1 rounded-md",
   "inset-ring inset-ring-border",
   "ps-2 pe-0",
   "data-[invalid]:inset-ring-destructive/50",
   // The DESTINATION of a drop into this group, told apart from the insertion
   // slot by STYLE and not size: dashed is not there yet, solid exists.
-  "data-[drop-into]:bg-muted/60",
+  "data-[drop-into]:bg-white/55 dark:data-[drop-into]:bg-white/10",
   "data-[drop-into]:outline-1 data-[drop-into]:outline-solid",
   "data-[drop-into]:outline-border data-[drop-into]:-outline-offset-2"
 )
@@ -1911,7 +1911,7 @@ export function FiltersAdvancedPanel<V, O>({
             aria-hidden="true"
             /* `rounded-full` is the one radius literal safe in every
                style, square or round. */
-            className="bg-muted text-muted-foreground mb-1 flex size-9 items-center justify-center rounded-full [&_svg]:size-4"
+            className="glass-chip text-muted-foreground mb-1 flex size-9 items-center justify-center rounded-full [&_svg]:size-4"
           >
             <ListFilterIcon
             />
@@ -2090,7 +2090,7 @@ export function FiltersAdvanced<V, O>({
             {ruleCount > 0 ? (
               <span
                 aria-hidden="true"
-                className="bg-muted text-muted-foreground rounded-sm px-1.5 text-xs tabular-nums"
+                className="glass-chip text-muted-foreground rounded-sm px-1.5 text-xs tabular-nums"
               >
                 {ruleCount}
               </span>

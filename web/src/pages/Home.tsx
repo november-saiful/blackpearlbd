@@ -1,13 +1,12 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { DealCard } from '@/components/deals/DealCard';
 import { api } from '@/lib/api';
 import { DealGrid } from '@/components/deals/DealGrid';
-import { GlobePolaroids } from '@/components/ui/component';
-import { StarsBackground } from '@/components/ui/stars-background';
+import { DealCardSkeleton } from '@/components/skeletons/DealCardSkeleton';
+import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { CTabs6 } from '@/components/examples/c-tabs-6';
 import BuildPackageForm from '@/components/package-builder/BuildPackageForm';
 import { AnimatedReviews } from '@/components/reviews/AnimatedReviews';
@@ -16,7 +15,7 @@ import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
 import type { TourDeal } from '@/types';
 import { useQueries } from '@tanstack/react-query';
 
-function TourDealsPreview({ deals }: { deals: TourDeal[] }) {
+function TourDealsPreview({ deals, isLoading }: { deals: TourDeal[]; isLoading: boolean }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -25,7 +24,13 @@ function TourDealsPreview({ deals }: { deals: TourDeal[] }) {
           View all <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
-      {deals.length === 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((index) => (
+            <DealCardSkeleton key={index} />
+          ))}
+        </div>
+      ) : deals.length === 0 ? (
         <p className="text-muted-foreground text-sm py-4">No deals available right now.</p>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -43,60 +48,25 @@ export default function Home() {
   // API call before starting the next: the deals list and the homepage
   // testimonial strip both hit Supabase through the Worker's edge cache, and
   // running them in the same tick removes the serial waterline.
-  const [dealsQuery, reviewsQuery] = useQueries({
+  const [dealsQuery] = useQueries({
     queries: [
       { queryKey: ['deals'], queryFn: () => api.getDeals(), staleTime: 5 * 60 * 1000 },
       { queryKey: ['featured-reviews'], queryFn: () => api.getFeaturedReviews(), staleTime: 2 * 60 * 1000 },
     ] as const,
   });
-  const navigate = useNavigate();
   const allDeals = dealsQuery.data?.deals || [];
   const featuredDeals = allDeals.filter((d) => d.is_featured).slice(0, 6);
-  const isLoading = dealsQuery.isLoading || reviewsQuery.isLoading;
-
-  const globeMotionRef = React.useRef<{ phi: number; theta: number }>({ phi: 0, theta: 0 });
-
-  const handleGlobeMotion = React.useCallback((offset: { phi: number; theta: number } | null) => {
-    if (offset) {
-      globeMotionRef.current = offset;
-    }
-  }, []);
 
   return (
     <div>
-      {/* Hero Section */}
-      <StarsBackground
-        className="text-hero-foreground overflow-hidden"
-        globeOffset={globeMotionRef.current}
-      >
-        {/* Edge-to-edge first screen: full viewport — topbar and mobile dock float above it */}
-        <div className="flex h-screen flex-col items-center justify-center px-4 pt-28 pb-24 sm:px-6 md:pt-32 md:pb-12">
-          <div className="w-full max-w-5xl mx-auto text-center">
-            {/* Globe — scales with visible screen height, big on every breakpoint. */}
-            <div className="mx-auto w-[min(50dvh,100%)] min-w-[240px] max-w-[440px] sm:mb-5 md:mb-6 md:w-[min(58dvh,100%)] md:max-w-[720px] lg:w-[min(62dvh,100%)] lg:max-w-[840px]">
-              <div className="relative z-10 flex h-full flex-col items-center justify-center px-4 py-12 text-center">
-                <GlobePolaroids
-                  onMotionChange={handleGlobeMotion}
-                  onSelect={(m) => navigate(`/deals?destination=${encodeURIComponent(m.caption)}`)}
-                />
-              </div>
-            </div>
-            {/* Hero text — placed below the 3D globe */}
-            <div className="relative z-20 mt-6 px-4 text-center">
-              <h1 className="text-[clamp(1.875rem,9.8vw,3.75rem)] leading-[1.1] tracking-tight md:text-6xl md:leading-none md:tracking-normal font-bold">
-                Discover Your Next
-                <span className="text-hero-foreground"> Adventure</span>
-              </h1>
-              <p className="mx-auto max-w-md text-base sm:max-w-lg sm:text-xl md:max-w-2xl text-hero-foreground/70">
-                BlackPearl brings you curated tour deals and custom packages
-                to the world's most amazing destinations.
-              </p>
-            </div>
-          </div>
-        </div>
-      </StarsBackground>
+      {/* Hero: full-viewport cinematic deal carousel; the topbar floats over it. */}
+      <HeroCarousel
+        deals={allDeals}
+        isLoading={dealsQuery.isLoading}
+        hasError={dealsQuery.isError}
+      />
 
-      {/* Quick access tabs — below the first screen */}
+      {/* Quick access tabs: below the first screen */}
       <section className="site-container py-8 sm:py-10">
         <div className="text-left w-full">
           <CTabs6
@@ -107,7 +77,7 @@ export default function Home() {
                 id: 'tours',
                 label: 'Tour Deals',
                 icon: <Compass />,
-                content: <TourDealsPreview deals={allDeals} />,
+                content: <TourDealsPreview deals={allDeals} isLoading={dealsQuery.isLoading} />,
               },
               {
                 id: 'packages',
@@ -121,14 +91,18 @@ export default function Home() {
       </section>
 
       {/* Featured Deals */}
-      {featuredDeals.length > 0 && (
+      {(dealsQuery.isLoading || featuredDeals.length > 0) && (
         <section className="site-container py-16">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-primary mb-4">Featured Tour Deals</h2>
             <p className="text-muted-foreground">Handpicked destinations for unforgettable experiences</p>
           </div>
-          {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading deals...</div>
+          {dealsQuery.isLoading ? (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map((index) => (
+                <DealCardSkeleton key={index} />
+              ))}
+            </div>
           ) : (
             <DealGrid deals={featuredDeals} />
           )}
@@ -144,8 +118,8 @@ export default function Home() {
       )}
 
       {/* How It Works */}
-      <section className="py-16 bg-muted">
-        <div className="site-container">
+      <section className="site-container py-16">
+        <div className="glass rounded-3xl px-4 py-12 sm:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-primary mb-4">How It Works</h2>
             <p className="text-muted-foreground">Three simple steps to your dream vacation</p>
@@ -153,7 +127,7 @@ export default function Home() {
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="text-center">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="glass-chip w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Compass className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-primary mb-2">Choose Your Destination</h3>
@@ -162,7 +136,7 @@ export default function Home() {
             </Card>
             <Card className="text-center">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="glass-chip w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <BuildPackageIcon className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-primary mb-2">Customize Your Trip</h3>
@@ -171,7 +145,7 @@ export default function Home() {
             </Card>
             <Card className="text-center">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="glass-chip w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Star className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-primary mb-2">Book & Earn Pearls</h3>

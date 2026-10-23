@@ -35,7 +35,7 @@ export function useNotifications() {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          // Any change (INSERT or UPDATE) — refetch both queries
+          // Any change (INSERT or UPDATE), refetch both queries
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
         },
       )

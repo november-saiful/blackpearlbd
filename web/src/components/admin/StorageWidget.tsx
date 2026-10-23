@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { HardDrive, Folder, File, Loader2 } from 'lucide-react';
+import { HardDrive, Folder, File } from 'lucide-react';
 import { api } from '@/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 // R2 free tier: 10 GB, Pro: 10 TB. Using 10 GB as default display limit.
@@ -31,9 +32,44 @@ export function StorageWidget() {
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="p-6 flex items-center justify-center text-muted-foreground gap-2">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          Loading storage info...
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <HardDrive className="w-5 h-5 text-muted-foreground" />
+            R2 Storage
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="flex items-baseline justify-between mb-2">
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+            <Skeleton className="h-3 w-full rounded-full" />
+            <div className="flex items-center justify-between mt-1.5">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[0, 1].map((index) => (
+              <div key={index} className="glass-chip rounded-lg p-3">
+                <Skeleton className="mb-2 h-3 w-20" />
+                <Skeleton className="h-5 w-10" />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-3 w-20" />
+            {[0, 1, 2].map((index) => (
+              <div key={index} className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+                <Skeleton className="h-1.5 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     );
@@ -68,7 +104,7 @@ export function StorageWidget() {
               of {STORAGE_LIMIT_GB} GB
             </span>
           </div>
-          <div className="h-3 rounded-full bg-muted overflow-hidden">
+          <div className="glass-chip h-3 rounded-full overflow-hidden">
             <div
               className={cn('h-full rounded-full transition-all duration-500', getUsageColor(pct))}
               style={{ width: `${Math.max(pct, 1)}%` }}
@@ -86,14 +122,14 @@ export function StorageWidget() {
 
         {/* Summary */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg bg-muted/50 p-3">
+          <div className="glass-chip rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <File className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Total Files</span>
             </div>
             <p className="text-lg font-semibold text-foreground">{stats.totalFiles}</p>
           </div>
-          <div className="rounded-lg bg-muted/50 p-3">
+          <div className="glass-chip rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               <Folder className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Folders</span>
@@ -121,7 +157,7 @@ export function StorageWidget() {
                         {info.count} files · {formatBytes(info.size)}
                       </span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div className="glass-chip h-1.5 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full bg-primary/60"
                         style={{ width: `${Math.max(folderPct, 1)}%` }}

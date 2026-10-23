@@ -39,7 +39,7 @@ export function ReviewSummary({ stats }: ReviewSummaryProps) {
             <div key={star} className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground w-3 text-right">{star}</span>
               <Star className="h-3 w-3 fill-amber-400 text-amber-400 shrink-0" />
-              <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+              <div className="glass-chip flex-1 h-2 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full bg-amber-400 transition-all duration-500"
                   style={{ width: `${pct}%` }}

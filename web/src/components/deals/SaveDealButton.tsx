@@ -16,7 +16,7 @@ interface SaveDealButtonProps {
 /**
  * Bookmark toggle for a deal card. Shares the bookmark store with the deal
  * page, the tours grid and the topbar dropdown, so every button in the app
- * reflects the same saved state — and guests can bookmark too.
+ * reflects the same saved state, and guests can bookmark too.
  */
 export function SaveDealButton({ deal, className }: SaveDealButtonProps) {
   const { isBookmarked, toggleBookmark } = useBookmarkStore();

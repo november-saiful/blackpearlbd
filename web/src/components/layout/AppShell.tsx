@@ -13,8 +13,9 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="flex h-svh flex-col overflow-hidden no-scrollbar">
-      <div className="flex-1 overflow-y-auto">
+    <div className="relative isolate flex h-svh flex-col overflow-hidden bg-background no-scrollbar">
+      <div aria-hidden className="app-ambient" />
+      <div className="relative z-10 flex-1 overflow-y-auto pb-20 md:pb-0">
         <ScrollToTop />
         <PhonePrompt />
         <AppTopbar />

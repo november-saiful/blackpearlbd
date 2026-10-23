@@ -21,7 +21,7 @@ export function createTickPlayer() {
         getCtx().resume();
         prepared = true;
       } catch {
-        /* no-op – audio not available */
+        /* no-op, audio not available */
       }
     },
 
@@ -46,7 +46,7 @@ export function createTickPlayer() {
         osc.start(ac.currentTime);
         osc.stop(ac.currentTime + 0.05);
       } catch {
-        /* no-op – audio not available */
+        /* no-op, audio not available */
       }
     },
 

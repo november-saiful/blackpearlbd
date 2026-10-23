@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, Calendar, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
 import { useAdminBookings } from '@/hooks/useAdmin';
+import { TableSkeleton } from '@/components/skeletons/TableSkeleton';
 
 export function BookingsManager() {
   const [page, setPage] = useState(1);
@@ -56,7 +57,7 @@ export function BookingsManager() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+          <TableSkeleton columns={6} />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -73,7 +74,7 @@ export function BookingsManager() {
                 </thead>
                 <tbody>
                   {bookings.map((booking) => (
-                    <tr key={booking.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                    <tr key={booking.id} className="border-b border-border last:border-0 hover:bg-white/45 dark:hover:bg-white/10 transition-colors">
                       <td className="py-3 px-3">
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{booking.user?.full_name || 'N/A'}</p>

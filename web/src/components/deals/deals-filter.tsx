@@ -11,6 +11,7 @@ import type {
 } from '@/components/reui/filters/filters-types';
 import { buildDestinationOptions, formatDealLocation } from './deals-destination';
 import { DEAL_CATEGORIES, getCategoryByKey, getDealCategory } from '@/lib/deal-category';
+import { humanizeDashes } from '@/lib/text';
 import type { PackageDestination, TourDeal } from '@/types';
 
 /**
@@ -59,8 +60,8 @@ const DEAL_FILTER_ACCESSORS: Record<DealFilterFieldId, (deal: TourDeal) => DealF
  */
 export const DEAL_PRICE_BUCKETS = [
   { key: 'under-5000', label: 'Under ৳5,000', test: (price: number) => price < 5000 },
-  { key: '5000-10000', label: '৳5,000 – ৳10,000', test: (price: number) => price >= 5000 && price < 10000 },
-  { key: '10000-20000', label: '৳10,000 – ৳20,000', test: (price: number) => price >= 10000 && price < 20000 },
+  { key: '5000-10000', label: '৳5,000 to ৳10,000', test: (price: number) => price >= 5000 && price < 10000 },
+  { key: '10000-20000', label: '৳10,000 to ৳20,000', test: (price: number) => price >= 10000 && price < 20000 },
   { key: 'over-20000', label: 'Over ৳20,000', test: (price: number) => price >= 20000 },
 ] as const;
 
@@ -192,7 +193,7 @@ function destinationOptions(
   // Fallback: derive from the loaded deals so the filter is never empty.
   const byKey = new Map<string, string>();
   for (const deal of deals) {
-    const label = deal.destination?.trim();
+    const label = humanizeDashes(deal.destination?.trim() || '');
     if (!label) continue;
     const key = label.toLowerCase();
     if (!byKey.has(key)) byKey.set(key, label);

@@ -1,4 +1,4 @@
-# BlackPearl — Agent Instructions
+# BlackPearl: Agent Instructions
 
 > **Purpose:** This document instructs AI coding agents on how to maintain, extend, and build features for the BlackPearl full-stack tours & travel agency. It reflects the **actual deployed architecture** and all decisions made during development.
 
@@ -6,7 +6,7 @@
 
 ## 1. Project Overview
 
-BlackPearl is a production-deployed tours & travel agency platform. Two roles: **Admin** and **Normal User**. Authentication is **Google OAuth only** — no email/password anywhere.
+BlackPearl is a production-deployed tours & travel agency platform. Two roles: **Admin** and **Normal User**. Authentication is **Google OAuth only**. No email/password anywhere.
 
 **Live URLs:**
 - Frontend: `https://blackpearlbd.pages.dev`
@@ -15,10 +15,10 @@ BlackPearl is a production-deployed tours & travel agency platform. Two roles: *
 - Supabase: `lichnzimdpnmofvigtfg`
 
 **Core Modules:**
-1. **Tour Deals** — Browse, search, filter, save, book. Works for guests and signed-in users.
-2. **Build Your Own Package** — Cascading destination form, budget, preferences. Requires sign-in.
-3. **User Profile** — Google-synced avatar, editable info, Pearls loyalty system, booking history, saved deals tab.
-4. **Admin Panel** — Dashboard, users, deals, bookings, custom packages management.
+1. **Tour Deals**: Browse, search, filter, save, book. Works for guests and signed-in users.
+2. **Build Your Own Package**: Cascading destination form, budget, preferences. Requires sign-in.
+3. **User Profile**: Google-synced avatar, editable info, Pearls loyalty system, booking history, saved deals tab.
+4. **Admin Panel**: Dashboard, users, deals, bookings, custom packages management.
 
 ---
 
@@ -124,7 +124,7 @@ blackpearl/
 ### 4.4 Cards & Sections
 - Deal cards: Stack vertically on mobile (`flex-col`), side-by-side on desktop (`sm:flex-row`)
 - Profile card: Avatar centered on mobile, left-aligned on desktop
-- Stats cards: `grid-cols-1 md:grid-cols-3` — full width on mobile
+- Stats cards: `grid-cols-1 md:grid-cols-3`, full width on mobile
 - Admin tables: Horizontal scroll on mobile with `overflow-x-auto`
 
 ### 4.5 Modals & Dialogs
@@ -154,13 +154,13 @@ blackpearl/
 ## 5. Key Behaviors
 
 ### 5.1 Authentication
-- **Only Google OAuth** — no email/password fields anywhere
+- **Only Google OAuth**: no email/password fields anywhere
 - Profile auto-creates on first login via database trigger
 - Protected routes: `/profile` and `/admin/*` require auth
 - Admin routes: `/admin/*` require `role === 'admin'`
 
 ### 5.2 Booking Flow (Works for Everyone)
-- **"Book Now" button is available to ALL users** — no auth gate
+- **"Book Now" button is available to ALL users**, no auth gate
 - **Signed-in users**: Name, email, phone auto-filled from profile
 - **Guest users**: Empty form asks for name, email, phone + guest notice
 - On confirm: booking created (status: pending) → PDF invoice generated → auto-downloaded
@@ -168,16 +168,16 @@ blackpearl/
 
 ### 5.3 Save/Bookmark Flow
 - "Save" button (heart icon) on deal cards and detail page
-- Requires auth — shows toast if not signed in
+- Requires auth: shows toast if not signed in
 - Saved deals appear in Profile → "Saved Deals" card with Book Now + Remove buttons
 - Toggle save/unsave with instant UI update via TanStack Query cache invalidation
 
 ### 5.4 Profile Page Layout (Mobile-First)
-1. **Profile Card** — avatar, name, email (read-only), phone, address, edit button
-2. **Stats Cards** — Total Tours, Pearls (with progress bar), Status tier
-3. **My Tours** — Tabs: Upcoming / Current / Past (each with booking cards + invoice download)
-4. **Others** — Pending, processing, rejected bookings
-5. **Saved Deals** — Bookmarked deals with Book Now + Remove
+1. **Profile Card**: avatar, name, email (read-only), phone, address, edit button
+2. **Stats Cards**: Total Tours, Pearls (with progress bar), Status tier
+3. **My Tours**: Tabs: Upcoming / Current / Past (each with booking cards + invoice download)
+4. **Others**: Pending, processing, rejected bookings
+5. **Saved Deals**: Bookmarked deals with Book Now + Remove
 
 ### 5.5 Pearls Loyalty System
 - 10 pearls awarded per approved booking (database trigger)
@@ -266,14 +266,14 @@ manualChunks: {
 
 ## 8. Deployment
 
-### Cloudflare Pages (Frontend) — Auto-deploy from GitHub
+### Cloudflare Pages (Frontend): Auto-deploy from GitHub
 - **Repo**: `november-saiful/blackpearlbd`, branch: `main`
 - **Root directory**: `web`
 - **Build command**: `npm install && npm run build`
 - **Output**: `dist`
 - **Env vars** (plain_text, build-time): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_API_URL`, `NODE_VERSION=18`
 
-### Cloudflare Workers (API) — Manual deploy
+### Cloudflare Workers (API): Manual deploy
 ```bash
 cd worker && npx wrangler deploy
 ```
@@ -301,7 +301,7 @@ Secrets (set via `wrangler secret put`): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `S
 
 **RLS enabled on all tables.** Users access own data; admins access all.
 
-**Key trigger**: `award_pearls_on_approval()` — fires on booking status change to "approved", awards 10 pearls, recalculates tier.
+**Key trigger**: `award_pearls_on_approval()`: fires on booking status change to "approved", awards 10 pearls, recalculates tier.
 
 ---
 
@@ -386,4 +386,4 @@ const mutation = useMutation({ mutationFn: ..., onSuccess: () => queryClient.inv
 
 ---
 
-*Last updated: August 2026 — reflects actual deployed state*
+*Last updated: August 2026 (reflects actual deployed state)*

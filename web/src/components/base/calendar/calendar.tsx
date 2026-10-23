@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 /* ── Shared nav button styling ─────────────────────────────────────── */
 const navButtonClass =
-  "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40";
+  "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-white/45 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 dark:hover:bg-white/10";
 
 /* ── Year navigation (outer corners of the header) ─────────────────── */
 function YearNavButton({
@@ -84,9 +84,9 @@ function CalendarBody({ className, isRange = false }: { className?: string; isRa
   return (
     <>
       <div className="flex items-center px-1 pb-2">
-        {/* Year — outer left corner (reads calendar state from context) */}
+        {/* Year: outer left corner (reads calendar state from context) */}
         <YearNavButton direction="previous" yearsPerPage={yearsPerPage} />
-        {/* Month — RAC slot buttons wired to focusPreviousPage/focusNextPage */}
+        {/* Month: RAC slot buttons wired to focusPreviousPage/focusNextPage */}
         <RACButton slot="previous" className={cn(navButtonClass, "ml-0.5")}>
           <ChevronLeft aria-hidden className="size-4" />
         </RACButton>
@@ -94,7 +94,7 @@ function CalendarBody({ className, isRange = false }: { className?: string; isRa
         <RACButton slot="next" className={cn(navButtonClass, "mr-0.5")}>
           <ChevronRight aria-hidden className="size-4" />
         </RACButton>
-        {/* Year — outer right corner */}
+        {/* Year: outer right corner */}
         <YearNavButton direction="next" yearsPerPage={yearsPerPage} />
       </div>
       <CalendarGrid
@@ -121,13 +121,13 @@ function CalendarBody({ className, isRange = false }: { className?: string; isRa
                   "[&[aria-current=date]]:font-semibold [&[aria-current=date]]:text-foreground",
                   isOutsideMonth
                     ? "invisible"
-                    : "text-foreground hover:bg-muted hover:text-foreground",
+                    : "text-foreground hover:bg-white/45 hover:text-foreground dark:hover:bg-white/10",
                   // Range middle days: muted band between the two endpoints
                   isRange &&
                     isSelected &&
                     !isSelectionStart &&
                     !isSelectionEnd &&
-                    "rounded-none bg-muted font-normal text-foreground hover:bg-muted",
+                    "rounded-none bg-white/35 font-normal text-foreground hover:bg-white/45 dark:bg-white/10 dark:hover:bg-white/15",
                   // Selected day: single-date selection or range endpoints
                   isSelected &&
                     (!isRange || isSelectionStart || isSelectionEnd) &&
@@ -186,7 +186,7 @@ export function RangePresetButton({
     <button
       type="button"
       className={cn(
-        "rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-white/45 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-white/10",
         className,
       )}
       {...props}

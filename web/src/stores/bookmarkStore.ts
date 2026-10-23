@@ -46,7 +46,7 @@ interface BookmarkState {
 
   /**
    * The single action every bookmark button in the app calls: saves the deal
-   * when it isn't bookmarked yet, removes it when it is. Guests are included —
+   * when it isn't bookmarked yet, removes it when it is. Guests are included,
    * their bookmarks live in localStorage until they sign in.
    */
   toggleBookmark: (deal: TourDeal) => Promise<void>;

@@ -1,11 +1,11 @@
 /**
  * Recovery for the failures Vite's module-preload helper raises when a chunk's
- * asset cannot be loaded — the symptom of a tab (or a cache entry) left over
+ * asset cannot be loaded, the symptom of a tab (or a cache entry) left over
  * from an earlier deploy.
  *
  * Background, because the two halves of this file only make sense together:
  * every file under /assets/ is content-hashed and served `immutable` for a
- * year. A redeploy therefore cannot correct anything already cached — so when a
+ * year. A redeploy therefore cannot correct anything already cached, so when a
  * build references an asset that the deployment does not contain (or that the
  * CDN answered with the SPA fallback HTML while it was missing), the browser
  * and the edge keep handing back that response until the URL itself changes.
@@ -21,7 +21,7 @@
  *     the *next* visit gets the real file once the edge is clean.
  *
  *  2. A **script** chunk failed. There is no useful page without it, so this
- *     reloads — but only a couple of times per tab, with a cooldown between
+ *     reloads, but only a couple of times per tab, with a cooldown between
  *     attempts, so a permanently broken asset surfaces as an error instead of
  *     an infinite reload. When the budget is spent the rejection is allowed to
  *     reach the route error boundary, which explains what to do.
@@ -81,7 +81,7 @@ export function reloadForStaleBuild(now: number = Date.now()): boolean {
   return true;
 }
 
-/** "Unable to preload CSS for /assets/x.css" — Vite's message for case 1. */
+/** "Unable to preload CSS for /assets/x.css": Vite's message for case 1. */
 export function isCssPreloadFailure(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? '');
   return /unable to preload css/i.test(message);
@@ -99,7 +99,7 @@ export function preloadFailureUrl(error: unknown): string | null {
  *
  * `cache: 'reload'` bypasses the stored response *and* replaces it, which is
  * the only way out for a browser that already holds the SPA fallback HTML under
- * an asset URL — the entry is `immutable`, so nothing else would ever evict it.
+ * an asset URL: the entry is `immutable`, so nothing else would ever evict it.
  * That is exactly the state that makes "refresh" useless, so this runs in the
  * background while the page keeps working, and is deliberately limited to
  * same-origin build assets.
@@ -110,7 +110,7 @@ export function refreshCachedAsset(url: string): void {
     if (target.origin !== window.location.origin) return;
     if (!target.pathname.startsWith('/assets/')) return;
     void fetch(target.href, { cache: 'reload' }).catch(() => {
-      // Offline, blocked, or the file is genuinely gone — the caller has
+      // Offline, blocked, or the file is genuinely gone, the caller has
       // already decided the page can live without it.
     });
   } catch {

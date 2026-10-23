@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { Canvg } from 'canvg';
+import { humanizeDashes } from './text';
 import type { Booking } from '../types';
 
 // Monochrome palette only.
@@ -42,7 +43,7 @@ async function loadWatermark(): Promise<string | null> {
     if (!sctx) return null;
     await (await Canvg.from(sctx, svg)).render();
 
-    // Downscaled opaque tile — a faint background mark needs no more.
+    // Downscaled opaque tile: a faint background mark needs no more.
     const tileWidth = 256;
     const tileHeight = Math.round((tileWidth * 536) / 368);
     const canvas = document.createElement('canvas');
@@ -168,8 +169,8 @@ export async function generateInvoicePDF(booking: Booking): Promise<void> {
   // Details table
   const rows: Array<[string, string]> = [
     ['Deal ID', deal.id],
-    ['Destination', deal.destination || '—'],
-    ['Category', deal.category || '—'],
+    ['Destination', humanizeDashes(deal.destination || '') || 'Not set'],
+    ['Category', humanizeDashes(deal.category || '') || 'Not set'],
     ['Duration', `${deal.duration_days} day${deal.duration_days === 1 ? '' : 's'}`],
     ['Price', formatBDT(price)],
   ];

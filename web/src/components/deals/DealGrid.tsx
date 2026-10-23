@@ -16,7 +16,7 @@ export function DealGrid({ deals }: DealGridProps) {
           action={
             <SaveDealButton
               deal={deal}
-              className="rounded-full bg-white/90 shadow-md backdrop-blur-sm hover:bg-white"
+              className="glass-field rounded-full"
             />
           }
         />

@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TableSkeleton } from '@/components/skeletons/TableSkeleton';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import type { MediaFile } from '@/types';
@@ -77,7 +79,7 @@ function folderPath(key: string): string {
 
 /**
  * Whether a folder may be deleted. One segment ("deals/") is a whole namespace
- * where deletion would take every deal image at once, so it is not offered —
+ * where deletion would take every deal image at once, so it is not offered,
  * matching the endpoint, which refuses it.
  */
 function canDeleteFolder(prefix: string): boolean {
@@ -530,10 +532,10 @@ export function MediaExplorer() {
 
         {/* Batch rename dialog */}
         {batchRenameOpen && (
-          <div className="rounded-lg bg-muted border border-border p-4 mt-1 space-y-3">
+          <div className="glass-soft rounded-xl p-4 mt-1 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">
-                Batch rename {selectedKeys.size} file{selectedKeys.size !== 1 ? 's' : ''} — find &amp; replace in filename
+                Batch rename {selectedKeys.size} file{selectedKeys.size !== 1 ? 's' : ''}: find &amp; replace in filename
               </p>
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setBatchRenameOpen(false)}>
                 <X className="w-3.5 h-3.5" />
@@ -580,10 +582,18 @@ export function MediaExplorer() {
 
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Loading files...
-          </div>
+          viewMode === 'grid' ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {Array.from({ length: 10 }).map((_, index) => (
+                <div key={index} className="glass-field rounded-xl p-4">
+                  <Skeleton className="mb-3 aspect-square w-full rounded-lg" />
+                  <Skeleton className="mx-auto h-3 w-2/3" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <TableSkeleton columns={6} rows={8} withCheckbox />
+          )
         ) : folders.size === 0 && fileItems.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Folder className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -603,7 +613,7 @@ export function MediaExplorer() {
                       <button
                         type="button"
                         onClick={() => navigateTo(folderPrefix)}
-                        className="flex w-full flex-col items-center gap-2 rounded-xl border border-border bg-card p-4 hover:bg-accent/50 transition-colors text-center"
+                        className="glass-field glass-hover flex w-full flex-col items-center gap-2 rounded-xl p-4 transition-colors text-center"
                       >
                         <Folder className="w-10 h-10 text-amber-500 shrink-0" />
                         <span className="text-xs font-medium text-foreground truncate w-full">
@@ -623,7 +633,7 @@ export function MediaExplorer() {
                           aria-label={`Delete folder ${folderName} and all of its files`}
                           disabled={deletingFolder === folderPrefix}
                           onClick={() => handleDeleteFolder(folderPrefix, folderName)}
-                          className="absolute right-2 top-2 rounded-md border border-border bg-background/90 p-1.5 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="glass-field absolute right-2 top-2 rounded-md p-1.5 text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           {deletingFolder === folderPrefix ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -643,7 +653,7 @@ export function MediaExplorer() {
                     <div
                       key={file.key}
                       className={cn(
-                        'group relative flex flex-col rounded-xl border border-border bg-card overflow-hidden transition-colors cursor-pointer hover:border-primary/50',
+                        'glass glass-hover group relative flex flex-col rounded-xl overflow-hidden transition-colors cursor-pointer',
                         selectedFile?.key === file.key && 'border-primary ring-1 ring-primary/20',
                         isSelected && 'border-primary/60 bg-primary/5',
                       )}
@@ -655,7 +665,7 @@ export function MediaExplorer() {
                           'absolute top-2 left-2 z-10 rounded-md p-0.5 transition-opacity',
                           isSelected
                             ? 'opacity-100 bg-primary text-primary-foreground'
-                            : 'opacity-0 group-hover:opacity-100 bg-background/80 text-muted-foreground hover:text-foreground',
+                            : 'glass-field opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground',
                         )}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -671,7 +681,7 @@ export function MediaExplorer() {
 
                       {/* Thumbnail */}
                       <div
-                        className="aspect-square bg-muted flex items-center justify-center overflow-hidden"
+                        className="glass-soft aspect-square flex items-center justify-center overflow-hidden"
                         onClick={() => !isSelected && setSelectedFile(file)}
                       >
                         {isImage(file.httpMetadata?.contentType, file.key) ? (
@@ -771,7 +781,7 @@ export function MediaExplorer() {
                       return (
                         <tr
                           key={folder}
-                          className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
+                          className="border-b border-border last:border-0 hover:bg-white/45 dark:hover:bg-white/10 transition-colors cursor-pointer"
                           onClick={() => navigateTo(folderPrefix)}
                         >
                           <td className="py-3 px-3"></td>
@@ -784,8 +794,8 @@ export function MediaExplorer() {
                             </div>
                           </td>
                           <td className="py-3 px-3 hidden sm:table-cell text-sm text-muted-foreground">Folder</td>
-                          <td className="py-3 px-3 hidden md:table-cell text-sm text-muted-foreground">—</td>
-                          <td className="py-3 px-3 hidden lg:table-cell text-sm text-muted-foreground">—</td>
+                          <td className="py-3 px-3 hidden md:table-cell text-sm text-muted-foreground">Not set</td>
+                          <td className="py-3 px-3 hidden lg:table-cell text-sm text-muted-foreground">Not set</td>
                           <td className="py-3 px-3">
                             <div className="flex justify-end">
                               {canDeleteFolder(folderPrefix) && (
@@ -822,8 +832,8 @@ export function MediaExplorer() {
                         <tr
                           key={file.key}
                           className={cn(
-                            'border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer',
-                            selectedFile?.key === file.key && 'bg-accent/50',
+                            'border-b border-border last:border-0 hover:bg-white/45 dark:hover:bg-white/10 transition-colors cursor-pointer',
+                            selectedFile?.key === file.key && 'bg-white/55 dark:bg-white/15',
                             isSelected && 'bg-primary/5',
                           )}
                           onClick={() => setSelectedFile(file)}
@@ -847,7 +857,7 @@ export function MediaExplorer() {
                           <td className="py-3 px-3">
                             <div className="flex items-center gap-2 min-w-0">
                               {isImage(file.httpMetadata?.contentType, file.key) ? (
-                                <div className="h-9 w-9 rounded-lg bg-muted overflow-hidden shrink-0">
+                                <div className="glass-soft h-9 w-9 rounded-lg overflow-hidden shrink-0">
                                   <img
                                     src={fileUrl(file)}
                                     alt={fileName(file.key)}
@@ -891,7 +901,7 @@ export function MediaExplorer() {
                           <td className="py-3 px-3 hidden lg:table-cell text-sm text-muted-foreground">
                             {file.uploaded
                               ? new Date(file.uploaded).toLocaleDateString()
-                              : '—'}
+                              : 'Not set'}
                           </td>
                           <td className="py-3 px-3">
                             <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
@@ -959,7 +969,7 @@ export function MediaExplorer() {
         {/* File preview panel */}
         {selectedFile && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-card rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div className="glass-strong rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
               {/* Preview header */}
               <div className="flex items-center justify-between p-4 border-b border-border">
                 <div className="min-w-0">
@@ -979,7 +989,7 @@ export function MediaExplorer() {
               </div>
 
               {/* Preview image */}
-              <div className="bg-muted">
+              <div className="bg-black/20 backdrop-blur-md">
                 {isImage(selectedFile.httpMetadata?.contentType, selectedFile.key) ? (
                   <img
                     src={fileUrl(selectedFile)}

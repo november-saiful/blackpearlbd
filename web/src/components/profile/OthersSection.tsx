@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
+import { humanizeDashes } from '@/lib/text';
 import type { Booking } from '@/types';
 
 interface OthersSectionProps {
@@ -19,8 +20,8 @@ export function OthersSection({ bookings }: OthersSectionProps) {
   return (
     <div className="space-y-4">
       {bookings.map((booking) => {
-        const destination = booking.deal?.destination || 'Custom Package';
-        const title = booking.deal?.title || booking.custom_package?.title || 'Trip';
+        const destination = humanizeDashes(booking.deal?.destination || 'Custom Package');
+        const title = humanizeDashes(booking.deal?.title || booking.custom_package?.title || 'Trip');
         const type = booking.booking_type === 'deal' ? 'Deal' : 'Custom';
         const date = booking.custom_package?.travel_date || booking.booked_at;
 

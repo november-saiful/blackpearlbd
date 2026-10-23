@@ -198,7 +198,7 @@ export function MarkdownEditor({
   };
 
   return (
-    <div className={cn('rounded-md border border-input bg-background', className)}>
+    <div className={cn('glass-field rounded-md', className)}>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-1 border-b border-border px-2 py-1.5">
         {toolbarButtons.map((button, index) => (
@@ -206,7 +206,7 @@ export function MarkdownEditor({
             key={index}
             type="button"
             onClick={() => button.action(textareaRef.current!)}
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="rounded p-1.5 text-muted-foreground hover:bg-white/50 hover:text-foreground transition-colors dark:hover:bg-white/10"
             title={button.label}
           >
             {button.icon}
@@ -220,7 +220,7 @@ export function MarkdownEditor({
               'flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors',
               showPreview
                 ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                : 'text-muted-foreground hover:bg-white/50 hover:text-foreground dark:hover:bg-white/10'
             )}
           >
             {showPreview ? (

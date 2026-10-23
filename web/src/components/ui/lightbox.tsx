@@ -20,7 +20,7 @@ interface LightboxProps {
  *
  * Two things matter for the buttons to work while a Radix dialog is also open:
  *  1. `pointer-events: auto` is set explicitly. Radix's modal scroll lock sets
- *     `pointer-events: none` on `<body>`, which every portaled sibling inherits —
+ *     `pointer-events: none` on `<body>`, which every portaled sibling inherits,
  *     the preview then swallows no clicks at all and the page behind stays live.
  *  2. Escape / arrow keydowns are stopped during the capture phase at `window`,
  *     which runs before Radix's document-level Escape handler, so the preview
@@ -95,7 +95,7 @@ export function Lightbox({ images, currentIndex, isOpen, onClose, onNavigate, al
     <dialog
       ref={dialogRef}
       aria-label={alt || 'Image preview'}
-      className="m-auto max-h-[95vh] max-w-[95vw] rounded-lg border-0 bg-neutral-950 p-0 text-white shadow-2xl backdrop:bg-black/85"
+      className="m-auto max-h-[95vh] max-w-[95vw] rounded-2xl border border-white/15 bg-black/50 p-0 text-white shadow-2xl backdrop:bg-black/45 backdrop:backdrop-blur-md"
       style={{ pointerEvents: 'auto' }}
       onClick={(event) => {
         // Clicks on the ::backdrop are dispatched with the dialog as the target.
@@ -106,7 +106,7 @@ export function Lightbox({ images, currentIndex, isOpen, onClose, onNavigate, al
         requestClose();
       }}
     >
-      <div className="relative flex items-center justify-center bg-black">
+      <div className="relative flex items-center justify-center bg-black/20 backdrop-blur-xl">
         <img
           src={currentImage}
           alt={alt || `Image ${currentIndex + 1} of ${images.length}`}

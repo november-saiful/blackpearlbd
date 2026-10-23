@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useBookings } from '@/hooks/useBookings';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/lib/utils';
+import { humanizeDealText } from '@/lib/text';
 import { Loader2, User } from 'lucide-react';
 import type { TourDeal } from '@/types';
 
@@ -15,7 +16,8 @@ interface BookingModalProps {
   deal: TourDeal;
 }
 
-export function BookingModal({ isOpen, onClose, deal }: BookingModalProps) {
+export function BookingModal({ isOpen, onClose, deal: rawDeal }: BookingModalProps) {
+  const deal = humanizeDealText(rawDeal);
   const { isAuthenticated, profile } = useAuth();
   const { createBooking, isCreating } = useBookings();
   const [travelerDetails, setTravelerDetails] = useState({
@@ -71,7 +73,7 @@ export function BookingModal({ isOpen, onClose, deal }: BookingModalProps) {
 
         <div className="space-y-4">
           {/* Deal Summary */}
-          <div className="bg-accent p-4 rounded-lg">
+          <div className="glass-chip p-4 rounded-xl">
             <h4 className="font-semibold text-primary">{deal.title}</h4>
             <p className="text-sm text-muted-foreground">{deal.destination}</p>
             <p className="text-lg font-bold text-primary mt-2">

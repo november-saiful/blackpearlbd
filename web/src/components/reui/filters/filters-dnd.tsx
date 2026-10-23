@@ -410,7 +410,7 @@ function startDrag(
       block, so `overflow-hidden` there clipped the badge that overhangs it.
     */
     const clip = document.createElement("div")
-    clip.className = "bg-background overflow-hidden rounded-md"
+    clip.className = "glass-strong overflow-hidden rounded-md"
     // Sized only when the rect is real: a document that is not being laid out
     // measures zero, and a copy pinned to `0px` is invisible.
     if (rect.width > 0) clip.style.width = `${rect.width}px`

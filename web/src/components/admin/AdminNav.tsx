@@ -46,7 +46,7 @@ export function AdminNav() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-foreground/20"
+          className="glass-field glass-hover inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20"
         >
           <Icon className="size-4 text-muted-foreground" />
           {currentPage.label}
@@ -63,7 +63,7 @@ export function AdminNav() {
               onClick={() => navigate(page.href)}
               className={cn(
                 'flex items-center gap-2.5 cursor-pointer',
-                isActive && 'bg-accent text-accent-foreground'
+                isActive && 'glass-chip text-accent-foreground'
               )}
             >
               <PageIcon className="size-4" />

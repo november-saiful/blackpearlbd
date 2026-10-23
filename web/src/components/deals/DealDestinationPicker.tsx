@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { ListRowsSkeleton } from '@/components/skeletons/TableSkeleton';
 import {
   Combobox,
   ComboboxContent,
@@ -116,13 +116,10 @@ export function DealDestinationPicker({
             <ComboboxInput placeholder="Search destinations..." />
             <ComboboxList className="max-h-72">
               {isLoading ? (
-                <p className="flex items-center justify-center gap-2 px-2 py-4 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading destinations…
-                </p>
+                <ListRowsSkeleton rows={4} withTrailing={false} className="px-1 py-2" />
               ) : options.length === 0 ? (
                 <p className="px-2 py-4 text-center text-sm text-muted-foreground">
-                  No destinations yet — add them under Package Builder Destinations.
+                  No destinations yet: add them under Package Builder Destinations.
                 </p>
               ) : (
                 <DestinationGroups options={options} />

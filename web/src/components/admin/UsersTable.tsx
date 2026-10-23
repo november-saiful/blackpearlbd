@@ -10,6 +10,7 @@ import { Search, ChevronLeft, ChevronRight, Users, Edit, Trash2, Loader2, Shield
 import { cn } from '@/lib/utils';
 import { formatDate, getTierColor } from '@/lib/utils';
 import { useAdminUsers } from '@/hooks/useAdmin';
+import { TableSkeleton } from '@/components/skeletons/TableSkeleton';
 import type { Profile } from '@/types';
 
 export function UsersTable() {
@@ -122,7 +123,7 @@ export function UsersTable() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+          <TableSkeleton columns={7} />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -140,13 +141,13 @@ export function UsersTable() {
                 </thead>
                 <tbody>
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                    <tr key={user.id} className="border-b border-border last:border-0 hover:bg-white/45 dark:hover:bg-white/10 transition-colors">
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-3">
                           {user.avatar_url ? (
                             <img src={user.avatar_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
                           ) : (
-                            <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                            <div className="glass-soft w-8 h-8 rounded-lg flex items-center justify-center">
                               <Users className="w-4 h-4 text-muted-foreground" />
                             </div>
                           )}
@@ -258,11 +259,11 @@ export function UsersTable() {
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <div className="glass-chip flex items-center gap-3 p-3 rounded-lg">
                 {selectedUser.avatar_url ? (
                   <img src={selectedUser.avatar_url} alt="" className="w-10 h-10 rounded-lg object-cover" />
                 ) : (
-                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                  <div className="glass-soft w-10 h-10 rounded-lg flex items-center justify-center">
                     <Users className="w-5 h-5 text-muted-foreground" />
                   </div>
                 )}
@@ -355,7 +356,7 @@ export function UsersTable() {
               <p className="text-sm text-muted-foreground">
                 Are you sure you want to permanently delete this user?
               </p>
-              <div className="p-3 bg-muted/50 rounded-lg">
+              <div className="glass-chip p-3 rounded-lg">
                 <p className="text-sm font-medium">{selectedUser.full_name || 'N/A'}</p>
                 <p className="text-xs text-muted-foreground">{selectedUser.email}</p>
               </div>

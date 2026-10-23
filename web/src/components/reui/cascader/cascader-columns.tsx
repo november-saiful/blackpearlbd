@@ -153,7 +153,7 @@ function CascaderColumnPanel({
           type="button"
           data-slot="cascader-retry"
           onClick={() => retryLevel(columnKey)}
-          className="text-foreground hover:bg-accent focus-visible:ring-ring/50 rounded-md px-1 font-medium outline-none transition-colors focus-visible:ring-2"
+          className="text-foreground hover:bg-white/50 focus-visible:ring-ring/50 rounded-md px-1 font-medium outline-none transition-colors focus-visible:ring-2 dark:hover:bg-white/10"
         >
           {labels.retry}
         </button>
@@ -197,7 +197,7 @@ function CascaderColumnPanel({
             indeterminate={isIndeterminate(node)}
             {...getCascaderMoreProps(node, loadStates)}
             data-open={open || undefined}
-            className={open ? "bg-accent/60 text-accent-foreground" : undefined}
+            className={open ? "bg-white/55 text-accent-foreground dark:bg-white/10" : undefined}
             /* Set metadata is option-only; a trail row is a `role="button"`. */
             {...(column.active
               ? {

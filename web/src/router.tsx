@@ -15,7 +15,7 @@ import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 // A tab running an older build can request a hashed chunk that a redeploy
 // deleted, and a flaky network can drop the fetch outright; React.lazy turns
 // either into a rejected route ("Unexpected Application Error"). Recover in
-// two steps: retry once for transient failures, then reload — a fresh
+// two steps: retry once for transient failures, then reload, a fresh
 // index.html only references chunks that actually exist.
 //
 // The reload budget lives in src/lib/preload-recovery.ts and is shared with the
@@ -33,7 +33,7 @@ function lazyPage(factory: () => Promise<{ default: ComponentType }>) {
     try {
       return await factory();
     } catch {
-      // The failure may have been a transient network error — retry once.
+      // The failure may have been a transient network error. Retry once.
       await delay(700);
       try {
         return await factory();
@@ -88,7 +88,7 @@ function SuspenseWrapper({ children }: { children: React.ReactNode }) {
 // config below): errors in a child route bubble up to the nearest ancestor
 // that defines one, so the root route's boundary covers all of them.
 // Chunk-load failures get their own message because they are the one error a
-// refresh actually fixes — lazyPage() already retried and auto-reloaded once,
+// refresh actually fixes: lazyPage() already retried and auto-reloaded once,
 // so reaching this boundary means the tab itself needs a fresh index.html.
 function isChunkLoadError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? '');
@@ -142,7 +142,7 @@ function RouteErrorFallback() {
         </Button>
       </div>
       {import.meta.env.DEV && (
-        <pre className="max-w-full max-h-48 overflow-auto rounded-md bg-muted p-3 text-left text-xs">
+        <pre className="glass-chip max-w-full max-h-48 overflow-auto rounded-md p-3 text-left text-xs">
           {error instanceof Error ? error.stack || error.message : String(error)}
         </pre>
       )}

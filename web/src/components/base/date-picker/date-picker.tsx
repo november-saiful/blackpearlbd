@@ -39,7 +39,7 @@ export function PickerOverlay({
     >
       <Modal
         className={cn(
-          "w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-popover p-3 shadow-lg outline-none",
+          "glass-strong w-80 max-w-[calc(100vw-2rem)] rounded-xl p-3 outline-none",
           "data-[entering]:animate-in data-[entering]:fade-in-0 data-[entering]:zoom-in-95 data-[entering]:duration-150",
         )}
       >
@@ -51,7 +51,7 @@ export function PickerOverlay({
   );
 }
 
-/* ── OK / Cancel footer — Cancel restores the value from when the picker opened ── */
+/* ── OK / Cancel footer: Cancel restores the value from when the picker opened ── */
 export function PickerFooter({
   getSnapshot,
   restore,
@@ -100,11 +100,11 @@ export function DatePicker({
     >
       {({ state }) => (
         <>
-          {/* Whole field is the trigger — click anywhere opens the calendar */}
+          {/* Whole field is the trigger, click anywhere opens the calendar */}
           <RACButton
             className={({ isHovered, isFocusVisible }) =>
               cn(
-                "flex h-10 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors",
+                "glass-field flex h-10 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors",
                 isHovered && "bg-accent/50",
                 isFocusVisible && "border-foreground/40 outline-none ring-2 ring-ring/20",
               )

@@ -5,6 +5,7 @@ import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { SlideActionButton } from '@/components/ui/slide-action-button'
 import { Dock, DockItem } from '@/components/ui/dock'
+import { cn } from '@/lib/utils'
 
 interface NavItem {
   id: string
@@ -69,19 +70,19 @@ export function MobileDock() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-        {/* Translucent backdrop bar – full screen width */}
-        {/* Gradient fade from transparent into the solid bar */}
-        <div className="absolute inset-x-0 bottom-16 h-12 bg-gradient-to-b from-transparent to-background/70" />
-        {/* Solid blurred bar with top border */}
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-background/70 shadow-[0_-1px_0_0_var(--border)]" />
-
-        {/* Dock pill – floats above the backdrop */}
-        <div className="relative flex justify-center px-2.5 pb-safe pt-2">
-          <Dock size={56} className="w-full max-w-sm justify-around rounded-2xl border border-border bg-card px-2 shadow-lg">
+      <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 md:hidden">
+        <Dock
+          size={56}
+          className="glass-nav pointer-events-auto mx-auto w-full max-w-sm justify-around rounded-[1.75rem] px-1.5 py-1.5"
+        >
           {allItems.map((item) => {
             const isActive = item.id === activeId || (item.id === 'call' && callOpen)
             const Icon = item.icon
+            const itemClass = cn(
+              'flex flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-medium outline-none transition-colors',
+              'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+              isActive ? 'text-foreground' : 'text-foreground/65',
+            )
 
             if (item.id === 'call') {
               return (
@@ -91,7 +92,7 @@ export function MobileDock() {
                   aria-label={item.label}
                   onClick={() => handleClick(item)}
                 >
-                  <div className="flex flex-col items-center justify-center gap-0.5 text-xs font-medium text-foreground">
+                  <div className={itemClass}>
                     <Icon className="size-5" />
                     <span>{item.label}</span>
                   </div>
@@ -104,7 +105,7 @@ export function MobileDock() {
                 <a
                   href={item.href}
                   aria-label={item.label}
-                  className="flex flex-col items-center justify-center gap-0.5 text-xs font-medium text-foreground"
+                  className={itemClass}
                   onClick={(e) => {
                     e.preventDefault()
                     handleClick(item)
@@ -116,22 +117,21 @@ export function MobileDock() {
               </DockItem>
             )
           })}
-          </Dock>
-        </div>
+        </Dock>
       </nav>
 
       {/* Call CTA overlay */}
       {callOpen && (
         <>
-          {/* Backdrop – blurs everything, click to dismiss */}
+          {/* Backdrop: blurs everything, click to dismiss */}
           <div
-            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-md md:hidden"
+            className="glass-scrim fixed inset-0 z-[60] md:hidden"
             onClick={() => setCallOpen(false)}
             aria-hidden="true"
           />
-          {/* CTA panel – fixed bottom-center, above backdrop */}
+          {/* CTA panel: fixed bottom-center, above backdrop */}
           <div className="fixed bottom-32 left-1/2 z-[70] -translate-x-1/2 md:hidden">
-            <div className="rounded-2xl border border-border bg-card/95 p-5 shadow-2xl backdrop-blur-xl">
+            <div className="glass-strong rounded-2xl p-5">
               <p className="mb-3 text-center text-sm font-medium text-foreground">
                 Slide to call us
               </p>

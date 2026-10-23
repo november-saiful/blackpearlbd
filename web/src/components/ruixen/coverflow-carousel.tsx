@@ -20,7 +20,7 @@ export interface CoverflowCarouselProps {
   rotate?: number;
   /** How far the first neighbour recedes, as a fraction of card width. */
   depth?: number;
-  /** Viewer distance as a multiple of card width — smaller is a wider lens. */
+  /** Viewer distance as a multiple of card width, smaller is a wider lens. */
   perspective?: number;
   /** Exponent on distance. Below 1 the rake eases off as cards travel out. */
   falloff?: number;
@@ -107,7 +107,7 @@ export function CoverflowCarousel({
       if (!card) return;
 
       // Fold the distance into the shorter way round the ring. This is the
-      // whole looping mechanism — no cloned nodes, no shuffling the DOM.
+      // whole looping mechanism: no cloned nodes, no shuffling the DOM.
       let offset = index - pos;
       if (loop) {
         offset = ((offset % count) + count) % count;
@@ -115,7 +115,7 @@ export function CoverflowCarousel({
       }
 
       const distance = Math.abs(offset);
-      // Both the tilt and the recession ease off as cards travel out —
+      // Both the tilt and the recession ease off as cards travel out,
       // doubling the distance adds only about half again as much of each.
       // A linear ramp folds the second card shut; this keeps it readable.
       const ramp = Math.pow(distance, falloff);
@@ -233,7 +233,7 @@ export function CoverflowCarousel({
   };
 
   // Card width drives pitch, depth and perspective, so it is the only thing
-  // worth measuring — and only when the box actually changes.
+  // worth measuring: and only when the box actually changes.
   useIsoLayoutEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
@@ -295,6 +295,12 @@ export function CoverflowCarousel({
             perspective: `calc(var(--cf-card) * ${perspective})`,
             // Horizontal drag is ours; the page keeps vertical scrolling.
             touchAction: "pan-y",
+            // Mask rather than opaque gradient strips: the rack must fade into
+            // the ambient glass backdrop, not paint the flat page colour over it.
+            maskImage:
+              "linear-gradient(to right, transparent 0, black 6%, black 94%, transparent 100%)",
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent 0, black 6%, black 94%, transparent 100%)",
           }}
         >
           <div
@@ -321,7 +327,7 @@ export function CoverflowCarousel({
                   else goTo(index);
                 }}
                 className={cn(
-                  "absolute left-1/2 top-0 aspect-square overflow-hidden rounded-2xl bg-muted shadow-xl will-change-transform",
+                  "glass-soft absolute left-1/2 top-0 aspect-square overflow-hidden rounded-2xl backdrop-blur-sm will-change-transform",
                   index === selected && onCardClick && "cursor-zoom-in",
                   cardClassName,
                 )}
@@ -338,15 +344,6 @@ export function CoverflowCarousel({
             ))}
           </div>
 
-          {/* Fade edges so cards don't look cropped at the rack's borders. */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-background to-transparent"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-background to-transparent"
-          />
         </div>
 
         {showNavigation && (
@@ -355,7 +352,7 @@ export function CoverflowCarousel({
               type="button"
               aria-label="Previous slide"
               onClick={() => nudge(-1)}
-              className="absolute left-3 top-1/2 z-[200] -translate-y-1/2 rounded-full bg-background/70 p-2 text-foreground backdrop-blur transition hover:bg-background"
+              className="glass-field absolute left-3 top-1/2 z-[200] -translate-y-1/2 rounded-full p-2 text-foreground transition hover:bg-white/70 dark:hover:bg-white/15"
             >
               <ChevronLeft className="size-5" />
             </button>
@@ -363,7 +360,7 @@ export function CoverflowCarousel({
               type="button"
               aria-label="Next slide"
               onClick={() => nudge(1)}
-              className="absolute right-3 top-1/2 z-[200] -translate-y-1/2 rounded-full bg-background/70 p-2 text-foreground backdrop-blur transition hover:bg-background"
+              className="glass-field absolute right-3 top-1/2 z-[200] -translate-y-1/2 rounded-full p-2 text-foreground transition hover:bg-white/70 dark:hover:bg-white/15"
             >
               <ChevronRight className="size-5" />
             </button>

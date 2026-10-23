@@ -86,12 +86,12 @@ interface PolaroidPopupProps {
 }
 
 /**
- * One stop's polaroid — the gallery photo the admin picked for the stop — drawn
+ * One stop's polaroid (the gallery photo the admin picked for the stop) drawn
  * as a Leaflet tooltip made `permanent`. That is deliberately a tooltip rather
  * than a popup: it is already open the moment the map mounts and stays open for
  * as long as the map is, so every stop's photo is on screen each time the route
  * map is opened without anyone having to click a pin. It stays non-interactive
- * so the print never swallows a map click or drag — which also keeps the admin
+ * so the print never swallows a map click or drag, which also keeps the admin
  * map clickable for adding stops.
  */
 const PolaroidPopup = forwardRef<LeafletTooltip, PolaroidPopupProps>(function PolaroidPopup(
@@ -354,7 +354,7 @@ export function DealRouteMap({
         <PrintDeclutter stops={stops} tooltips={printRefs} />
       </MapContainer>
       {editable && (
-        <div className="pointer-events-none absolute bottom-2 left-2 z-[1000] rounded bg-white/90 px-2 py-1 text-xs text-slate-600 shadow">
+        <div className="glass-chip pointer-events-none absolute bottom-2 left-2 z-[1000] rounded px-2 py-1 text-xs text-foreground">
           Click the map to add a stop. On touch devices, use the ordered list below to edit the route.
         </div>
       )}

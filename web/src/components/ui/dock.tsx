@@ -31,7 +31,7 @@ export function Dock({ children, size = 44, className }: DockProps) {
     <DockContext.Provider value={ctx}>
       <div
         className={cn(
-          "inline-flex h-auto items-end gap-1.5 rounded-2xl border border-border bg-card/80 px-2 py-1 shadow-2xl backdrop-blur-xl",
+          "glass-strong inline-flex h-auto items-end gap-1.5 rounded-2xl px-2 py-1",
           className,
         )}
       >
@@ -66,7 +66,7 @@ export function DockItem({
     <motion.span
       layoutId={pillLayoutId}
       transition={reduce ? { duration: 0 } : SPRING_LAYOUT}
-      className="absolute inset-0.5 -z-10 rounded-xl bg-primary/5"
+      className="glass-nav-pill absolute inset-1 -z-10 rounded-xl"
     />
   ) : null;
   const sharedStyle = { width: size, height: size };

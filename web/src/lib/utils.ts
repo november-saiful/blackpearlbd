@@ -26,11 +26,11 @@ export function formatCurrency(amount: number, currencyCode?: string, locale?: s
 
 export function getTierColor(status: string) {
   switch (status) {
-    case 'diamond': return 'bg-white text-black border border-black/10';
-    case 'gold': return 'bg-neutral-200 text-black';
-    case 'platinum': return 'bg-neutral-400 text-white';
-    case 'bronze': return 'bg-neutral-700 text-white';
-    default: return 'bg-slate-300 text-slate-700';
+    case 'diamond': return 'glass-chip text-foreground';
+    case 'gold': return 'glass-chip border-amber-300/50 bg-amber-100/50 text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200';
+    case 'platinum': return 'glass-chip border-slate-300/50 bg-slate-100/50 text-slate-800 dark:border-white/15 dark:bg-white/10 dark:text-slate-200';
+    case 'bronze': return 'glass-chip border-orange-300/50 bg-orange-100/50 text-orange-800 dark:border-orange-400/30 dark:bg-orange-400/10 dark:text-orange-200';
+    default: return 'glass-chip text-muted-foreground';
   }
 }
 
@@ -43,11 +43,11 @@ export function getTierProgress(pearls: number) {
 
 export function getStatusColor(status: string) {
   switch (status) {
-    case 'approved': return 'bg-emerald-100 text-emerald-700';
-    case 'pending': return 'bg-amber-100 text-amber-700';
-    case 'processing': return 'bg-blue-100 text-blue-700';
-    case 'rejected': return 'bg-rose-100 text-rose-700';
-    case 'cancelled': return 'bg-slate-100 text-slate-700';
-    default: return 'bg-slate-100 text-slate-700';
+    case 'approved': return 'border-emerald-300/50 bg-emerald-100/50 text-emerald-800 backdrop-blur-md dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200';
+    case 'pending': return 'border-amber-300/50 bg-amber-100/50 text-amber-800 backdrop-blur-md dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200';
+    case 'processing': return 'border-blue-300/50 bg-blue-100/50 text-blue-800 backdrop-blur-md dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-200';
+    case 'rejected': return 'border-rose-300/50 bg-rose-100/50 text-rose-800 backdrop-blur-md dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-200';
+    case 'cancelled': return 'glass-chip text-muted-foreground';
+    default: return 'glass-chip text-muted-foreground';
   }
 }

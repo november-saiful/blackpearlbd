@@ -3,6 +3,7 @@ import { MapPin, CalendarDays } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDealCategory } from '@/lib/deal-category';
+import { humanizeDealText } from '@/lib/text';
 import { formatCurrency } from '@/lib/utils';
 import type { TourDeal } from '@/types';
 
@@ -17,7 +18,7 @@ interface RelatedPackagesProps {
 function RelatedPackageSkeletonRow() {
   return (
     <li>
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-2.5">
+      <div className="glass-field flex items-center gap-3 rounded-lg p-2.5">
         <Skeleton className="h-14 w-14 shrink-0 rounded-md" />
         <div className="min-w-0 flex-1 space-y-1.5">
           <Skeleton className="h-4 w-3/4" />
@@ -61,7 +62,8 @@ export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
       </CardHeader>
       <CardContent>
         <ul className="space-y-3">
-          {deals.map((deal) => {
+          {deals.map((rawDeal) => {
+            const deal = humanizeDealText(rawDeal);
             const category = getDealCategory(deal);
             const image = deal.image_url || deal.gallery?.[0] || null;
 
@@ -69,10 +71,10 @@ export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
               <li key={deal.id}>
                 <Link
                   to={`/deals/${deal.slug}`}
-                  className="group flex items-center gap-3 rounded-lg border border-border bg-background p-2.5 transition-colors hover:border-primary/30 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="glass-field glass-hover group flex items-center gap-3 rounded-lg p-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   {/* Thumbnail */}
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
+                  <div className="glass-soft relative h-14 w-14 shrink-0 overflow-hidden rounded-md">
                     {image ? (
                       <img
                         src={image}

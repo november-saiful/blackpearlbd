@@ -53,7 +53,7 @@ function fuzzyMatch(needle: string, hay: string) {
   return false
 }
 
-// Opened via a keyboard shortcut many times a day — entrance must read as
+// Opened via a keyboard shortcut many times a day, entrance must read as
 // instant. Tight spring, even faster exit.
 const PANEL_SPRING = {
   type: "spring",
@@ -149,7 +149,7 @@ export function CommandPalette({
 
   // Grouping reorders the list, so the rendered order is not the filtered
   // order whenever two groups interleave. Everything that has to agree on
-  // "which row" — the highlight, the ids, Enter, the scroll — reads this one
+  // "which row": the highlight, the ids, Enter, the scroll, reads this one
   // array, so they cannot drift apart.
   const rows = useMemo(() => grouped.flatMap(([, list]) => list), [grouped])
 
@@ -201,7 +201,7 @@ export function CommandPalette({
   // the backdrop spans the viewport edges but carries the scrim colour, and the
   // layer positioning the panel is inset off every edge. Both hang off
   // `PresenceGate`, so interaction releases in the same commit that starts the
-  // exit rather than when it ends — `open` is already false for those frames.
+  // exit rather than when it ends, `open` is already false for those frames.
   return createPortal(
     <AnimatePresence initial={false}>
       {open ? (
@@ -253,7 +253,7 @@ export function CommandPalette({
                 transition={reduce ? { duration: 0.1 } : PANEL_SPRING}
                 {...gate}
                 onKeyDown={onKeyDown}
-                className="pointer-events-auto w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl will-change-transform"
+                className="glass-strong pointer-events-auto w-full max-w-xl overflow-hidden rounded-2xl will-change-transform"
               >
                 <div className="flex items-center gap-3 border-b border-border px-4">
                   <Search className="h-4 w-4 text-muted-foreground" />
@@ -277,13 +277,13 @@ export function CommandPalette({
                       "h-12 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none",
                       // The palette focuses this field the moment it opens, and iOS
                       // zooms the page in on a focused field under 16px: the fixed
-                      // overlay is magnified off-center — clipped leading edge, half
-                      // an icon column — and the zoom outlives the palette. 16px on
+                      // overlay is magnified off-center, clipped leading edge, half
+                      // an icon column: and the zoom outlives the palette. 16px on
                       // touch keeps the page at scale 1; pointer devices keep 14px.
                       canTouch && "text-base",
                     )}
                   />
-                  <kbd className="hidden rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-block">
+                  <kbd className="glass-chip hidden rounded px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-block">
                     ESC
                   </kbd>
                 </div>
@@ -339,7 +339,7 @@ export function CommandPalette({
                                   transition={
                                     reduce
                                       ? { duration: 0 }
-                                      : // Tracks rapid arrow-key navigation — keep it tighter
+                                      : // Tracks rapid arrow-key navigation, keep it tighter
                                         // than SPRING_LAYOUT so it never lags the active row.
                                         {
                                           type: "spring",
@@ -363,7 +363,7 @@ export function CommandPalette({
                                 </span>
                               ) : null}
                               {it.hint ? (
-                                <kbd className="relative z-10 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                <kbd className="glass-chip relative z-10 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground">
                                   {it.hint}
                                 </kbd>
                               ) : null}

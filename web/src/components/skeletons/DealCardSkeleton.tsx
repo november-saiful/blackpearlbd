@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function DealCardSkeleton() {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+    <div className="glass flex h-full flex-col overflow-hidden rounded-2xl">
       {/* Thumbnail */}
       <Skeleton className="aspect-[16/10] w-full rounded-none" />
       {/* Body */}
@@ -27,8 +27,8 @@ export function DealCardSkeleton() {
 }
 
 /**
- * Mirrors the real /deals layout — centred hero, the filter bar with the sort
- * control beside it, and the card grid — at the same breakpoints, so nothing
+ * Mirrors the real /deals layout, centred hero, the filter bar with the sort
+ * control beside it, and the card grid, at the same breakpoints, so nothing
  * jumps when the deals arrive.
  */
 export function DealsPageSkeleton() {

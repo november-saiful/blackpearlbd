@@ -186,7 +186,7 @@
 }
 
   /*
-   * High-end card shadows — four predefined elevations that feel expensive:
+   * High-end card shadows: four predefined elevations that feel expensive:
    * · shadow-card: subtle, for default cards
    * · shadow-elevated: medium, for modals and important panels
    * · shadow-prominent: strong, for popovers and menus
@@ -209,7 +209,7 @@
   }
 
   /*
-   * Border radius scale — consistent rounding across the UI:
+   * Border radius scale: consistent rounding across the UI:
    * · radius-sm: 0.125rem ( tight, for chips, small inputs )
    * · radius: 0.5rem ( default, for cards, buttons )
    * · radius-lg: 0.75rem ( spacious, for modals )
@@ -224,12 +224,293 @@
   }
 
   /*
-   * Selection color — subtle highlight that feels intentional:
+   * Selection color: subtle highlight that feels intentional:
    */
   ::selection {
     background-color: color-mix(in srgb, var(--primary) 30%, transparent);
   }
 
+/* ── Frosted glass system ─────────────────────────────────────
+ * Every translucent surface in the app is an OpenGlass liquid material. The
+ * class names below are the app's own vocabulary: they predate the migration
+ * and are emitted from className helpers as well as JSX, so they stay, but
+ * they carry no material values of their own any more: each one selects an
+ * OpenGlass token (`--ogui-lg-*`, resolved by the `data-ogui-design="liquid"`
+ * scope `index.html` and the theme provider keep on <html>).
+ *
+ * The composite tokens are re-resolved only where `data-ogui-design="liquid"`
+ * sits, and a class cannot set that attribute, so the material hierarchy is
+ * expressed by thinning the fill with `color-mix` rather than by turning the
+ * library's `--ogui-glass-*` knobs: sheet (menus, chrome) > surface (cards) >
+ * field (controls) > chip (badges) > soft (insets).
+ *
+ * Only the ambient wallpaper tokens live here: the backdrop is the app's own art
+ * direction, and it is the colour OpenGlass refracts. Everything else comes from
+ * the library, so light/dark stays in lockstep with it.
+ *
+ * Classes live in the components layer so Tailwind utilities can still win
+ * (rounded-*, hover:bg-*, etc.) on the same element.
+ */
+@layer base {
+  :root {
+    --ambient-base: linear-gradient(165deg, hsl(40 46% 97%) 0%, hsl(210 40% 97%) 46%, hsl(196 38% 95%) 100%);
+    --ambient-orb-1: hsl(28 88% 85% / 0.85);
+    --ambient-orb-2: hsl(199 82% 84% / 0.8);
+    --ambient-orb-3: hsl(164 52% 83% / 0.7);
+    --ambient-orb-4: hsl(45 88% 88% / 0.7);
+    --ambient-grain: 0.16;
+  }
+
+  .dark {
+    --ambient-base: linear-gradient(165deg, hsl(226 34% 6%) 0%, hsl(232 30% 8%) 45%, hsl(222 34% 7%) 100%);
+    --ambient-orb-1: hsl(178 62% 34% / 0.42);
+    --ambient-orb-2: hsl(245 68% 46% / 0.42);
+    --ambient-orb-3: hsl(276 58% 42% / 0.32);
+    --ambient-orb-4: hsl(206 70% 34% / 0.36);
+    --ambient-grain: 0.22;
+  }
+}
+
+@layer components {
+  /* Material base. Each `var(--ogui-lg-x, <fallback>)` carries the
+   * pre-migration value as its fallback: if the liquid scope is ever missing,
+   * surfaces resolve to those instead of collapsing to transparent. */
+  .glass,
+  .glass-strong,
+  .glass-soft,
+  .glass-field,
+  .glass-chip,
+  .glass-bar,
+  .glass-nav,
+  .glass-nav-pill {
+    position: relative;
+    border: 1px solid var(--ogui-lg-hairline, hsl(0 0% 100% / 0.5));
+    background-color: var(--ogui-lg-surface, hsl(0 0% 100% / 0.46));
+    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    box-shadow:
+      var(--ogui-lg-rim, inset 0 0 14px hsl(0 0% 100% / 0.3)),
+      var(--ogui-lg-bloom, inset 0 0 0 transparent),
+      var(--ogui-lg-lift, 0 1px 2px hsl(222 40% 20% / 0.12));
+  }
+
+  /* Menus, dialogs, floating panels: the densest sheet. */
+  .glass-strong {
+    background-color: var(--ogui-lg-sheet, hsl(0 0% 100% / 0.66));
+    -webkit-backdrop-filter: var(--ogui-lg-blur-heavy, blur(36px) saturate(1.8));
+    backdrop-filter: var(--ogui-lg-blur-heavy, blur(36px) saturate(1.8));
+    box-shadow:
+      var(--ogui-lg-rim, inset 0 0 14px hsl(0 0% 100% / 0.3)),
+      var(--ogui-lg-bloom, inset 0 0 0 transparent),
+      var(--ogui-lg-lift-high, 0 2px 4px hsl(222 40% 20% / 0.16));
+  }
+
+  /* Insets and grouped wells: the surface, thinned right down. */
+  .glass-soft {
+    background-color: color-mix(
+      in srgb,
+      var(--ogui-lg-surface, hsl(0 0% 100% / 0.46)) 62%,
+      transparent
+    );
+  }
+
+  /* Text controls: the control fill with the library's recessed well. */
+  .glass-field {
+    background-color: var(--ogui-lg-fill, hsl(0 0% 100% / 0.54));
+    box-shadow: var(--ogui-lg-well-shadow, inset 0 1px 2px hsl(222 40% 20% / 0.06));
+  }
+
+  /* Chips and badges: a small, crisp pane that reads as a distinct object. */
+  .glass-chip {
+    background-color: color-mix(
+      in srgb,
+      var(--ogui-lg-fill, hsl(0 0% 100% / 0.4)) 78%,
+      transparent
+    );
+    box-shadow:
+      var(--ogui-lg-lift, 0 1px 2px hsl(222 40% 20% / 0.12)),
+      0 0 0 0.5px var(--ogui-lg-hairline, hsl(0 0% 100% / 0.5));
+  }
+
+  /* Full-bleed chrome: no radius, one hairline on the inner edge. */
+  .glass-bar {
+    border: 0;
+    border-radius: 0;
+    background-color: var(--ogui-lg-sheet, hsl(0 0% 100% / 0.66));
+    -webkit-backdrop-filter: var(--ogui-lg-blur-heavy, blur(36px) saturate(1.8));
+    backdrop-filter: var(--ogui-lg-blur-heavy, blur(36px) saturate(1.8));
+    box-shadow: inset 0 -1px 0 0 var(--ogui-lg-hairline, hsl(0 0% 100% / 0.5));
+  }
+
+  /* Floating mobile dock. One translucent layer only: stacking a bar and a
+   * pill made the combined fill nearly opaque and killed the blur. */
+  .glass-nav {
+    background-color: var(--ogui-lg-sheet, hsl(0 0% 100% / 0.34));
+    -webkit-backdrop-filter: var(--ogui-lg-blur-heavy, blur(28px) saturate(1.85));
+    backdrop-filter: var(--ogui-lg-blur-heavy, blur(28px) saturate(1.85));
+    box-shadow:
+      var(--ogui-lg-rim, inset 0 0 14px hsl(0 0% 100% / 0.3)),
+      var(--ogui-lg-bloom, inset 0 0 0 transparent),
+      var(--ogui-lg-lift-high, 0 2px 4px hsl(222 40% 20% / 0.16));
+  }
+
+  .glass-nav-pill {
+    background-color: color-mix(
+      in srgb,
+      var(--ogui-lg-fill, hsl(0 0% 100% / 0.4)) 78%,
+      transparent
+    );
+    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+  }
+
+  .glass-hover {
+    transition:
+      background-color 220ms ease,
+      border-color 220ms ease,
+      box-shadow 220ms ease,
+      transform 220ms ease;
+  }
+
+  .glass-hover:hover {
+    background-color: var(--ogui-lg-fill-hover, hsl(0 0% 100% / 0.6));
+  }
+
+  /* Brand action surface: keeps the site's primary tint, wears OpenGlass blur. */
+  .glass-primary {
+    position: relative;
+    border: 1px solid hsl(var(--primary) / 0.22);
+    background-color: hsl(var(--primary) / 0.9);
+    color: hsl(var(--primary-foreground));
+    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.2),
+      0 10px 24px -16px hsl(var(--primary) / 0.65);
+  }
+
+  .glass-primary:hover {
+    background-color: hsl(var(--primary) / 0.96);
+  }
+
+  .glass-scrim {
+    background-color: var(--ogui-lg-scrim, hsl(230 44% 4% / 0.55));
+    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+  }
+
+  /* Tooltips: dark in both appearances, so the fill stays deliberate and only
+   * the blur comes from the library. */
+  .glass-tooltip {
+    background-color: hsl(224 24% 14% / 0.8);
+    border: 1px solid hsl(0 0% 100% / 0.16);
+    color: hsl(0 0% 100%);
+    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    box-shadow: var(--ogui-lg-lift-high, 0 2px 4px hsl(222 40% 20% / 0.16));
+  }
+
+  .glass-tooltip .glass-tooltip-arrow {
+    background-color: inherit;
+    border: 1px solid hsl(0 0% 100% / 0.16);
+  }
+
+  /* Segmented-control active pill. A component-layer rule on the data attribute
+   * avoids fighting Tailwind's data-[state=active]:bg-* utilities. */
+  .glass-tab {
+    transition: background-color 200ms ease, box-shadow 200ms ease, color 200ms ease;
+  }
+
+  .glass-tab[data-state="active"] {
+    background-color: var(--ogui-lg-fill, hsl(0 0% 100% / 0.66));
+    border: 1px solid var(--ogui-lg-hairline, hsl(0 0% 100% / 0.5));
+    box-shadow:
+      var(--ogui-lg-rim, inset 0 0 14px hsl(0 0% 100% / 0.3)),
+      var(--ogui-lg-lift, 0 1px 2px hsl(222 40% 20% / 0.12));
+  }
+
+  .glass-tab[data-state="active"]:hover {
+    background-color: var(--ogui-lg-fill-hover, hsl(0 0% 100% / 0.7));
+  }
+
+  /* Ambient backdrop: fixed, behind the whole app scroller, so translucent
+   * surfaces always have colour to refract no matter how far the page scrolls. */
+  .app-ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background-image:
+      radial-gradient(56rem 40rem at 6% -12%, var(--ambient-orb-1), transparent 62%),
+      radial-gradient(48rem 36rem at 96% 2%, var(--ambient-orb-2), transparent 64%),
+      radial-gradient(46rem 40rem at 78% 96%, var(--ambient-orb-3), transparent 66%),
+      radial-gradient(34rem 30rem at 30% 72%, var(--ambient-orb-4), transparent 70%),
+      var(--ambient-base);
+  }
+
+  .app-ambient::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: var(--ambient-grain);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    mix-blend-mode: soft-light;
+  }
+
+  /* Without backdrop-filter the material has to become opaque, or text over the
+   * busy wallpaper stops being readable. Same trade under the OS "reduce
+   * transparency" setting, and forced colours drop the material entirely while
+   * keeping the structure. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass,
+    .glass-soft,
+    .glass-field,
+    .glass-chip,
+    .glass-nav-pill {
+      background-color: var(--ogui-color-canvas, hsl(0 0% 100% / 0.82));
+    }
+    .glass-strong,
+    .glass-bar,
+    .glass-nav {
+      background-color: var(--ogui-color-canvas, hsl(0 0% 100% / 0.92));
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .glass,
+    .glass-strong,
+    .glass-soft,
+    .glass-field,
+    .glass-chip,
+    .glass-bar,
+    .glass-nav,
+    .glass-nav-pill {
+      background-color: var(--ogui-color-canvas, hsl(0 0% 100% / 0.92));
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .glass,
+    .glass-strong,
+    .glass-soft,
+    .glass-field,
+    .glass-chip,
+    .glass-bar,
+    .glass-nav,
+    .glass-nav-pill,
+    .glass-tooltip {
+      background-color: Canvas;
+      border: 1px solid CanvasText;
+      color: CanvasText;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      box-shadow: none;
+    }
+  }
+}
 
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {

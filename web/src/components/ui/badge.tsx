@@ -1,39 +1,41 @@
 import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import type { SemanticTone } from "open-glass-ui"
 import { cn } from "@/lib/utils"
 
-const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-  {
-    variants: {
-      variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
-        success:
-          "border-transparent bg-emerald-100 text-emerald-700",
-        warning:
-          "border-transparent bg-amber-100 text-amber-700",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-)
+/*
+ * The site's variant names, mapped onto OpenGlass's semantic tones. The recipe's
+ * own class does the painting, `data-tone` picks the tone colour, the liquid
+ * scope supplies the glass, so a badge here is identical to the library's own
+ * `<Badge tone>`.
+ *
+ * The element stays a div: the library's Badge renders a span, and a few grids
+ * use the site's badges as block-level cells. Callers that pass their own
+ * palette utilities (getStatusColor, getTierColor) still win, because Tailwind
+ * is imported after the library and both selectors carry the same specificity.
+ */
+const TONES = {
+  default: "accent",
+  secondary: "neutral",
+  destructive: "danger",
+  outline: "neutral",
+  success: "positive",
+  warning: "warning",
+} as const satisfies Record<string, SemanticTone>
 
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+export type BadgeVariant = keyof typeof TONES
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: BadgeVariant
+}
+
+function Badge({ className, variant = "default", ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div
+      data-tone={TONES[variant]}
+      className={cn("ogui-badge", className)}
+      {...props}
+    />
   )
 }
 
-export { Badge, badgeVariants }
+export { Badge }

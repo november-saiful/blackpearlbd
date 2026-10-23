@@ -22,7 +22,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
                 className="w-24 h-24 rounded-full object-cover"
               />
             ) : (
-              <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
+              <div className="glass-soft w-24 h-24 rounded-full flex items-center justify-center">
                 <User className="w-12 h-12 text-muted-foreground" />
               </div>
             )}

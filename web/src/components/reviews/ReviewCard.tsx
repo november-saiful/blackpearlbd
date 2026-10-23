@@ -36,7 +36,7 @@ export function ReviewCard({ review, dealSlug }: ReviewCardProps) {
 
   if (isEditing) {
     return (
-      <div className="rounded-xl border border-border bg-card p-4">
+      <div className="glass rounded-xl p-4">
         <ReviewForm
           dealSlug={dealSlug}
           initialValues={{ rating: review.rating, title: review.title, body: review.body }}
@@ -49,12 +49,12 @@ export function ReviewCard({ review, dealSlug }: ReviewCardProps) {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+    <div className="glass rounded-xl p-4 space-y-3">
       {/* Header: user + rating + actions */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {/* Avatar */}
-          <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="glass-soft h-9 w-9 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
             {review.user?.avatar_url ? (
               <img
                 src={review.user.avatar_url}
@@ -96,7 +96,7 @@ export function ReviewCard({ review, dealSlug }: ReviewCardProps) {
             <button
               type="button"
               onClick={() => setIsEditing(true)}
-              className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="rounded-md p-1.5 text-muted-foreground hover:text-foreground hover:bg-white/50 transition-colors dark:hover:bg-white/10"
               aria-label="Edit review"
             >
               <Pencil className="h-3.5 w-3.5" />

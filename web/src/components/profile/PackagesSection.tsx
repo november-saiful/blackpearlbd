@@ -16,6 +16,7 @@ import { CalendarRange, Loader2, MapPin, Users } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomPackages } from '@/hooks/useProfile';
+import { PackageRequestsSkeleton } from '@/components/skeletons/ProfileSectionSkeletons';
 import type { CustomPackage } from '@/types';
 
 /** Chip row for the structured choices the builder stored with a package. */
@@ -47,7 +48,7 @@ function dateRangeLabel(pkg: CustomPackage) {
  * The traveller's package requests, with the admin's quote once it is issued.
  *
  * A request only becomes bookable once an admin approves it and sets an
- * estimated price — booking then creates the booking row that shows up under
+ * estimated price: booking then creates the booking row that shows up under
  * My Tours, so this section is what closes the build → quote → book loop.
  */
 export function PackagesSection() {
@@ -69,11 +70,7 @@ export function PackagesSection() {
     traveler.name.trim() !== '' && traveler.email.trim() !== '' && traveler.phone.trim() !== '';
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin" />
-      </div>
-    );
+    return <PackageRequestsSkeleton />;
   }
 
   if (packages.length === 0) {
@@ -135,7 +132,7 @@ export function PackagesSection() {
               <span className="text-muted-foreground">
                 Budget:{' '}
                 <span className="text-foreground font-medium">
-                  {pkg.budget ? formatCurrency(pkg.budget) : '—'}
+                  {pkg.budget ? formatCurrency(pkg.budget) : 'Not set'}
                 </span>
               </span>
               {pkg.estimated_price ? (
@@ -161,7 +158,7 @@ export function PackagesSection() {
             )}
 
             {pkg.admin_notes && (
-              <p className="text-sm rounded-lg bg-muted p-3 whitespace-pre-wrap">
+              <p className="glass-chip text-sm rounded-lg p-3 whitespace-pre-wrap">
                 <span className="font-medium text-foreground">From our team: </span>
                 {pkg.admin_notes}
               </p>

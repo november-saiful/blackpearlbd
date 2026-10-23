@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Smoke tests — public pages', () => {
+test.describe('Smoke tests: public pages', () => {
   test('home page loads with BlackPearl branding', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/BlackPearl/i);
@@ -20,7 +20,7 @@ test.describe('Smoke tests — public pages', () => {
   });
 });
 
-test.describe('Smoke tests — admin protection', () => {
+test.describe('Smoke tests: admin protection', () => {
   test('unauthenticated user is redirected from /admin to home', async ({ page }) => {
     await page.goto('/admin');
     await page.waitForURL('**/');
@@ -34,7 +34,7 @@ test.describe('Smoke tests — admin protection', () => {
   });
 });
 
-test.describe('Smoke tests — OAuth callback', () => {
+test.describe('Smoke tests: OAuth callback', () => {
   test('/auth/callback renders the signing-in state', async ({ page }) => {
     await page.goto('/auth/callback');
     await expect(page.locator('text=Signing you in')).toBeVisible({ timeout: 10_000 });
@@ -47,7 +47,7 @@ test.describe('Smoke tests — OAuth callback', () => {
   });
 });
 
-test.describe('Smoke tests — responsive layout', () => {
+test.describe('Smoke tests: responsive layout', () => {
   test('mobile viewport shows the mobile dock', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/');
@@ -63,7 +63,7 @@ test.describe('Smoke tests — responsive layout', () => {
   });
 });
 
-test.describe('Smoke tests — deal detail', () => {
+test.describe('Smoke tests: deal detail', () => {
   test('deal detail page loads for a valid slug', async ({ page }) => {
     await page.goto('/deals');
     await page.waitForLoadState('networkidle');

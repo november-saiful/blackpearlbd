@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 /**
  * Returns `true` if the current device has a touchscreen.
- * Only checks once on mount — won't flip if a mouse is connected later.
+ * Only checks once on mount, won't flip if a mouse is connected later.
  */
 export function useTouchCapable() {
   const [canTouch, setCanTouch] = useState(false)

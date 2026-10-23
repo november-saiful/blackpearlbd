@@ -61,7 +61,7 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody>
                       {recentBookings.map((booking) => (
-                        <tr key={booking.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                        <tr key={booking.id} className="border-b border-border last:border-0 hover:bg-white/45 dark:hover:bg-white/10 transition-colors">
                           <td className="py-3 px-3">
                             <p className="text-sm font-medium text-foreground">{booking.user?.full_name || 'N/A'}</p>
                           </td>

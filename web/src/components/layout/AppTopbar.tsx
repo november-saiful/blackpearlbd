@@ -39,6 +39,7 @@ import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 
 import { formatCurrency } from '@/lib/utils'
 import { formatDealLocation } from '@/components/deals/deals-destination'
+import { humanizeDealText } from '@/lib/text'
 
 const PRIMARY_NAV = [
   { href: '/', label: 'Home' },
@@ -196,9 +197,9 @@ function NavLinkItem({
       className={cn(
         'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        'hover:bg-accent hover:text-accent-foreground',
+        'hover:bg-white/45 hover:text-accent-foreground dark:hover:bg-white/10',
         active
-          ? 'bg-accent text-foreground ring-1 ring-inset ring-border'
+          ? 'glass-chip text-foreground'
           : 'text-muted-foreground',
         className,
       )}
@@ -286,28 +287,31 @@ export function AppTopbar({ className }: { className?: string }) {
     return () => document.removeEventListener('keydown', onEscape)
   }, [mobileOpen])
 
-  const bookmarkItems: SwipeableListItem[] = bookmarks.map((deal) => ({
-    id: deal.id,
-    title: deal.title,
-    description: formatDealLocation(deal.destination, deal.sub_destination),
-    meta: formatCurrency(deal.price),
-    leading: (
-      <img
-        src={deal.image_url || '/placeholder-deal.jpg'}
-        alt={deal.title}
-        className="w-12 h-12 rounded-lg object-cover"
-      />
-    ),
-    rightActions: [
-      {
-        id: 'remove',
-        label: 'Remove',
-        icon: <Trash2 className="h-4 w-4" />,
-        tone: 'danger' as const,
-        onClick: () => removeBookmark(deal.id),
-      },
-    ],
-  }))
+  const bookmarkItems: SwipeableListItem[] = bookmarks.map((rawDeal) => {
+    const deal = humanizeDealText(rawDeal)
+    return {
+      id: deal.id,
+      title: deal.title,
+      description: formatDealLocation(deal.destination, deal.sub_destination),
+      meta: formatCurrency(deal.price),
+      leading: (
+        <img
+          src={deal.image_url || '/placeholder-deal.jpg'}
+          alt={deal.title}
+          className="w-12 h-12 rounded-lg object-cover"
+        />
+      ),
+      rightActions: [
+        {
+          id: 'remove',
+          label: 'Remove',
+          icon: <Trash2 className="h-4 w-4" />,
+          tone: 'danger' as const,
+          onClick: () => removeBookmark(deal.id),
+        },
+      ],
+    }
+  })
 
   const handleBookmarkClick = useCallback((item: SwipeableListItem) => {
     const deal = bookmarks.find((b) => b.id === item.id);
@@ -324,9 +328,8 @@ export function AppTopbar({ className }: { className?: string }) {
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
-  // The promo strip only makes sense at the very top of the home hero; on
-  // every other route it scrolls away above the sticky header.
-  const showAnnouncement = !isHome || !scrolled
+  // The promo strip belongs to the home hero only.
+  const showAnnouncement = isHome && !scrolled
 
   return (
     <>
@@ -338,15 +341,19 @@ export function AppTopbar({ className }: { className?: string }) {
         onQueryChange={setSearchQuery}
       />
 
+      {/*
+       * The hero follows the active theme, so the floating topbar uses the
+       * same tokens. Scrolling switches the header to its solid state.
+       */}
       <div className={cn(isHome && 'fixed inset-x-0 top-0 z-50')}>
         {showAnnouncement && (
-          <div className="w-full border-b border-border bg-gradient-to-r from-secondary via-background to-background">
+          <div className="w-full border-b border-white/40 bg-gradient-to-r from-secondary/50 via-white/35 to-white/25 backdrop-blur-xl dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-1.5 text-xs sm:text-sm">
-              <span className="rounded border border-border bg-background px-1.5 py-0.5 font-medium text-foreground">
+              <span className="glass-chip rounded px-1.5 py-0.5 font-medium text-foreground">
                 New
               </span>
               <span className="hidden text-muted-foreground sm:inline">
-                Winter escapes are live — handpicked tours across Cox's Bazar, Sylhet and the Sundarbans.
+                Winter escapes are live: handpicked tours across Cox's Bazar, Sylhet and the Sundarbans.
               </span>
               <span className="text-muted-foreground sm:hidden">
                 Winter escapes are live
@@ -364,13 +371,13 @@ export function AppTopbar({ className }: { className?: string }) {
 
         <header
           className={cn(
-            'z-50 border-b px-4 transition-colors duration-300 md:px-6 lg:px-[var(--site-gutter)]',
+            'z-50 border-b px-4 text-foreground transition-all duration-300 md:px-6 lg:px-[var(--site-gutter)]',
             isHome
               ? cn(
                   'border-transparent',
-                  scrolled && 'border-border bg-background/85 backdrop-blur-md',
+                  scrolled && 'glass-bar border-transparent',
                 )
-              : 'sticky top-0 border-border bg-background/85 backdrop-blur-md',
+              : 'glass-bar sticky top-0 border-transparent',
             className,
           )}
         >
@@ -412,9 +419,9 @@ export function AppTopbar({ className }: { className?: string }) {
                 <img
                   src="/logo.svg"
                   alt=""
-                  className="size-9 shrink-0 object-contain"
+                  className="size-9 shrink-0 object-contain dark:invert"
                 />
-                <span className="text-xl font-semibold tracking-tight md:text-2xl">
+                <span className="hidden text-xl font-semibold tracking-tight min-[360px]:inline md:text-2xl">
                   BlackPearl
                 </span>
               </Link>
@@ -436,7 +443,7 @@ export function AppTopbar({ className }: { className?: string }) {
                     aria-haspopup="true"
                     className={cn(
                       'rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors',
-                      'hover:bg-accent hover:text-accent-foreground',
+                      'hover:bg-white/45 hover:text-accent-foreground dark:hover:bg-white/10',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     )}
                   >
@@ -449,7 +456,7 @@ export function AppTopbar({ className }: { className?: string }) {
                       'group-focus-within:pointer-events-auto group-focus-within:opacity-100',
                     )}
                   >
-                    <div className="w-[340px] rounded-xl border border-border bg-popover p-2 shadow-xl">
+                    <div className="glass-strong w-[340px] rounded-xl p-2">
                       <ul className="space-y-1">
                         {QUICK_LINKS.map((link) => (
                           <li key={link.href}>
@@ -457,7 +464,7 @@ export function AppTopbar({ className }: { className?: string }) {
                               href={link.href}
                               target={link.external ? '_blank' : undefined}
                               rel={link.external ? 'noreferrer' : undefined}
-                              className="flex items-start gap-3 rounded-lg border border-transparent p-2.5 transition hover:border-border hover:bg-accent"
+                              className="flex items-start gap-3 rounded-lg border border-transparent p-2.5 transition hover:border-white/40 hover:bg-white/45 dark:hover:border-white/10 dark:hover:bg-white/10"
                             >
                               <link.icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                               <span className="min-w-0">
@@ -475,7 +482,7 @@ export function AppTopbar({ className }: { className?: string }) {
                           <li>
                             <Link
                               to="/admin"
-                              className="flex items-start gap-3 rounded-lg border border-transparent p-2.5 transition hover:border-border hover:bg-accent"
+                              className="flex items-start gap-3 rounded-lg border border-transparent p-2.5 transition hover:border-white/40 hover:bg-white/45 dark:hover:border-white/10 dark:hover:bg-white/10"
                             >
                               <LayoutDashboard className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                               <span className="min-w-0">
@@ -498,21 +505,21 @@ export function AppTopbar({ className }: { className?: string }) {
 
             {/* Right: search + actions + profile */}
             <div className="flex shrink-0 items-center gap-2">
-              {/* Search — styled like an input, opens the command palette */}
+              {/* Search: styled like an input, opens the command palette */}
               <button
                 type="button"
                 onClick={openPalette}
                 aria-label="Open search (⌘K)"
                 className={cn(
-                  'hidden h-9 items-center gap-2 rounded-md border border-input bg-background/60 px-3 text-sm text-muted-foreground transition-colors lg:flex',
+                  'glass-field hidden h-9 items-center gap-2 rounded-md px-3 text-sm text-muted-foreground transition-colors lg:flex',
                   'w-56 xl:w-72',
-                  'hover:bg-accent hover:text-foreground',
+                  'hover:bg-white/65 hover:text-foreground dark:hover:bg-white/10',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 )}
               >
                 <Search className="size-4 shrink-0" />
                 <span className="truncate">Search deals…</span>
-                <kbd className="ml-auto rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                <kbd className="glass-chip ml-auto rounded px-1.5 py-0.5 text-[10px] text-muted-foreground">
                   ⌘K
                 </kbd>
               </button>
@@ -703,7 +710,7 @@ export function AppTopbar({ className }: { className?: string }) {
       >
         <div
           className={cn(
-            'absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity',
+            'glass-scrim absolute inset-0 transition-opacity',
             mobileOpen ? 'opacity-100' : 'opacity-0',
           )}
           onClick={() => setMobileOpen(false)}
@@ -711,7 +718,7 @@ export function AppTopbar({ className }: { className?: string }) {
 
         <aside
           className={cn(
-            'absolute right-0 top-0 h-full w-80 max-w-[calc(100vw-0.75rem)] overflow-y-auto border-l border-border bg-popover p-4 shadow-2xl transition-transform',
+            'glass-strong absolute right-0 top-0 h-full w-80 max-w-[calc(100vw-0.75rem)] overflow-y-auto rounded-l-2xl p-4 transition-transform',
             mobileOpen ? 'translate-x-0' : 'translate-x-full',
           )}
           role="dialog"
@@ -725,13 +732,13 @@ export function AppTopbar({ className }: { className?: string }) {
               className="flex items-center gap-2"
               aria-label="BlackPearl home"
             >
-              <img src="/logo.svg" alt="" className="size-8 object-contain" />
+              <img src="/logo.svg" alt="" className="size-8 object-contain dark:invert" />
               <span className="text-lg font-semibold tracking-tight">BlackPearl</span>
             </Link>
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
-              className="inline-flex size-9 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="glass-field inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Close menu"
             >
               <svg
@@ -752,7 +759,7 @@ export function AppTopbar({ className }: { className?: string }) {
               setMobileOpen(false)
               openPalette()
             }}
-            className="mb-4 flex w-full items-center gap-2 rounded-md border border-input bg-background/80 px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="glass-field mb-4 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Search className="size-4 shrink-0" />
             Search deals, packages…
@@ -767,9 +774,9 @@ export function AppTopbar({ className }: { className?: string }) {
                 aria-current={isActive(item.href) ? 'page' : undefined}
                 className={cn(
                   'block rounded-md px-2.5 py-2 text-sm font-medium',
-                  'hover:bg-accent hover:text-accent-foreground',
+                  'hover:bg-white/45 hover:text-accent-foreground dark:hover:bg-white/10',
                   isActive(item.href)
-                    ? 'bg-accent text-foreground ring-1 ring-inset ring-border'
+                    ? 'glass-chip text-foreground'
                     : 'text-muted-foreground',
                 )}
               >
@@ -790,7 +797,7 @@ export function AppTopbar({ className }: { className?: string }) {
                   target={link.external ? '_blank' : undefined}
                   rel={link.external ? 'noreferrer' : undefined}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-start gap-2 rounded-lg border border-border p-2 text-sm text-foreground hover:bg-accent"
+                  className="glass-chip flex items-start gap-2 rounded-lg p-2 text-sm text-foreground hover:bg-white/60 dark:hover:bg-white/10"
                 >
                   <link.icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                   <span className="truncate">{link.title}</span>

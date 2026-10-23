@@ -100,7 +100,7 @@ export function NotificationBell() {
         <div
           ref={menuRef}
           role="menu"
-          className="absolute right-0 mt-2 w-80 max-h-96 overflow-hidden bg-background rounded-lg shadow-lg border border-border z-50"
+          className="glass-strong absolute right-0 mt-2 w-80 max-h-96 overflow-hidden rounded-xl z-50"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
@@ -126,8 +126,8 @@ export function NotificationBell() {
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={cn(
-                    'w-full text-left px-4 py-3 hover:bg-accent transition-colors border-b border-border/50 last:border-0',
-                    !notification.read_at && 'bg-secondary/5'
+                    'w-full text-left px-4 py-3 hover:bg-white/45 dark:hover:bg-white/10 transition-colors border-b border-foreground/10 last:border-0',
+                    !notification.read_at && 'bg-white/25 dark:bg-white/5'
                   )}
                   role="menuitem"
                 >

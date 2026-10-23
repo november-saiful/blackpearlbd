@@ -425,7 +425,7 @@ export function WheelPicker({
     return (
       <div
         className={cn(
-          'relative overflow-hidden rounded-lg border border-border bg-card',
+          'glass relative overflow-hidden rounded-xl',
           disabled && 'pointer-events-none opacity-50',
           className,
         )}
@@ -501,7 +501,7 @@ export function WheelPicker({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
       className={cn(
-        'relative touch-none overflow-hidden rounded-lg border border-border bg-card outline-none focus-visible:ring-2 focus-visible:ring-foreground/20',
+        'glass relative touch-none overflow-hidden rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-foreground/20',
         grabbing ? 'cursor-grabbing' : 'cursor-grab',
         disabled && 'pointer-events-none opacity-50',
         maskFade,

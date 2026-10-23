@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, MapPin, Calendar } from 'lucide-react';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
+import { humanizeDashes } from '@/lib/text';
 import { useInvoice } from '@/hooks/useBookings';
 import type { Booking } from '@/types';
 
@@ -13,8 +14,8 @@ interface BookingCardProps {
 export function BookingCard({ booking }: BookingCardProps) {
   const { downloadInvoice } = useInvoice(booking.id);
   
-  const destination = booking.deal?.destination || 'Custom Package';
-  const title = booking.deal?.title || booking.custom_package?.title || 'Trip';
+  const destination = humanizeDashes(booking.deal?.destination || 'Custom Package');
+  const title = humanizeDashes(booking.deal?.title || booking.custom_package?.title || 'Trip');
 
   return (
     <Card className="mb-4">

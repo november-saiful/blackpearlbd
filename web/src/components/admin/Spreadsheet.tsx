@@ -34,7 +34,7 @@ const SheetNavContext = createContext<SheetNav | null>(null);
 const CELL_BORDER = 'border-b border-r border-border last:border-r-0';
 const CELL_FRAME =
   'h-9 w-full bg-transparent px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60';
-const CELL_FOCUS = 'focus:bg-background focus:ring-2 focus:ring-inset focus:ring-primary/40';
+const CELL_FOCUS = 'focus:bg-white/60 focus:ring-2 focus:ring-inset focus:ring-primary/40 dark:focus:bg-white/10';
 
 /** Scroll container for a sheet. Enables sticky header + keyboard navigation. */
 export function SheetGrid({
@@ -67,7 +67,7 @@ export function SheetGrid({
       <div
         ref={containerRef}
         className={cn(
-          'overflow-auto rounded-xl border border-border bg-card shadow-sm',
+          'glass overflow-auto rounded-xl',
           maxHeight,
           className,
         )}
@@ -107,7 +107,7 @@ export function SheetHeadCell({
     <th
       scope="col"
       className={cn(
-        'sticky top-0 whitespace-nowrap border-b border-r border-border bg-muted px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground last:border-r-0',
+        'sticky top-0 whitespace-nowrap border-b border-r border-border bg-white/45 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-xl last:border-r-0 dark:bg-white/10',
         stickyLeft ? 'left-0 z-20' : 'z-10',
         className,
       )}
@@ -128,7 +128,7 @@ export interface SheetGutterReorder {
 
 /**
  * Sticky row-number gutter. Pass a muted `label` to visually group child rows.
- * Pass `reorder` to turn the number into a drag handle — drag it, or focus it
+ * Pass `reorder` to turn the number into a drag handle, drag it, or focus it
  * and press ↑/↓, to move the row among its siblings.
  */
 export function SheetGutterCell({
@@ -145,7 +145,7 @@ export function SheetGutterCell({
   return (
     <td
       className={cn(
-        'sticky left-0 z-[1] w-12 min-w-12 border-b border-r border-border bg-muted text-center align-middle text-[11px] font-medium tabular-nums transition-colors group-hover:bg-accent',
+        'sticky left-0 z-[1] w-12 min-w-12 border-b border-r border-border bg-white/45 text-center align-middle text-[11px] font-medium tabular-nums backdrop-blur-xl transition-colors group-hover:bg-white/60 dark:bg-white/10 dark:group-hover:bg-white/15',
         muted && 'text-muted-foreground/50',
         !muted && 'text-muted-foreground',
         className,
@@ -156,7 +156,7 @@ export function SheetGutterCell({
           type="button"
           draggable
           aria-label={reorder.label}
-          title={`${reorder.label} — drag, or press ↑/↓`}
+          title={`${reorder.label}: drag, or press ↑/↓`}
           onDragStart={reorder.onDragStart}
           onDragEnd={reorder.onDragEnd}
           onKeyDown={(event) => {
@@ -396,7 +396,7 @@ export function SheetInputCell({
         if (clearOnCommit) setDraft(value);
         return true;
       } catch {
-        // Toast already surfaced by the mutation hook — just roll the cell back.
+        // Toast already surfaced by the mutation hook, just roll the cell back.
         setDraft(value);
         return false;
       } finally {
@@ -486,7 +486,7 @@ export function SheetSelectCell({
   value,
   options,
   onCommit,
-  placeholder = '—',
+  placeholder = 'Not set',
   disabled,
   ariaLabel,
   className,
@@ -654,7 +654,7 @@ export function SheetDeleteCell({
               type="button"
               title="Cancel"
               onClick={() => setArmed(false)}
-              className="rounded border border-border p-1 text-muted-foreground transition-colors hover:bg-accent"
+              className="rounded border border-border p-1 text-muted-foreground transition-colors hover:bg-white/50 dark:hover:bg-white/10"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -686,7 +686,7 @@ export function SheetEmptyRow({ colSpan, children }: { colSpan: number; children
 
 function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground">
+    <kbd className="glass-chip rounded px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground">
       {children}
     </kbd>
   );

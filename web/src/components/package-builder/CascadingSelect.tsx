@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api';
 import type { Destination } from '@/types';
 
@@ -49,7 +50,16 @@ export function CascadingSelect({ value, onChange }: CascadingSelectProps) {
   };
 
   if (loading) {
-    return <div className="text-muted-foreground">Loading destinations...</div>;
+    return (
+      <div className="space-y-4" aria-busy="true" aria-label="Loading destinations">
+        {[0, 1].map((index) => (
+          <div key={index} className="space-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-10 w-full rounded-md" />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (

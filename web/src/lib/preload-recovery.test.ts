@@ -62,7 +62,7 @@ describe('installPreloadRecovery', () => {
     const event = browser.dispatchPreloadError(cssFailure);
 
     // The chunk still loads without its CSS, so the page renders and there is
-    // nothing to reload — reloading here is what used to loop forever.
+    // nothing to reload: reloading here is what used to loop forever.
     expect(event.defaultPrevented).toBe(true);
     expect(browser.reload).not.toHaveBeenCalled();
   });

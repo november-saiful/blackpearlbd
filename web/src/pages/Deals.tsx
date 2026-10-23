@@ -18,10 +18,12 @@ import { useDeals } from '@/hooks/useDeals';
 import { DealsPageSkeleton } from '@/components/skeletons/DealCardSkeleton';
 import { formatCurrency } from '@/lib/utils';
 import { formatDealLocation } from '@/components/deals/deals-destination';
+import { humanizeDealText } from '@/lib/text';
 import type { TourDeal } from '@/types';
 
 /** One deal, in the shape the grid's card list expects. */
-function toJobListing(deal: TourDeal): JobListing {
+function toJobListing(rawDeal: TourDeal): JobListing {
+  const deal = humanizeDealText(rawDeal);
   return {
     id: deal.id,
     title: deal.title,

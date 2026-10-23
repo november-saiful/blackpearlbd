@@ -83,7 +83,7 @@ function saveCached(data: Omit<GeoData, 'loaded'>) {
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
-    // quota exceeded – ignore
+    // quota exceeded, ignore
   }
 }
 

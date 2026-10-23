@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, MapPin, Package, Bookmark, ArrowLeft } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { SearchResultsSkeleton } from '@/components/skeletons/SearchResultsSkeleton';
 
 const typeConfig: Record<string, { label: string; color: string; icon: typeof Search }> = {
   deal: { label: 'Tour Deal', color: 'bg-primary/10 text-primary', icon: MapPin },
@@ -19,7 +20,7 @@ function SearchResultCard({ result }: { result: SearchResult }) {
   return (
     <Link
       to={result.href}
-      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+      className="glass glass-hover flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl transition-colors"
     >
       {result.imageUrl ? (
         <img
@@ -28,7 +29,7 @@ function SearchResultCard({ result }: { result: SearchResult }) {
           className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover flex-shrink-0"
         />
       ) : (
-        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+        <div className="glass-field w-12 h-12 sm:w-16 sm:h-16 rounded-lg flex items-center justify-center flex-shrink-0">
           <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
         </div>
       )}
@@ -53,7 +54,7 @@ export default function SearchResults() {
   const initialQuery = searchParams.get('q') || '';
   const [query, setQuery] = useState(initialQuery);
 
-  const { results } = useGlobalSearch(query);
+  const { results, isLoading } = useGlobalSearch(query);
 
   const handleSearch = (value: string) => {
     setQuery(value);
@@ -103,6 +104,8 @@ export default function SearchResults() {
           <Search className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground/30 mb-3 sm:mb-4" />
           <p className="text-sm sm:text-base text-muted-foreground">Start typing to search across deals, packages, and bookmarks</p>
         </div>
+      ) : isLoading ? (
+        <SearchResultsSkeleton />
       ) : results.length === 0 ? (
         <div className="text-center py-10 sm:py-16">
           <Search className="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-muted-foreground/30 mb-3 sm:mb-4" />

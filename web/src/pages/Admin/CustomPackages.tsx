@@ -67,7 +67,7 @@ export default function AdminCustomPackages() {
             <button
               type="button"
               aria-label="Switch destination table"
-              className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent/50 focus:outline-none focus:ring-2 focus:ring-foreground/20"
+              className="glass-field glass-hover inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-foreground/20"
             >
               <ActiveIcon className="size-4 text-muted-foreground" />
               {activeTable.label}
@@ -82,7 +82,7 @@ export default function AdminCustomPackages() {
                 <DropdownMenuItem
                   key={table.id}
                   onClick={() => selectTable(table.id)}
-                  className={cn('flex items-start gap-2.5 cursor-pointer py-2', isActive && 'bg-accent text-accent-foreground')}
+                  className={cn('flex items-start gap-2.5 cursor-pointer py-2', isActive && 'glass-chip text-accent-foreground')}
                 >
                   <Icon className="mt-0.5 size-4 shrink-0" />
                   <span className="flex flex-col">

@@ -1,59 +1,81 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
+import type { ButtonVariant, ControlSize } from "open-glass-ui"
 import { cn } from "@/lib/utils"
 
-const buttonVariants = cva("inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 [&>:focus-visible]:outline-none [&>:focus-visible]:ring-2 [&>:focus-visible]:ring-ring [&>:focus-visible]:ring-offset-2",
+/*
+ * The glass on this button is OpenGlass's: the recipe's own class vocabulary
+ * (`ogui-button`, `ogui-button--*`, `ogui-control--*`) driven by the theme
+ * tokens the GlassSystemProvider sets on the app root.
+ *
+ * Why not the `<Button>` recipe component itself: it is a plain function
+ * component that forwards no ref, and this app hands a ref to Button in every
+ * Radix `asChild` trigger (the deals sort menu, the profile popover, both
+ * topbar popovers). Dropping that ref is what parks a popper at
+ * `translate(0, -200%)`: off-screen and untappable. A real <button> keeps the
+ * ref (and `asChild`) while still wearing the recipe's classes.
+ */
 
+// The site's original variant/size names, mapped onto OpenGlass's, so the ~200
+// existing call sites keep their props. `link` has no recipe counterpart: it is
+// a quiet button underlined like a link.
+const VARIANTS = {
+  default: "primary",
+  destructive: "danger",
+  outline: "secondary",
+  secondary: "secondary",
+  ghost: "quiet",
+  link: "quiet",
+} as const satisfies Record<string, ButtonVariant>
 
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
-        // Icon-only rung that pairs with `sm` above, for components that keep a
-        // control as tall as the cell beside it (the reui filters/cascader
-        // chrome picks between the two). The svg guard in the base class is
-        // `not([class*='size-'])` on purpose: it sizes the svgs that carry no
-        // size of their own without overriding the ones that do.
-        "icon-sm": "h-9 w-9",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-)
+const SIZES = {
+  default: "medium",
+  sm: "small",
+  lg: "large",
+  icon: "medium",
+  "icon-sm": "small",
+} as const satisfies Record<string, ControlSize>
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+// Icon rungs carry the site's exact square dimensions instead of the recipe's
+// control height; the topbar and dock grids are laid out around them.
+const ICON_SIZES = {
+  icon: "ogui-icon-button h-10 w-10 min-h-0",
+  "icon-sm": "ogui-icon-button h-9 w-9 min-h-0",
+} as const
+
+export type ButtonVariantName = keyof typeof VARIANTS
+export type ButtonSizeName = keyof typeof SIZES
+
+export function buttonClasses(
+  variant: ButtonVariantName = "default",
+  size: ButtonSizeName = "default",
+  className?: string,
+) {
+  return cn(
+    "ogui-button whitespace-nowrap",
+    `ogui-button--${VARIANTS[variant]}`,
+    `ogui-control--${SIZES[size]}`,
+    size in ICON_SIZES ? ICON_SIZES[size as keyof typeof ICON_SIZES] : null,
+    variant === "link" && "underline underline-offset-4",
+    // Size the icons that carry no size of their own without overriding the
+    // ones that do.
+    "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+    className,
+  )
+}
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariantName
+  size?: ButtonSizeName
   asChild?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant = "default", size = "default", asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
+    return <Comp ref={ref} className={buttonClasses(variant, size, className)} {...props} />
+  },
 )
 Button.displayName = "Button"
 
-export { Button, buttonVariants }
+export { Button }

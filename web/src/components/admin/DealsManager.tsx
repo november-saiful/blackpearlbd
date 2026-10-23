@@ -21,6 +21,8 @@ import { DealDestinationPicker } from '@/components/deals/DealDestinationPicker'
 import { formatDealLocation } from '@/components/deals/deals-destination';
 import type { GeoPlace, GeoRoute, ItineraryPhase, RouteGeometry, TourDeal, Waypoint } from '@/types';
 import { Lightbox } from '@/components/ui/lightbox';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TableSkeleton } from '@/components/skeletons/TableSkeleton';
 
 /**
  * Place search results are cached per query for the session, so re-running the
@@ -36,7 +38,7 @@ const geocodeCache = new Map<string, GeoPlace[]>();
  */
 const NO_FOLDER_VALUE = '__no_folder__';
 
-/** `lat,lon|lat,lon` — the form the Worker's /geo/route expects. */
+/** `lat,lon|lat,lon`: the form the Worker's /geo/route expects. */
 function waypointParam(points: Waypoint[]): string {
   // Rounded to 4 decimals (~11m): Geoapify can reject full-precision Leaflet
   // coordinates that land between road segments.
@@ -102,7 +104,7 @@ export function DealsManager() {
   const [isPurgingGeoCache, setIsPurgingGeoCache] = useState(false);
   const [snappingWaypointIndex, setSnappingWaypointIndex] = useState<number | null>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  // Slug system. The slug is typed and checked for uniqueness — it is not a
+  // Slug system. The slug is typed and checked for uniqueness, it is not a
   // picker: choosing an existing folder here would mean two deals sharing one
   // folder, which is exactly what the per-deal folder exists to prevent.
   const [slugError, setSlugError] = useState('');
@@ -311,7 +313,7 @@ export function DealsManager() {
     } catch (err: any) {
       setFormData((current) => ({ ...current, route_geometry: null }));
       setRouteStats(null);
-      setRouteMessage(err.message || 'Route unavailable — drop a point manually or try again. The waypoints can still be saved.');
+      setRouteMessage(err.message || 'Route unavailable: drop a point manually or try again. The waypoints can still be saved.');
     } finally {
       setIsGeneratingRoute(false);
     }
@@ -394,7 +396,7 @@ export function DealsManager() {
       if (moved) {
         // The old distance/time no longer describes this route.
         setRouteStats(null);
-        setRouteMessage('Stop moved to the nearest road — generate the route again to update it.');
+        setRouteMessage('Stop moved to the nearest road, generate the route again to update it.');
       }
       toast.success(moved ? 'Stop snapped to the nearest road' : 'Stop is already on the nearest road');
     } catch (error: any) {
@@ -407,7 +409,7 @@ export function DealsManager() {
   // Snap a waypoint to the nearest road using reverse geocoding.
   //
   // Only the pin and its geocoded reference move. The title the admin typed and
-  // the photo they assigned to this stop are theirs to keep — rebuilding the
+  // the photo they assigned to this stop are theirs to keep, rebuilding the
   // object here used to drop both, so an off-road pin silently un-assigned the
   // stop's polaroid mid-edit and overwrote its name with the geocoded address.
   const snapToNearestRoad = async (point: Waypoint): Promise<Waypoint> => {
@@ -594,7 +596,7 @@ export function DealsManager() {
         toast.success(`${removed} ${word} removed with their images`);
       } else if (removed === 0) {
         if (skipped > 0 && skipped === results.length) {
-          toast.error('None removed — selected deals still have bookings');
+          toast.error('None removed: selected deals still have bookings');
         } else {
           toast.error('Remove failed');
         }
@@ -683,7 +685,7 @@ export function DealsManager() {
 
   /**
    * Adds or removes an image from the gallery by URL. Images are referenced
-   * where they already live in storage — nothing is copied, so reusing one
+   * where they already live in storage, nothing is copied, so reusing one
    * across deals never duplicates the file.
    */
   const toggleGalleryImage = (url: string) => {
@@ -873,10 +875,10 @@ export function DealsManager() {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? <div className="text-center py-12 text-muted-foreground">Loading...</div> : (
+        {isLoading ? <TableSkeleton columns={7} withCheckbox /> : (
           <div className="overflow-x-auto">
             {selectedIds.size > 0 && (
-              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+              <div className="glass-chip mb-3 flex flex-wrap items-center gap-2 rounded-lg px-3 py-2">
                 <span className="text-sm font-medium">{selectedIds.size} selected</span>
                 <Button
                   size="sm"
@@ -912,7 +914,7 @@ export function DealsManager() {
                 <th className="text-right py-3 px-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr></thead>
               <tbody>{deals.map((deal) => (
-                <tr key={deal.id} className={'border-b border-border last:border-0 hover:bg-muted/50 transition-colors ' + (selectedIds.has(deal.id) ? 'bg-muted/40' : '')}>
+                <tr key={deal.id} className={'border-b border-border last:border-0 hover:bg-white/45 dark:hover:bg-white/10 transition-colors ' + (selectedIds.has(deal.id) ? 'bg-white/40 dark:bg-white/10' : '')}>
                   <td className="py-3 px-2">
                     <input
                       type="checkbox"
@@ -923,7 +925,7 @@ export function DealsManager() {
                     />
                   </td>
                   <td className="py-3 px-3"><div className="min-w-0"><p className="text-sm font-medium text-foreground truncate">{deal.title}</p><p className="text-xs text-muted-foreground truncate sm:hidden">{formatDealLocation(deal.destination, deal.sub_destination)}</p>{deal.is_featured && <span className="inline-block mt-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Featured</span>}</div></td>
-                  <td className="py-3 px-3 text-sm text-muted-foreground font-mono hidden lg:table-cell">{deal.deal_code || '—'}</td>
+                  <td className="py-3 px-3 text-sm text-muted-foreground font-mono hidden lg:table-cell">{deal.deal_code || 'Not set'}</td>
                   <td className="py-3 px-3 text-sm text-muted-foreground hidden sm:table-cell">{formatDealLocation(deal.destination, deal.sub_destination)}</td>
                   <td className="py-3 px-3 text-sm font-medium text-foreground">{formatCurrency(deal.price)}</td>
                   <td className="py-3 px-3 text-sm text-muted-foreground hidden md:table-cell">{deal.duration_days} days</td>
@@ -965,7 +967,7 @@ export function DealsManager() {
                 <Label>Slug URL *</Label>
                 {isEditModalOpen ? (
                   <div>
-                    <Input value={formData.slug} disabled className="bg-muted font-mono text-sm" />
+                    <Input value={formData.slug} disabled className="font-mono text-sm" />
                     <p className="mt-1 text-[11px] text-muted-foreground">Slug cannot be changed after creation (folder structure).</p>
                   </div>
                 ) : slugConfirmed ? (
@@ -1127,7 +1129,7 @@ export function DealsManager() {
               <div className="col-span-1 sm:col-span-2">
                 <Label>Deal Gallery</Label>
                 {!slugConfirmed && !isEditModalOpen ? (
-                  <div className="rounded-lg border-2 border-dashed p-8 text-center bg-muted/30">
+                  <div className="glass-soft rounded-xl border-2 border-dashed p-8 text-center">
                     <FolderOpen className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
                     <p className="text-sm text-muted-foreground">Create and confirm a slug folder first to upload media.</p>
                     <p className="text-xs text-muted-foreground/70 mt-1">The slug determines the storage folder for all media files.</p>
@@ -1138,7 +1140,7 @@ export function DealsManager() {
                 
                 {/* Upload area */}
                 <div
-                  className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="glass-soft flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-colors hover:bg-white/50 dark:hover:bg-white/10"
                   onClick={() => galleryInputRef.current?.click()}
                   onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                   onDrop={(e) => {
@@ -1216,15 +1218,17 @@ export function DealsManager() {
                     </div>
 
                     <p className="mt-2 text-[11px] text-muted-foreground">
-                      Chosen images are referenced where they already live — nothing is copied into
+                      Chosen images are referenced where they already live, nothing is copied into
                       this deal's folder, so no duplicates are created.
                     </p>
 
                     {mediaFolder && (
                       <div className="mt-2">
                         {isLoadingMedia ? (
-                          <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground justify-center">
-                            <Loader2 className="w-4 h-4 animate-spin" />Loading media...
+                          <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
+                            {Array.from({ length: 6 }).map((_, index) => (
+                              <Skeleton key={index} className="aspect-square w-full rounded-lg" />
+                            ))}
                           </div>
                         ) : mediaError ? (
                           <div className="flex flex-col items-center gap-2 py-4">
@@ -1238,7 +1242,7 @@ export function DealsManager() {
                           <>
                             <p className="mb-3 text-center text-[11px] text-muted-foreground">
                               {existingImageFiles.filter((f) => formData.gallery.includes(f.url)).length} of{' '}
-                              {existingImageFiles.length} in the gallery — click an image to add or remove it.
+                              {existingImageFiles.length} in the gallery: click an image to add or remove it.
                             </p>
                             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
                               {existingImageFiles.map((file) => {
@@ -1259,7 +1263,7 @@ export function DealsManager() {
                                   >
                                     <img src={file.url} alt={file.key.split('/').pop()} className="w-full h-full object-cover" loading="lazy" />
                                     {inGallery && (
-                                      <div className="absolute inset-0 flex items-center justify-center bg-background/55">
+                                      <div className="glass-scrim absolute inset-0 flex items-center justify-center rounded-lg">
                                         <CheckCircle className="w-5 h-5 text-primary" />
                                       </div>
                                     )}
@@ -1354,7 +1358,7 @@ export function DealsManager() {
                           <button
                             type="button"
                             aria-label={formData.hidden_gallery.includes(url) ? 'Show in carousel' : 'Hide from carousel'}
-                            title={formData.hidden_gallery.includes(url) ? 'Hidden from carousel — click to show' : 'Visible in carousel — click to hide'}
+                            title={formData.hidden_gallery.includes(url) ? 'Hidden from carousel: click to show' : 'Visible in carousel: click to hide'}
                             className={'absolute top-1 left-1 z-10 flex h-5 w-5 items-center justify-center rounded-full transition-opacity hover:opacity-100 ' + (formData.hidden_gallery.includes(url) ? 'bg-amber-500 text-white opacity-90' : 'bg-black/55 text-white opacity-0 group-hover:opacity-70')}
                             onClick={(e) => { e.stopPropagation(); toggleCarouselHidden(url); }}
                           >
@@ -1396,7 +1400,7 @@ export function DealsManager() {
                 </div>
                 <p className="mt-1 text-[11px] text-muted-foreground">Search results are powered by Geoapify. OSM map tiles are used for display.</p>
                 {searchMessage && <p className="mt-2 text-xs text-amber-700" role="status">{searchMessage}</p>}
-                {searchResults.length > 0 && <div className="mt-2 divide-y rounded-md border bg-background">{searchResults.map((place, index) => <button type="button" key={place.id ?? `${place.lat}-${place.lon}-${index}`} className="block min-h-11 w-full px-3 py-2 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring" onClick={() => addWaypoint({ name: place.name || place.address || '', address: place.address || undefined, lat: place.lat, lng: place.lon })}>{place.address || place.name || 'Selected place'}</button>)}</div>}
+                {searchResults.length > 0 && <div className="glass-strong mt-2 divide-y divide-foreground/10 rounded-lg">{searchResults.map((place, index) => <button type="button" key={place.id ?? `${place.lat}-${place.lon}-${index}`} className="block min-h-11 w-full px-3 py-2 text-left text-sm hover:bg-white/50 focus-visible:bg-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring dark:hover:bg-white/10 dark:focus-visible:bg-white/10" onClick={() => addWaypoint({ name: place.name || place.address || '', address: place.address || undefined, lat: place.lat, lng: place.lon })}>{place.address || place.name || 'Selected place'}</button>)}</div>}
                 <DealRouteMap waypoints={formData.route_waypoints} geometry={formData.route_geometry} editable onMapClick={addMapWaypoint} className="mt-3 h-72" />
                 <div className="mt-3 space-y-2">
                   {formData.route_waypoints.map((point, index) => {
@@ -1424,7 +1428,7 @@ export function DealsManager() {
                           <Input
                             value={point.name}
                             onChange={(event) => updateWaypointName(index, event.target.value)}
-                            placeholder={`Title for stop ${index + 1} — e.g. Sunset camp`}
+                            placeholder={`Title for stop ${index + 1}, e.g. Sunset camp`}
                             aria-label={`Title for stop ${index + 1}`}
                             className="h-10 min-w-0 sm:h-8"
                           />
@@ -1472,7 +1476,7 @@ export function DealsManager() {
                     return [waypointRow, imageSelector];
                   })}
                   {formData.route_waypoints.length === 0 && <p className="text-xs text-muted-foreground">No stops yet. Search for a place or click anywhere on the map.</p>}
-                  {formData.route_waypoints.length > 1 && <p className="text-xs text-muted-foreground">Each stop's title is free text — type whatever the stop should be called, it does not have to match the address underneath. Drag stops to change the route order. Use the arrow buttons on touch devices. Reordering or adding/removing a stop requires generating the route again; renaming a stop does not. The pin button re-snaps a stop to the nearest road.</p>}
+                  {formData.route_waypoints.length > 1 && <p className="text-xs text-muted-foreground">Each stop's title is free text, type whatever the stop should be called, it does not have to match the address underneath. Drag stops to change the route order. Use the arrow buttons on touch devices. Reordering or adding/removing a stop requires generating the route again; renaming a stop does not. The pin button re-snaps a stop to the nearest road.</p>}
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-3"><Button type="button" variant="outline" onClick={generateRoute} disabled={isGeneratingRoute || formData.route_waypoints.length < 2}>{isGeneratingRoute ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}{isGeneratingRoute ? 'Generating route...' : 'Generate route'}</Button>{routeStats && <span className="text-sm text-muted-foreground">{(routeStats.distance / 1000).toFixed(1)} km · {(routeStats.time / 60).toFixed(0)} min</span>}</div>
                 {routeMessage && <p className={'mt-2 text-xs ' + (routeMessage.includes('ready') ? 'text-emerald-700' : 'text-amber-700')} role="status">{routeMessage}</p>}
@@ -1487,7 +1491,7 @@ export function DealsManager() {
                       Itinerary Phases
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Add the steps of this tour in order — a one-day tour can have several phases. This appears as an animated timeline on the deal page.
+                      Add the steps of this tour in order, a one-day tour can have several phases. This appears as an animated timeline on the deal page.
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -1499,7 +1503,7 @@ export function DealsManager() {
                   {formData.itinerary.map((phase, index) => (
                     <div
                       key={index}
-                      className="rounded-lg border p-3 bg-muted/30"
+                      className="glass-chip rounded-lg p-3"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-xs font-bold text-white">

@@ -179,7 +179,7 @@ function SwipeActionButton({
     >
       <span
         className={cn(
-          "grid h-9 w-9 place-items-center rounded-full transition-[background-color,color,transform] duration-150 group-hover:bg-background group-active:scale-95",
+          "grid h-9 w-9 place-items-center rounded-full transition-[background-color,color,transform] duration-150 group-hover:bg-white/60 group-active:scale-95 dark:group-hover:bg-white/10",
           ACTION_TONE_CLASS[action.tone ?? "neutral"],
         )}
       >
@@ -402,7 +402,7 @@ function SwipeableListRow({
   return (
     <div
       className={cn(
-        "relative isolate overflow-hidden rounded-lg bg-muted",
+        "glass-soft relative isolate overflow-hidden rounded-lg",
         item.disabled && "opacity-60",
         classNames?.item,
       )}
@@ -454,7 +454,7 @@ function SwipeableListRow({
         className={cn(
           // `touch-pan-y`, not `touch-none`: the row owns the horizontal
           // swipe, the page keeps the vertical scroll through it.
-          "relative z-10 min-h-[72px] cursor-grab touch-pan-y rounded-lg border border-border bg-card px-4 py-3 shadow-sm active:cursor-grabbing",
+          "glass-field relative z-10 min-h-[72px] cursor-grab touch-pan-y rounded-lg px-4 py-3 active:cursor-grabbing",
           // The swipe is the row's, but what it carries is the consumer's:
           // selection is only suppressed where the platform runs its own press
           // gestures, so a mouse can still select and copy the row's text.

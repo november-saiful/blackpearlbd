@@ -4,8 +4,8 @@ import { useQueries } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { DealDetail as DealDetailComponent } from '@/components/deals/DealDetail';
 import { useRelatedDeals } from '@/hooks/useRelatedDeals';
-import { Loader2 } from 'lucide-react';
-import { applyDealMeta } from '@/components/layout/PageTitle';
+import { DealDetailSkeleton } from '@/components/skeletons/DealDetailSkeleton';
+import { applyDealMeta, applyDealNotFoundMeta } from '@/components/layout/PageTitle';
 import { formatDealLocation } from '@/components/deals/deals-destination';
 
 export default function DealDetailPage() {
@@ -39,12 +39,14 @@ export default function DealDetailPage() {
     }
   }, [deal]);
 
+  // Mirrors what the edge renderer writes for the same URL, so the title does
+  // not fall back to the generic pending one once the app takes over.
+  useEffect(() => {
+    if (!isLoading && !deal) applyDealNotFoundMeta();
+  }, [isLoading, deal]);
+
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <DealDetailSkeleton />;
   }
 
   if (!deal) {

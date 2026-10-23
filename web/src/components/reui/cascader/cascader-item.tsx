@@ -58,7 +58,7 @@ const INDICATOR_CLASS =
 // The row's type, gap, radius and icon size per style. No horizontal padding:
 // every row pairs this with `ROW_FLUSH_CLASS` or `ROW_GUTTER_CLASS`.
 const ROW_THEME_CLASS =
-  "data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&:not([data-variant=destructive])]:data-[highlighted]:[&_*]:text-accent-foreground [&_svg:not([class*='size-'])]:size-4 rounded-md py-1"
+  "data-[highlighted]:bg-white/55 data-[highlighted]:text-accent-foreground [&:not([data-variant=destructive])]:data-[highlighted]:[&_*]:text-accent-foreground [&_svg:not([class*='size-'])]:size-4 rounded-md py-1 dark:data-[highlighted]:bg-white/10"
 
 /**
  * The row's gap and type, per style, held apart from the rest of the theme.
@@ -87,7 +87,7 @@ const CASCADER_ACTION_INSET_CLASS = `${ROW_INSET_CLASS} ${ROW_FLUSH_CLASS}`
  *  leave a command painted as if it were still hovered. Disabled keys off
  *  `aria-disabled`, not `:disabled`, to keep it FOCUSABLE: a footer whose only
  *  row is disabled has no tab stop. */
-export const CASCADER_ACTION_CLASS = `${ROW_SHELL_CLASS} ${ROW_TEXT_CLASS} ${ROW_FLUSH_CLASS} hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground cursor-pointer gap-2 transition-colors aria-disabled:pointer-events-none aria-disabled:opacity-50`
+export const CASCADER_ACTION_CLASS = `${ROW_SHELL_CLASS} ${ROW_TEXT_CLASS} ${ROW_FLUSH_CLASS} hover:bg-white/45 hover:text-accent-foreground focus-visible:bg-white/45 focus-visible:text-accent-foreground dark:hover:bg-white/10 dark:focus-visible:bg-white/10 cursor-pointer gap-2 transition-colors aria-disabled:pointer-events-none aria-disabled:opacity-50`
 
 // The box around the affordances that are not the row. 20px around a 16px icon,
 // the outer 2px cancelled at the call site; 24px would set the row height.

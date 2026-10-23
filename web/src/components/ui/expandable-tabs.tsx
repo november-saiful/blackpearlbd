@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 export type ExpandableTabsItem = {
   id: string;
-  /** String label — shown inside the active tab and used as the button's accessible name. */
+  /** String label: shown inside the active tab and used as the button's accessible name. */
   label: string;
   icon: ReactNode;
   /** Panel shown above the bar when this tab is active. */
@@ -220,7 +220,7 @@ export function ExpandableTabs({
     [controlled, onValueChange],
   );
 
-  // Outside click / Escape closes — it behaves like an open menu.
+  // Outside click / Escape closes, it behaves like an open menu.
   useEffect(() => {
     if (!visualActiveId) return;
     const onPointer = (e: PointerEvent) => {
@@ -279,7 +279,7 @@ export function ExpandableTabs({
         transition={reduce ? { duration: 0 } : SHELL_SPRING}
         style={{ transformOrigin: "bottom center" }}
         className={cn(
-          "relative overflow-hidden rounded-[26px] border border-border bg-card",
+          "glass relative overflow-hidden rounded-[26px]",
           className,
           classNames?.root,
         )}

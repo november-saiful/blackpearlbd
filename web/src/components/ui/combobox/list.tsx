@@ -71,8 +71,8 @@ export function ComboboxItem({
       disabled={disabled}
       onClick={() => onValueChange(value)}
       className={cn(
-        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left transition-colors hover:bg-accent/50 focus:bg-accent/50 focus:outline-none',
-        isSelected && 'bg-accent/30',
+        'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left transition-colors hover:bg-white/50 focus:bg-white/50 focus:outline-none dark:hover:bg-white/10 dark:focus:bg-white/10',
+        isSelected && 'bg-white/60 dark:bg-white/15',
         disabled && 'pointer-events-none opacity-50',
         className,
       )}

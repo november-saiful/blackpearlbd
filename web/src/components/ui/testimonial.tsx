@@ -39,7 +39,7 @@ const AnimatedTestimonials = ({
   const randomRotate = () => `${Math.floor(Math.random() * 16) - 8}deg`;
 
   return (
-    <div className="mx-auto max-w-sm px-4 py-20 font-sans antialiased md:max-w-4xl md:px-8 lg:px-12">
+    <div className="glass mx-auto max-w-sm rounded-3xl px-4 py-12 font-sans antialiased md:max-w-4xl md:px-8 lg:px-12">
       <div className="relative grid grid-cols-1 gap-y-12 md:grid-cols-2 md:gap-x-20">
         {/* Image Section */}
         <div className="flex items-center justify-center">
@@ -69,9 +69,12 @@ const AnimatedTestimonials = ({
                     width={500}
                     height={500}
                     draggable={false}
-                    className="h-full w-full rounded-3xl object-cover shadow-2xl"
+                    className="h-full w-full rounded-3xl object-cover"
                     onError={(e) => {
-                      e.currentTarget.src = `https://placehold.co/500x500/e2e8f0/64748b?text=${testimonial.name.charAt(0)}`;
+                      const initial = testimonial.name.charAt(0).replace(/[<>&"']/g, '');
+                      e.currentTarget.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+                        `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500"><text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, serif" font-size="220" fill="rgba(100,116,139,0.5)">${initial}</text></svg>`,
+                      )}`;
                       e.currentTarget.onerror = null;
                     }}
                   />
@@ -123,14 +126,14 @@ const AnimatedTestimonials = ({
             <button
               onClick={handlePrev}
               aria-label="Previous testimonial"
-              className="group flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 dark:bg-slate-800 dark:hover:bg-slate-700 dark:focus:ring-slate-500"
+              className="glass-field group flex h-10 w-10 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-white/70 dark:hover:bg-white/15"
             >
               <ArrowLeft className="h-5 w-5 text-slate-800 transition-transform duration-300 group-hover:-translate-x-1 dark:text-slate-300" />
             </button>
             <button
               onClick={handleNext}
               aria-label="Next testimonial"
-              className="group flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 transition-colors hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 dark:bg-slate-800 dark:hover:bg-slate-700 dark:focus:ring-slate-500"
+              className="glass-field group flex h-10 w-10 items-center justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 hover:bg-white/70 dark:hover:bg-white/15"
             >
               <ArrowRight className="h-5 w-5 text-slate-800 transition-transform duration-300 group-hover:translate-x-1 dark:text-slate-300" />
             </button>

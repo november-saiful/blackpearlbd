@@ -2,7 +2,7 @@ import type { ItineraryPhase, TourDeal } from '@/types';
 
 /**
  * Itinerary entries used to be stored as days (`{ day, title, description }`).
- * They are now phases — a one-day tour can have several phases — so rows written
+ * They are now phases (a one-day tour can have several phases), so rows written
  * before the rename still carry `day` and have no `photos`. Normalize on every
  * read so the rest of the app can rely on the `ItineraryPhase` shape.
  */

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, MapPin, Calendar } from 'lucide-react';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
+import { humanizeDashes } from '@/lib/text';
 import { useInvoice } from '@/hooks/useBookings';
 import type { Booking } from '@/types';
 
@@ -14,8 +15,8 @@ interface ToursSectionProps {
 function TourCard({ booking }: { booking: Booking }) {
   const { downloadInvoice } = useInvoice(booking.id);
   
-  const destination = booking.deal?.destination || 'Custom Package';
-  const title = booking.deal?.title || booking.custom_package?.title || 'Trip';
+  const destination = humanizeDashes(booking.deal?.destination || 'Custom Package');
+  const title = humanizeDashes(booking.deal?.title || booking.custom_package?.title || 'Trip');
   const date = booking.deal 
     ? `${booking.deal.duration_days} days`
     : booking.custom_package?.travel_date || 'N/A';

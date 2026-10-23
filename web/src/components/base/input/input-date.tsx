@@ -11,7 +11,7 @@ export function DateInput({ className, ...props }: RACDateInputProps) {
     <RACDateInput
       className={(values) =>
         cn(
-          "flex h-10 w-full min-w-0 items-center gap-0.5 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground",
+          "glass-field flex h-10 w-full min-w-0 items-center gap-0.5 rounded-lg px-3 py-2 text-sm text-foreground",
           "focus-within:outline-none focus-within:ring-2 focus-within:ring-ring/20 focus-within:border-foreground/40",
           "disabled:cursor-not-allowed disabled:opacity-50",
           typeof className === "function" ? className(values) : className,
@@ -34,7 +34,7 @@ export function DateSegment({
           type === "literal" && "text-muted-foreground",
           isPlaceholder ? "text-muted-foreground" : "text-foreground",
           isInvalid && "text-destructive",
-          isFocused && "bg-muted text-foreground",
+          isFocused && "bg-white/55 text-foreground dark:bg-white/10",
           className,
         )
       }

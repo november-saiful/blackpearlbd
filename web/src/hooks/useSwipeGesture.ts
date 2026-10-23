@@ -52,7 +52,7 @@ export function useSwipeGesture({
       const dx = touch.clientX - touchStart.current.x
       const dy = Math.abs(touch.clientY - touchStart.current.y)
 
-      // If the user has moved more vertically than our tolerance, abort —
+      // If the user has moved more vertically than our tolerance, abort,
       // they're scrolling, not swiping.
       if (dy > verticalThreshold) {
         touchStart.current = null

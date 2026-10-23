@@ -15,13 +15,15 @@ import { Timeline, getThemeForDeal } from '@/components/ui/timeline';
 import { RelatedPackages } from '@/components/deals/RelatedPackages';
 import { ReviewList } from '@/components/reviews/ReviewList';
 import { formatDealLocation } from './deals-destination';
+import { humanizeDealText } from '@/lib/text';
 import type { TourDeal } from '@/types';
 
 interface DealDetailProps {
   deal: TourDeal;
 }
 
-export function DealDetail({ deal }: DealDetailProps) {
+export function DealDetail({ deal: rawDeal }: DealDetailProps) {
+  const deal = humanizeDealText(rawDeal);
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isRouteOpen, setIsRouteOpen] = useState(false);
@@ -152,7 +154,7 @@ export function DealDetail({ deal }: DealDetailProps) {
         </div>
       </div>
 
-      {/* Timeline Itinerary + About this tour — two columns on md+ */}
+      {/* Timeline Itinerary + About this tour, two columns on md+ */}
       <div className="grid md:grid-cols-2 items-stretch gap-6 mb-6">
         {/* Timeline Itinerary */}
         {deal.itinerary && deal.itinerary.length > 0 && (
@@ -250,7 +252,7 @@ export function DealDetail({ deal }: DealDetailProps) {
             </Card>
           )}
 
-          {/* Inline route map — fills the remaining vertical space */}
+          {/* Inline route map: fills the remaining vertical space */}
           {routeWaypoints.length > 0 && (
             <Card className="hidden md:flex flex-col flex-1 min-h-0 overflow-hidden shadow-md ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
               <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -276,7 +278,7 @@ export function DealDetail({ deal }: DealDetailProps) {
                   {routeWaypoints.map((waypoint, index) => (
                     <li
                       key={`${waypoint.lat}-${waypoint.lng}-${index}`}
-                      className="flex min-h-10 items-center gap-3 rounded-md bg-muted/50 px-3 py-2 text-sm"
+                      className="glass-chip flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm"
                     >
                       <span
                         aria-hidden="true"
@@ -303,7 +305,7 @@ export function DealDetail({ deal }: DealDetailProps) {
       </div>
 
       {/*
-        Stored route — public pages only render the saved geometry; no routing API call.
+        Stored route: public pages only render the saved geometry; no routing API call.
         It lives behind a floating button pinned to the bottom centre of the viewport:
         the map expands into a card on click and collapses when anything outside the
         card is tapped.
@@ -314,7 +316,7 @@ export function DealDetail({ deal }: DealDetailProps) {
           onClick={() => setIsRouteOpen(true)}
           aria-expanded={false}
           aria-controls="tour-route-panel"
-          className="fixed bottom-28 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden"
+          className="glass-primary fixed bottom-28 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition-transform hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:hidden"
         >
           <Route className="h-5 w-5" />
           Tour route
@@ -332,7 +334,7 @@ export function DealDetail({ deal }: DealDetailProps) {
             list never reaches the dismiss surface. Escape stays for keyboards.
           */}
           <div
-            className="fixed inset-0 z-[60] animate-in fade-in bg-black/40 backdrop-blur-sm duration-200"
+            className="glass-scrim fixed inset-0 z-[60] animate-in fade-in duration-200"
             onClick={() => setIsRouteOpen(false)}
             aria-hidden="true"
           />
@@ -344,7 +346,7 @@ export function DealDetail({ deal }: DealDetailProps) {
             aria-labelledby="tour-route-title"
             className="fixed inset-x-4 bottom-28 z-[70] md:bottom-6 md:left-1/2 md:right-auto md:w-[42rem] md:-translate-x-1/2"
           >
-            <div className="flex max-h-[min(70vh,34rem)] animate-in fade-in slide-in-from-bottom-4 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl duration-200 md:max-h-[min(82vh,44rem)]">
+            <div className="glass-strong flex max-h-[min(70vh,34rem)] animate-in fade-in slide-in-from-bottom-4 flex-col overflow-hidden rounded-2xl duration-200 md:max-h-[min(82vh,44rem)]">
               <div className="border-b border-border px-4 py-3">
                 <h2 id="tour-route-title" className="flex items-center gap-2 text-base font-semibold text-foreground">
                   <MapPin className="h-4 w-4 shrink-0 text-secondary" />
@@ -363,7 +365,7 @@ export function DealDetail({ deal }: DealDetailProps) {
 
               <ol aria-label="Tour route stops" className="grid max-h-44 gap-2 overflow-y-auto border-t border-border p-3 sm:grid-cols-2">
                 {routeWaypoints.map((waypoint, index) => (
-                  <li key={`${waypoint.lat}-${waypoint.lng}-${index}`} className="flex min-h-10 items-center gap-3 rounded-md bg-muted/50 px-3 py-2 text-sm">
+                  <li key={`${waypoint.lat}-${waypoint.lng}-${index}`} className="glass-chip flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm">
                     <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">{index + 1}</span>
                     <span className="min-w-0 truncate">{waypoint.name?.trim() || waypoint.address?.trim() || `Stop ${index + 1}`}</span>
                   </li>

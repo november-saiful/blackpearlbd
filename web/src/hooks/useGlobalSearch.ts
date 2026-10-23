@@ -3,6 +3,7 @@ import { useDeals } from './useDeals';
 import { useBookings } from './useBookings';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { api } from '@/lib/api';
+import { humanizeDealText, humanizeDashes } from '@/lib/text';
 import { useQuery } from '@tanstack/react-query';
 import type { TourDeal, CustomPackage } from '@/types';
 
@@ -32,13 +33,13 @@ function fuzzyMatch(query: string, text: string): boolean {
 }
 
 export function useGlobalSearch(query: string) {
-  const { deals } = useDeals();
+  const { deals, isLoading: dealsLoading } = useDeals();
   // The same store every bookmark button writes to, so a deal bookmarked a
   // second ago is searchable, and guests' bookmarks show up too.
   const { bookmarks } = useBookmarkStore();
   const { bookings } = useBookings();
 
-  const { data: packagesData } = useQuery({
+  const { data: packagesData, isLoading: packagesLoading } = useQuery({
     queryKey: ['custom-packages'],
     queryFn: () => api.getCustomPackages(),
   });
@@ -52,7 +53,8 @@ export function useGlobalSearch(query: string) {
     const all: SearchResult[] = [];
 
     // Search deals
-    deals.forEach((deal) => {
+    deals.forEach((rawDeal) => {
+      const deal = humanizeDealText(rawDeal);
       const searchText = [
         deal.title,
         deal.destination,
@@ -75,7 +77,8 @@ export function useGlobalSearch(query: string) {
     });
 
     // Search bookmarks
-    bookmarks.forEach((deal) => {
+    bookmarks.forEach((rawDeal) => {
+      const deal = humanizeDealText(rawDeal);
       const searchText = [
         deal.title,
         deal.destination,
@@ -101,8 +104,9 @@ export function useGlobalSearch(query: string) {
 
     // Search custom packages
     packages.forEach((pkg) => {
+      const title = humanizeDashes(pkg.title || '');
       const searchText = [
-        pkg.title || '',
+        title,
         pkg.package_code || '',
         pkg.special_requests || '',
         pkg.status,
@@ -112,7 +116,7 @@ export function useGlobalSearch(query: string) {
         all.push({
           id: pkg.id,
           type: 'package',
-          title: pkg.title || 'Custom Package',
+          title: title || 'Custom Package',
           subtitle: pkg.package_code || `Status: ${pkg.status}`,
           dealCode: pkg.package_code,
           price: pkg.budget || pkg.estimated_price || undefined,
@@ -125,5 +129,5 @@ export function useGlobalSearch(query: string) {
     return all;
   }, [query, deals, bookmarks, packages]);
 
-  return { results };
+  return { results, isLoading: dealsLoading || packagesLoading };
 }

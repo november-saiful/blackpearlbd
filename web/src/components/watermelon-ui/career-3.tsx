@@ -19,7 +19,7 @@ export interface JobListing {
   department: Department;
   href?: string;
   tags?: string[];
-  /** The full deal — the card renders itself straight from this. */
+  /** The full deal: the card renders itself straight from this. */
   deal: TourDeal;
 }
 
@@ -83,7 +83,7 @@ function JobCard({ job }: JobCardProps) {
         <AnimatedBookmarkButton
           isBookmarked={bookmarked}
           onClick={() => toggleBookmark(job.deal)}
-          className="rounded-full bg-white/90 shadow-md backdrop-blur-sm hover:bg-white"
+          className="glass-field rounded-full"
         />
       }
     />
@@ -151,7 +151,7 @@ export default function Career3({
            * each tab, and every option is a 40px-tall tap target.
            */
           <div className="mt-6 flex w-full justify-center sm:mt-10">
-            <div className="no-scrollbar w-full max-w-6xl snap-x scroll-pl-1 overflow-x-auto rounded-full border border-border bg-muted p-1">
+            <div className="glass-soft no-scrollbar w-full max-w-6xl snap-x scroll-pl-1 overflow-x-auto rounded-full p-1">
               <div className="flex min-w-max items-center justify-start gap-1 md:min-w-full md:justify-center">
                 {tabs.map((dept) => (
                   <button
@@ -160,8 +160,8 @@ export default function Career3({
                     aria-pressed={active === dept}
                     className={`min-h-10 shrink-0 snap-start rounded-full px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:px-5 ${
                       active === dept
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "glass-chip text-foreground"
+                        : "text-muted-foreground hover:bg-white/35 hover:text-foreground dark:hover:bg-white/10"
                     }`}
                   >
                     {dept}
@@ -199,15 +199,15 @@ export default function Career3({
                 onClick={() => onCategoryChange?.(category.key)}
                 className={`inline-flex min-h-10 shrink-0 snap-start items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-medium transition-all duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${
                   isActive
-                    ? category.className ?? "border-foreground/20 bg-foreground text-background"
-                    : "border-border bg-background text-muted-foreground hover:border-foreground/25 hover:text-foreground"
-                } ${isActive ? "shadow-sm ring-1 ring-current/20" : ""}`}
+                    ? category.className ?? "glass-primary text-primary-foreground"
+                    : "glass-chip text-muted-foreground hover:border-foreground/25 hover:text-foreground"
+                } ${isActive ? "ring-1 ring-current/20" : ""}`}
               >
                 <span aria-hidden="true">{category.emoji}</span>
                 {category.label}
                 <span
                   className={`rounded-full px-1.5 text-[10px] font-semibold tabular-nums ${
-                    isActive ? "bg-black/10 dark:bg-white/15" : "bg-muted text-muted-foreground"
+                    isActive ? "bg-black/10 dark:bg-white/15" : "bg-white/50 text-muted-foreground dark:bg-white/10"
                   }`}
                 >
                   {category.count}

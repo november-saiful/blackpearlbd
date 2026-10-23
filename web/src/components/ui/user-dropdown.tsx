@@ -27,7 +27,7 @@ export type UserDropdownAction = 'profile' | 'admin' | 'help' | 'logout' | 'sign
 
 export interface UserDropdownUser {
   name?: string;
-  /** Second line under the name — the account email, or a hint when signed out. */
+  /** Second line under the name, the account email, or a hint when signed out. */
   username?: string;
   avatar?: string | null;
   initials?: string;
@@ -143,12 +143,9 @@ export function UserDropdown({
 
       <DropdownMenuContent
         align="end"
-        className={cn('no-scrollbar w-[310px] rounded-lg bg-gray-50 p-0 dark:bg-black/90', className)}
+        className={cn('no-scrollbar w-[310px] rounded-xl p-0', className)}
       >
-        {/* No backdrop-blur here: a backdrop-filter forces the panel onto its
-            own GPU layer, which disables ClearType subpixel text rendering and
-            makes every label look fuzzy. The section is opaque anyway. */}
-        <section className="rounded-lg border border-gray-200 bg-white p-1 shadow dark:border-gray-700/20 dark:bg-gray-100/10">
+        <section className="rounded-xl border border-white/45 bg-white/30 p-1 dark:border-white/10 dark:bg-white/5">
           <div className="flex items-center p-2">
             <div className="flex flex-1 items-center gap-2">
               <Avatar className="size-10 border border-white dark:border-gray-700">
@@ -166,8 +163,8 @@ export function UserDropdown({
               className={cn(
                 'rounded-full border-[0.5px] text-[11px] capitalize',
                 isAdmin
-                  ? 'border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-500/50 dark:bg-amber-900/30 dark:text-amber-400'
-                  : 'border-gray-300 bg-gray-100 text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400',
+                  ? 'border-amber-300/60 bg-amber-300/25 text-amber-800 backdrop-blur-md dark:border-amber-500/30 dark:bg-amber-400/10 dark:text-amber-300'
+                  : 'glass-chip text-muted-foreground',
               )}
             >
               {badgeText}
@@ -175,7 +172,7 @@ export function UserDropdown({
           </div>
 
           {/* Same sub-radio pattern the design uses for status, pointed at
-              the theme — inlined on narrow screens where it can't fit. */}
+              the theme: inlined on narrow screens where it can't fit. */}
           {narrow ? (
             <DropdownMenuGroup>
               <DropdownMenuLabel className="flex items-center gap-1.5 px-2 pb-1 text-xs font-medium text-muted-foreground">
@@ -187,7 +184,7 @@ export function UserDropdown({
                   key={option.value}
                   className={cn(
                     'cursor-pointer rounded-lg p-2',
-                    theme === option.value && 'bg-accent text-accent-foreground',
+                    theme === option.value && 'glass-chip text-accent-foreground',
                   )}
                   onClick={() => onThemeChange?.(option.value)}
                 >
@@ -208,7 +205,7 @@ export function UserDropdown({
                   </span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
-                  <DropdownMenuSubContent className="rounded-lg bg-white dark:bg-white/10">
+                  <DropdownMenuSubContent className="rounded-xl">
                     <DropdownMenuRadioGroup
                       value={theme}
                       onValueChange={(value) => onThemeChange?.(value as UserDropdownTheme)}

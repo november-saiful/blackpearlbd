@@ -29,9 +29,9 @@ export function StatsCards({ stats }: StatsCardsProps) {
             <p className="text-muted-foreground">Pearls</p>
             {tierInfo.next && (
               <div className="mt-2">
-                <div className="w-full bg-muted rounded-full h-2">
+                <div className="glass-chip w-full rounded-full h-2">
                   <div
-                    className="bg-primary h-2 rounded-full"
+                    className="glass-primary h-2 rounded-full"
                     style={{ width: `${tierInfo.progress}%` }}
                   />
                 </div>
@@ -48,7 +48,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
-            <p className={`text-2xl font-bold ${getTierColor(stats.status)}`}>
+            <p className={`inline-block rounded-full px-3 py-1 text-2xl font-bold ${getTierColor(stats.status)}`}>
               {stats.status.charAt(0).toUpperCase() + stats.status.slice(1)}
             </p>
             <p className="text-muted-foreground">Status</p>

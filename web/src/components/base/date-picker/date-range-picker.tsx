@@ -24,11 +24,11 @@ export function DateRangePicker({
     <RACDateRangePicker shouldCloseOnSelect={false} className={cn("w-full", className)} {...props}>
       {({ state }) => (
         <>
-          {/* Whole field is the trigger — click anywhere opens the range calendar */}
+          {/* Whole field is the trigger, click anywhere opens the range calendar */}
           <RACButton
             className={({ isHovered, isFocusVisible }) =>
               cn(
-                "flex h-10 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors",
+                "glass-field flex h-10 w-full min-w-0 cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors",
                 isHovered && "bg-accent/50",
                 isFocusVisible && "border-foreground/40 outline-none ring-2 ring-ring/20",
               )
@@ -42,7 +42,7 @@ export function DateRangePicker({
               )}
             >
               {state.value && state.value.start && state.value.end
-                ? `${formatter.format(state.value.start.toDate(getLocalTimeZone()))} – ${formatter.format(state.value.end.toDate(getLocalTimeZone()))}`
+                ? `${formatter.format(state.value.start.toDate(getLocalTimeZone()))} to ${formatter.format(state.value.end.toDate(getLocalTimeZone()))}`
                 : "Select date range"}
             </span>
           </RACButton>

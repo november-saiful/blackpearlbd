@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Check, Compass, Loader2, Plus, Search, X } from 'lucide-react';
+import { Check, Compass, Plus, Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePackageDestinations } from '@/hooks/useAdmin';
+import { TableSkeleton } from '@/components/skeletons/TableSkeleton';
 import type { PackageDestination } from '@/types';
 import {
   SheetBody,
@@ -377,10 +378,7 @@ export function DestinationManager() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading destinations…
-          </div>
+          <TableSkeleton columns={7} rows={6} />
         ) : (
           <>
             <SheetGrid>
@@ -546,7 +544,7 @@ export function DestinationManager() {
                         />
                         <td
                           className="border-b border-r border-border p-0 align-middle"
-                          title="Position comes from where this row sits — it is numbered on save"
+                          title="Position comes from where this row sits, it is numbered on save"
                         >
                           <span className="block px-3 text-xs text-muted-foreground">auto</span>
                         </td>
@@ -572,7 +570,7 @@ export function DestinationManager() {
                               type="button"
                               title="Discard this row"
                               onClick={() => dropDraft(draft.key)}
-                              className="rounded border border-border p-1 text-muted-foreground transition-colors hover:bg-accent"
+                              className="glass-chip rounded p-1 text-muted-foreground transition-colors hover:bg-white/60 dark:hover:bg-white/10"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
@@ -585,7 +583,7 @@ export function DestinationManager() {
                   {renderedRows.length === 0 && (
                     <SheetEmptyRow colSpan={7}>
                       {destinations.length === 0
-                        ? 'No destinations yet — use “Add row” to create the first one.'
+                        ? 'No destinations yet: use “Add row” to create the first one.'
                         : 'No destinations match this filter.'}
                     </SheetEmptyRow>
                   )}
@@ -597,7 +595,7 @@ export function DestinationManager() {
               <SheetHints>
                 <span className="inline-flex items-center gap-1.5">rows reorder within their category</span>
                 <span className="inline-flex items-center gap-1.5">
-                  unsaved rows can be dragged too — they are numbered where you drop them
+                  unsaved rows can be dragged too, they are numbered where you drop them
                 </span>
               </SheetHints>
               <p className="pt-3 text-[11px] text-muted-foreground">

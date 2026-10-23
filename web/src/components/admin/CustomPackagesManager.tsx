@@ -10,6 +10,7 @@ import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
 import { cn } from '@/lib/utils';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
 import { useAdminCustomPackages } from '@/hooks/useAdmin';
+import { TableSkeleton } from '@/components/skeletons/TableSkeleton';
 
 export function CustomPackagesManager() {
   const [page, setPage] = useState(1);
@@ -48,7 +49,7 @@ export function CustomPackagesManager() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+          <TableSkeleton columns={7} />
         ) : (
           <>
             <div className="overflow-x-auto">
@@ -66,13 +67,13 @@ export function CustomPackagesManager() {
                 </thead>
                 <tbody>
                   {customPackages.map((pkg) => (
-                    <tr key={pkg.id} className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors">
+                    <tr key={pkg.id} className="border-b border-border last:border-0 hover:bg-white/45 dark:hover:bg-white/10 transition-colors">
                       <td className="py-3 px-3">
                         <div className="min-w-0">
                           <p className="flex items-center gap-1.5 text-sm font-medium text-foreground truncate">
                             {pkg.user?.full_name || pkg.contact_name || 'N/A'}
                             {!pkg.user_id && (
-                              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              <span className="glass-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                                 Guest
                               </span>
                             )}
@@ -82,7 +83,7 @@ export function CustomPackagesManager() {
                           </p>
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-sm text-muted-foreground font-mono hidden lg:table-cell">{pkg.package_code || '—'}</td>
+                      <td className="py-3 px-3 text-sm text-muted-foreground font-mono hidden lg:table-cell">{pkg.package_code || 'Not set'}</td>
                       <td className="py-3 px-3 text-sm text-muted-foreground hidden sm:table-cell">{pkg.title || 'N/A'}</td>
                       <td className="py-3 px-3 text-sm font-medium text-foreground hidden md:table-cell">
                         {pkg.budget ? formatCurrency(pkg.budget) : 'N/A'}
@@ -146,7 +147,7 @@ export function CustomPackagesManager() {
             {selectedPackage && (
               <div className="space-y-4">
                 {selectedPackage.package_code && (
-                  <div className="bg-accent p-3 rounded-lg">
+                  <div className="glass-soft p-3 rounded-xl">
                     <Label className="text-muted-foreground">Package ID</Label>
                     <p className="font-mono font-medium text-lg">{selectedPackage.package_code}</p>
                   </div>
@@ -157,7 +158,7 @@ export function CustomPackagesManager() {
                       {selectedPackage.user_id ? 'User' : 'Guest'}
                     </Label>
                     <p className="font-medium">
-                      {selectedPackage.user?.full_name || selectedPackage.contact_name || '—'}
+                      {selectedPackage.user?.full_name || selectedPackage.contact_name || 'Not set'}
                     </p>
                   </div>
                   <div>
@@ -165,7 +166,7 @@ export function CustomPackagesManager() {
                       {selectedPackage.user_id ? 'Email' : 'Phone'}
                     </Label>
                     <p className="font-medium">
-                      {selectedPackage.user?.email || selectedPackage.contact_phone || '—'}
+                      {selectedPackage.user?.email || selectedPackage.contact_phone || 'Not set'}
                     </p>
                   </div>
                   <div>
@@ -195,18 +196,18 @@ export function CustomPackagesManager() {
                   <div>
                     <Label className="text-muted-foreground">Return Date</Label>
                     <p className="font-medium">
-                      {selectedPackage.return_date ? formatDate(selectedPackage.return_date) : '—'}
+                      {selectedPackage.return_date ? formatDate(selectedPackage.return_date) : 'Not set'}
                     </p>
                   </div>
                 </div>
                 {!selectedPackage.user_id && (
-                  <div className="rounded-lg bg-muted p-3 space-y-1">
+                  <div className="glass-chip rounded-lg p-3 space-y-1">
                     <p className="text-sm font-medium text-foreground">Guest request</p>
                     <p className="text-sm text-muted-foreground">
                       {selectedPackage.contact_location
                         ? `Travelling from ${selectedPackage.contact_location}. `
                         : ''}
-                      They have no account, so there is no notification to send — call or message
+                      They have no account, so there is no notification to send, call or message
                       them with the quote.
                     </p>
                   </div>
@@ -256,7 +257,7 @@ export function CustomPackagesManager() {
                       {selectedPackage.activities.map((activity: string) => (
                         <span
                           key={activity}
-                          className="inline-block rounded-full bg-muted text-foreground text-xs px-2.5 py-1 font-medium"
+                          className="glass-chip inline-block rounded-full text-foreground text-xs px-2.5 py-1 font-medium"
                         >
                           {activity}
                         </span>

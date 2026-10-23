@@ -181,7 +181,7 @@ export function SlideActionButton({
           "relative z-10 grid size-14 touch-none cursor-grab place-items-center rounded-[18px] bg-primary text-primary-foreground shadow-sm",
           TOUCH_GESTURE_CLASS,
           "outline-none active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-          completed && "cursor-default bg-background text-foreground",
+          completed && "glass-field cursor-default text-foreground",
           thumbClassName,
         )}
       >
