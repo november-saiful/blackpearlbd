@@ -34,6 +34,7 @@ import {
 import { fetchDeal, fetchDeals, resolveApiOrigin } from './_lib/api';
 import { contentVersion, htmlCacheKey, readThroughHtml, type RenderedPage } from './_lib/html-cache';
 import { composePage } from './_lib/inject';
+import { leadPhotoPreload } from './_lib/lead-photo';
 import { loadShell } from './_lib/shell';
 import { dealSkeleton, dealsSkeleton, homeSkeleton, notFoundSkeleton, pageSkeleton } from './_lib/skeleton';
 import type { PagesContext } from './_lib/types';
@@ -108,6 +109,8 @@ async function renderRoute(
     }
 
     const meta = dealMeta(deal);
+    // No image preload here: this page paints its headline first, and the byte
+    // would be taken from the script that renders it.
     return { html: composePage(shell, metaWithData(meta), dealSkeleton(deal)), status: 200 };
   }
 
@@ -119,8 +122,13 @@ async function renderRoute(
   const deals = origin ? ((await fetchDeals(origin)) ?? []) : [];
   const skeleton =
     kind === 'home' ? homeSkeleton(deals) : kind === 'deals' ? dealsSkeleton(deals) : pageSkeleton(pathname);
+  // The photo the grid leads with, named before any of the app's JavaScript has
+  // run. The home page is left alone: its first screen is judged on a headline,
+  // and 200 KB of picture would arrive by taking that from the script.
+  const listing = kind === 'deals' ? leadPhotoPreload(deals) : '';
+  const head = [metaWithData(base, dealListJsonLd(deals)), listing].filter(Boolean).join('\n    ');
 
-  return { html: composePage(shell, metaWithData(base, dealListJsonLd(deals)), skeleton), status: 200 };
+  return { html: composePage(shell, head, skeleton), status: 200 };
 }
 
 function respond(page: RenderedPage, source: string, cacheControl: string): Response {

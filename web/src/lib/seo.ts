@@ -89,6 +89,7 @@ export interface DealLike {
   avg_rating?: number | null;
   review_count?: number | null;
   category?: string | null;
+  is_featured?: boolean | null;
   updated_at?: string | null;
   itinerary?: DealItineraryPhase[] | null;
   inclusions?: string[] | null;
