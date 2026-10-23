@@ -25,6 +25,7 @@ type ComboboxContextValue = {
   registerItem: (value: string, label: string, group?: string) => void;
   unregisterItem: (value: string) => void;
   inputRef: React.RefObject<HTMLInputElement>;
+  triggerRef: React.RefObject<HTMLButtonElement>;
 };
 
 const ComboboxContext = createContext<ComboboxContextValue | null>(null);
@@ -65,6 +66,7 @@ export function Combobox({
   const [search, setSearch] = useState('');
   const itemsRef = useRef(new Map<string, { label: string; group?: string }>());
   const inputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const isControlled = controlledValue !== undefined;
   const currentValue = isControlled ? controlledValue : internalValue;
@@ -100,6 +102,7 @@ export function Combobox({
       registerItem,
       unregisterItem,
       inputRef,
+      triggerRef,
     }),
     [open, currentValue, handleValueChange, search, filter, registerItem, unregisterItem],
   );

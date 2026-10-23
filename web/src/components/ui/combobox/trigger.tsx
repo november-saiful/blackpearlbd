@@ -20,7 +20,7 @@ export function ComboboxTrigger({
   asChild: _asChild,
   ...props
 }: ComboboxTriggerProps) {
-  const { open, setOpen, inputRef } = useComboboxContext();
+  const { open, setOpen, inputRef, triggerRef } = useComboboxContext();
 
   const handleClick = useCallback(() => {
     setOpen(!open);
@@ -31,6 +31,7 @@ export function ComboboxTrigger({
 
   return (
     <button
+      ref={triggerRef}
       type="button"
       onClick={handleClick}
       // The list is a `role="listbox"` inside the panel, so the trigger owns the
