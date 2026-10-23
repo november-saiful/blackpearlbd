@@ -4,6 +4,11 @@ import { ArrowRight, CalendarDays, MapPin, Route as RouteIcon, Sparkles } from '
 import { cn, formatCurrency } from '@/lib/utils';
 import { getDealCategory } from '@/lib/deal-category';
 import { humanizeDealText } from '@/lib/text';
+import {
+  claimLeadPhotoSlot,
+  onLeadPhotoSettled,
+  settleLeadPhotoSlot,
+} from '@/lib/lead-photo-slot';
 import { formatDealLocation } from './deals-destination';
 import type { TourDeal } from '@/types';
 
@@ -61,6 +66,37 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
     return () => observer.disconnect();
   }, [image, nearViewport]);
 
+  // Being near the screen is not the same as being allowed to download: the
+  // first card to ask takes the connection, and this one mounts once that photo
+  // has settled. See `lead-photo-slot`.
+  const leadPhoto = useRef(false);
+  const [mayDownload, setMayDownload] = useState(false);
+
+  useEffect(() => {
+    if (!image || !nearViewport || mayDownload) return;
+    if (claimLeadPhotoSlot()) {
+      leadPhoto.current = true;
+      setMayDownload(true);
+      return;
+    }
+    return onLeadPhotoSettled(() => setMayDownload(true));
+  }, [image, nearViewport, mayDownload]);
+
+  // A photo already in the cache never fires a load event for a freshly mounted
+  // img, so the lead has to notice that itself or the grid waits out the clock.
+  const settle = () => {
+    if (leadPhoto.current) settleLeadPhotoSlot();
+  };
+  const checkLead = (node: HTMLImageElement | null) => {
+    if (node?.complete) settle();
+  };
+
+  // Lowercase, and spread, because react-dom 18.2 drops the camelCase prop and
+  // the attribute is what moves the request up the browser's queue. The lead
+  // photo is the largest thing on this screen and the Bengali faces the titles
+  // need are 200 KB of high priority text bytes downloading beside it.
+  const leadPriority = leadPhoto.current ? { fetchpriority: 'high' } : undefined;
+
   return (
     <Link
       to={`/deals/${deal.slug}`}
@@ -77,12 +113,16 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-muted to-secondary/20">
             <MapPin className="h-9 w-9 text-primary/40" />
           </div>
-        ) : nearViewport ? (
+        ) : mayDownload ? (
           <img
+            ref={checkLead}
+            {...leadPriority}
             src={image}
             alt={deal.title}
             loading="lazy"
             decoding="async"
+            onLoad={settle}
+            onError={settle}
             className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
           />
         ) : null}

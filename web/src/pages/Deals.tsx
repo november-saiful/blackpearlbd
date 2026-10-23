@@ -87,6 +87,29 @@ export default function Deals() {
   );
   const [sortBy, setSortBy] = useState<DealSort>(() => readDealSort(searchParams));
 
+  /*
+   * Mounting the bar is what starts its download, so it waits until this screen
+   * has painted what it is scored on: the filters engine is 100 KB of JavaScript
+   * with a request behind it, and the byte it would share the phone connection
+   * with is the picture the page is measured by. Reaching for a filter outranks
+   * any picture, which is what the two handlers on the toolbar are for. The paint
+   * entry is buffered, so a revisit whose picture is already in cache arms at
+   * once, and a link that arrived filtered shows its chips on the first frame.
+   */
+  const [filtersArmed, setFiltersArmed] = useState(() => countFilterRules(query) > 0);
+
+  useEffect(() => {
+    if (filtersArmed) return;
+    let observer: PerformanceObserver | undefined;
+    try {
+      observer = new PerformanceObserver(() => setFiltersArmed(true));
+      observer.observe({ type: 'largest-contentful-paint', buffered: true });
+    } catch {
+      setFiltersArmed(true);
+    }
+    return () => observer?.disconnect();
+  }, [filtersArmed]);
+
   /** What this page is holding, spelled as a URL would spell it. */
   const stateSearch = useMemo(
     () => canonicalDealsQuery(encodeDealsQuery(query, sortBy)),
@@ -151,15 +174,23 @@ export default function Deals() {
              button in the corner, level with the bar's own Add filter button
              rather than a full-width select of its own under the chips. Search
              lives in the topbar palette, so there is nothing here for it. */
-          <div className="flex items-start gap-2 sm:gap-4">
-            <Suspense fallback={<FilterBarSkeleton />}>
-              <DealsFilterBar
-                deals={deals}
-                query={query}
-                onQueryChange={setQuery}
-                className="min-w-0 flex-1"
-              />
-            </Suspense>
+          <div
+            className="flex items-start gap-2 sm:gap-4"
+            onPointerDownCapture={() => setFiltersArmed(true)}
+            onKeyDownCapture={() => setFiltersArmed(true)}
+          >
+            {filtersArmed ? (
+              <Suspense fallback={<FilterBarSkeleton />}>
+                <DealsFilterBar
+                  deals={deals}
+                  query={query}
+                  onQueryChange={setQuery}
+                  className="min-w-0 flex-1"
+                />
+              </Suspense>
+            ) : (
+              <FilterBarSkeleton />
+            )}
 
             <DealsSortMenu value={sortBy} onChange={setSortBy} />
           </div>
