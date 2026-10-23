@@ -40,3 +40,7 @@ supabase/.temp/
 # Playwright
 test-results/
 web/test-results/
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
