@@ -79,7 +79,7 @@ export function AppShell({ children }: AppShellProps) {
               title: 'Contact',
               links: [
                 { label: 'Office #307, 300-Alisan Plaza, Elephant Road, Dhaka-1205', href: '#' },
-                { label: '+880 1898766630', href: 'tel:+8801898766630' },
+                { label: '+880 1897655530', href: 'tel:+8801897655530' },
                 { label: 'team@blackpearl.bd', href: 'mailto:team@blackpearl.bd' },
               ],
             },

@@ -49,7 +49,7 @@ const PRIMARY_NAV = [
 
 const SUPPORT_URL = 'https://blackpearl.travel/support'
 const CONTACT_EMAIL = 'mailto:team@blackpearl.bd'
-const CONTACT_PHONE = '+8801898766630'
+const CONTACT_PHONE = '+8801897655530'
 
 type QuickLink = {
   href: string
@@ -582,7 +582,7 @@ export function AppTopbar({ className }: { className?: string }) {
                         window.location.href = `tel:${CONTACT_PHONE}`
                       }}
                     >
-                      Call +880 1898766630
+                      Call +880 1897655530
                     </SlideActionButton>
                   </div>
                 </PopoverContent>
