@@ -222,7 +222,14 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
                                     src={img}
                                     alt={`${title} photo ${imgIdx + 1}`}
                                     loading="lazy"
-                                    className="h-24 w-full object-cover transition-opacity hover:opacity-90 md:h-32"
+                                    decoding="async"
+                                    onLoad={(event) => event.currentTarget.classList.add('is-in')}
+                                    ref={(node) => {
+                                      if (node?.complete && node.naturalWidth > 0) {
+                                        node.classList.add('is-in');
+                                      }
+                                    }}
+                                    className="photo-fade h-24 w-full object-cover transition-opacity hover:opacity-90 md:h-32"
                                   />
                                 </button>
                               ))}

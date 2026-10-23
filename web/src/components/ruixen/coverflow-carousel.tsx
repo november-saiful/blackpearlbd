@@ -6,6 +6,27 @@ import { cn } from "@/lib/utils";
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect;
 
+/** How many cards either side of the centre get their photo. */
+const COVER_WINDOW = 3;
+
+/**
+ * The indices a centred card should have photos for.
+ *
+ * A deal's gallery is a dozen photos of about 200 KB each, and the rack used to
+ * ask for all of them the moment it mounted although five cards are ever on
+ * screen. Cards within a few steps of the centre fetch as the rack approaches
+ * them, and keep what they fetched: a photo already in memory must never blank
+ * out because the rack flicked away from it.
+ */
+function coverWindow(center: number, count: number, loop: boolean): number[] {
+  const out: number[] = [];
+  for (let step = -COVER_WINDOW; step <= COVER_WINDOW; step++) {
+    const raw = center + step;
+    out.push(loop ? ((raw % count) + count) % count : Math.max(0, Math.min(count - 1, raw)));
+  }
+  return out;
+}
+
 export interface CoverflowSlide {
   src: string;
   alt: string;
@@ -88,6 +109,20 @@ export function CoverflowCarousel({
   const movedRef = React.useRef(false);
 
   const [selected, setSelected] = React.useState(0);
+
+  const [requested, setRequested] = React.useState<ReadonlySet<number>>(
+    () => new Set(coverWindow(0, count, loop)),
+  );
+
+  React.useEffect(() => {
+    setRequested((previous) => {
+      let next: Set<number> | null = null;
+      for (const index of coverWindow(selected, count, loop)) {
+        if (!previous.has(index)) (next ??= new Set(previous)).add(index);
+      }
+      return next ?? previous;
+    });
+  }, [selected, count, loop]);
 
   /** Nearest whole card, folded back into 0..count-1. */
   const indexAt = React.useCallback(
@@ -335,10 +370,20 @@ export function CoverflowCarousel({
                 title={index === selected && onCardClick ? "View photo" : undefined}
               >
                 <img
-                  src={slide.src}
+                  src={requested.has(index) ? slide.src : undefined}
                   alt={slide.alt}
                   draggable={false}
-                  className="h-full w-full select-none object-cover"
+                  decoding="async"
+                  onLoad={(event) => event.currentTarget.classList.add("is-in")}
+                  ref={(node) => {
+                    // A photo that was already in the cache can finish before
+                    // React's load handler is attached, so the fade is also
+                    // released from here when the bytes are already in.
+                    if (node?.complete && node.naturalWidth > 0) {
+                      node.classList.add("is-in");
+                    }
+                  }}
+                  className="photo-fade h-full w-full select-none object-cover"
                 />
               </div>
             ))}

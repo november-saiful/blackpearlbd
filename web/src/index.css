@@ -425,6 +425,89 @@
     contain: layout style paint;
   }
 
+  /* The page is one scroller, so it gets the two properties that make a single
+   * scroller feel like an app: the gesture stops at the edge instead of dragging
+   * the document behind it, and the scrollbar's lane is reserved so a route with
+   * a bar and a route without one lay their content on the same columns. */
+  [data-app-scroller] {
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  /* A route change was a hard cut: one page's last frame, then the next page's
+   * first, with nothing in between. The incoming page rises a few pixels and
+   * fades in over a fifth of a second, which is long enough to read as one
+   * surface arriving and short enough that nobody waits on it.
+   *
+   * The keyframes only name the start, so once they end the element carries no
+   * transform at all. That matters: a transform left behind would make the page
+   * a containing block and quietly re-parent every fixed child inside it.
+   *
+   * AppShell applies this on navigation only. The first paint of a visit must
+   * not fade: that frame is the one the page is scored on. */
+  @keyframes route-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  .route-enter {
+    animation: route-enter 200ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  /* The promo strip used to vanish the instant the page moved, which yanked the
+   * whole topbar up by its height in one frame. It now collapses like a drawer:
+   * the row animates to zero height while its contents fade, so the topbar
+   * settles instead of jumping. `0fr` is animatable where `0` is not. */
+  .announcement-collapse {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 240ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .announcement-collapse.is-closed {
+    grid-template-rows: 0fr;
+  }
+
+  .announcement-collapse > * {
+    min-height: 0;
+    overflow: hidden;
+    transition: opacity 180ms ease;
+  }
+
+  .announcement-collapse.is-closed > * {
+    opacity: 0;
+  }
+
+  /* A photo that finishes downloading used to blink into its frame. It now
+   * fades over a fifth of a second, which is only applied once the bytes are
+   * in: the frame is empty until then, so nothing waits on the fade. The deal
+   * page's lead photo is deliberately left out of this; that one is the frame
+   * the page is scored on. */
+  .photo-fade {
+    opacity: 0;
+    transition: opacity 200ms ease;
+  }
+
+  .photo-fade.is-in {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .route-enter,
+    .announcement-collapse,
+    .announcement-collapse > *,
+    .photo-fade {
+      animation: none;
+      transition: none;
+    }
+
+    .photo-fade {
+      opacity: 1;
+    }
+  }
+
   /* Brand action surface: keeps the site's primary tint. */
   .glass-primary {
     position: relative;

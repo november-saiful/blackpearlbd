@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { AppTopbar } from './AppTopbar'
 import { MobileDock } from './MobileDock'
 import { ScrollToTop } from './ScrollToTop'
@@ -14,6 +15,20 @@ type AppShellProps = {
 
 export function AppShell({ children }: AppShellProps) {
   const scroller = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+
+  // The incoming page rises and fades in on navigation, but never on the first
+  // paint of a visit: that frame is the one the page is scored on, and a fade
+  // would hold it back by the length of the fade. So the class only appears
+  // once a navigation has actually happened, and the key remounts the page so
+  // the animation has a fresh element to run on.
+  const [navigated, setNavigated] = useState(false)
+  const lastPath = useRef(pathname)
+  useEffect(() => {
+    if (lastPath.current === pathname) return
+    lastPath.current = pathname
+    setNavigated(true)
+  }, [pathname])
 
   // The gate flags the scroller so the stylesheet can take the pointer off the
   // content while a wheel gesture is moving it. It writes an attribute rather
@@ -35,7 +50,9 @@ export function AppShell({ children }: AppShellProps) {
         {/* Skip link for keyboard navigation */}
         <a href="#main" className="sr-only focus-visible:focus focus-visible:bg-primary focus-visible:text-primary-foreground py-2 px-4" onClick={() => setTimeout(() => {}, 0)}>Skip to main content</a>
         <main className="flex flex-1 flex-col pb-16 md:pb-0">
-          {children}
+          <div key={pathname} className={navigated ? 'route-enter' : undefined}>
+            {children}
+          </div>
         </main>
 
         <Footer3

@@ -351,25 +351,38 @@ export function AppTopbar({ className }: { className?: string }) {
           isHome ? 'fixed inset-x-0 top-0' : 'sticky top-0',
         )}
       >
-        {showAnnouncement && (
-          <div className="w-full border-b border-white/40 bg-gradient-to-r from-secondary/60 via-white/80 to-white/70 dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent">
-            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-1.5 text-xs sm:text-sm">
-              <span className="glass-chip rounded px-1.5 py-0.5 font-medium text-foreground">
-                New
-              </span>
-              <span className="hidden text-muted-foreground sm:inline">
-                Winter escapes are live: handpicked tours across Cox's Bazar, Sylhet and the Sundarbans.
-              </span>
-              <span className="text-muted-foreground sm:hidden">
-                Winter escapes are live
-              </span>
-              <Link
-                to="/deals"
-                className="group inline-flex items-center gap-1 whitespace-nowrap text-foreground underline decoration-muted-foreground/60 decoration-dashed underline-offset-4 hover:decoration-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                Explore deals
-                <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-              </Link>
+        {/*
+         * The strip stays mounted and collapses instead of unmounting, because
+         * unmounting moved the whole topbar up by the strip's height in a single
+         * frame the moment the page started moving. See `.announcement-collapse`.
+         */}
+        {isHome && (
+          <div
+            aria-hidden={!showAnnouncement}
+            className={cn('announcement-collapse', !showAnnouncement && 'is-closed')}
+          >
+            <div>
+              <div className="w-full border-b border-white/40 bg-gradient-to-r from-secondary/60 via-white/80 to-white/70 dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent">
+                <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-1.5 text-xs sm:text-sm">
+                  <span className="glass-chip rounded px-1.5 py-0.5 font-medium text-foreground">
+                    New
+                  </span>
+                  <span className="hidden text-muted-foreground sm:inline">
+                    Winter escapes are live: handpicked tours across Cox's Bazar, Sylhet and the Sundarbans.
+                  </span>
+                  <span className="text-muted-foreground sm:hidden">
+                    Winter escapes are live
+                  </span>
+                  <Link
+                    to="/deals"
+                    tabIndex={showAnnouncement ? 0 : -1}
+                    className="group inline-flex items-center gap-1 whitespace-nowrap text-foreground underline decoration-muted-foreground/60 decoration-dashed underline-offset-4 hover:decoration-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    Explore deals
+                    <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         )}
