@@ -5,18 +5,34 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="BlackPearl brings you curated tour deals and custom packages to the world's most amazing destinations." />
-    <title>BlackPearl — Curated Tour Deals & Custom Travel Packages</title>
+    <!-- The API origin, substituted at build time. The Pages Function reads it
+         from here to annotate deal pages with live data, so the edge needs no
+         separate copy of this URL to keep in step. -->
+    <meta name="x-api-origin" content="%VITE_API_URL%" />
+    <!-- Display type for the home hero carousel. Both families fall back to
+         system faces if the network is unavailable. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>BlackPearl | Curated Tour Deals & Custom Travel Packages</title>
   </head>
   <body>
     <script>
       (function() {
         var theme = localStorage.getItem('theme');
-        if (theme === 'dark' || theme === 'light') {
-          document.documentElement.classList.add(theme);
-        } else if (theme === 'system' || !theme) {
-          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
-        }
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var resolved = (theme === 'dark' || theme === 'light') ? theme : (prefersDark ? 'dark' : 'light');
+        var root = document.documentElement;
+        root.classList.add(resolved);
+        // OpenGlass's liquid tokens (--ogui-lg-*) only resolve under this
+        // attribute. Setting it in the inline script, alongside the theme class,
+        // means glass surfaces have their material from the first paint instead
+        // of collapsing to transparent until the theme provider mounts.
+        root.dataset.oguiDesign = 'liquid';
+        root.dataset.oguiAppearance = resolved;
       })();
     </script>
     <div id="root"></div>

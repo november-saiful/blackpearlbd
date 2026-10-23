@@ -20,8 +20,8 @@ export default defineConfig({
       output: {
         // Asset URLs use a dot before the content hash (`chunk.a1b2c3.js`)
         // rather than Vite's default dash. A response cached under an asset
-        // URL outlives any deploy — browsers and the CDN hold it `immutable`
-        // for a year — so a URL that was ever answered with the SPA fallback
+        // URL outlives any deploy, browsers and the CDN hold it `immutable`
+        // for a year, so a URL that was ever answered with the SPA fallback
         // stays broken for whoever holds it, including after the file is back.
         // One scheme change retires every URL cached under the old one, so the
         // affected clients stop asking for it. See src/lib/preload-recovery.ts

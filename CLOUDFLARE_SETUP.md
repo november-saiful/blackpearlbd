@@ -27,6 +27,47 @@ VITE_API_URL=https://<worker-host>
 
 Ensure the Pages deployment serves the SPA fallback for `/auth/callback`, `/deals/<slug>`, `/profile`, and `/admin`.
 
+### Edge-rendered pages (Pages Functions)
+
+`web/functions/` is picked up by Pages automatically; there is nothing to configure for the base case. Two files live there:
+
+| File | What it does |
+|---|---|
+| `functions/[[path]].ts` | Composes the HTML for `/`, `/deals`, `/deals/<slug>`, `/build-package` and `/search`: title, description, canonical, robots, Open Graph and Twitter tags, JSON-LD structured data, and a crawlable body inside `<div id="root">`. Cached at the edge under a content version. |
+| `functions/sitemap.xml.ts` | Generates `/sitemap.xml` from the live catalogue, so a new deal is listed the same minute it is published. |
+
+The catch-all function steps aside (`next()`) for any path with a file extension, so asset caching in `_headers`, the `/assets/404.html` guard and the SPA rewrite in `_redirects` all behave exactly as before.
+
+A deal page previews with that deal's own image; every other page falls back to `web/public/og-default.jpg`, the 1200×630 card that ships with the build. Replace that one file to restyle every share preview at once.
+
+Deal pages read their record from the API Worker, which already caches those endpoints. The origin is taken from the `VITE_API_URL` baked into the built `index.html`, so there is normally nothing to set. Add `API_ORIGIN` to the Pages environment variables only when the edge must reach a different origin than the browser does.
+
+#### Optional: instant invalidation on a deal write
+
+Without any KV namespace the cached pages refresh on their own: a deal page every 60 seconds, the other pages every 5 minutes, and the sitemap every 5 minutes. To have an admin's change land immediately instead, create one namespace and bind it to **both** projects under the same name:
+
+```bash
+npx wrangler kv namespace create CONTENT_VERSION
+```
+
+```toml
+# worker/wrangler.toml
+[[kv_namespaces]]
+binding = "CONTENT_VERSION_KV"
+id = "<namespace-id>"
+```
+
+Add the same binding to the Pages project (**Settings → Functions → KV namespace bindings**) as `CONTENT_VERSION_KV`. The Worker then bumps the version on every write that can change a public page (deals, reviews, media uploads, package destinations) and every cached page retires at once; with no binding, both sides no-op and the TTLs are the only freshness mechanism. This is not a variable the browser can see, and it holds one timestamp, so it is not a secret.
+
+#### Verifying it
+
+```bash
+curl -s https://<pages-host>/deals/<slug> | grep -E '<title>|og:image|application/ld\+json'
+curl -s https://<pages-host>/sitemap.xml | head -20
+```
+
+A correctly rendered page carries its own title rather than the shell's, an `og:image` for that deal, and at least one `application/ld+json` block. The response also carries `X-Seo-Cache: edge | render` so a cache hit can be confirmed. Validate the structured data with Google's Rich Results Test.
+
 ## Cloudflare Worker
 
 Configure the Worker project with:

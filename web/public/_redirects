@@ -11,12 +11,12 @@
 # so the browser keeps reading HTML as a module or a stylesheet long after the
 # real file is back. Cloudflare Pages answers unmatched requests under /assets/
 # with a real 404 instead (`no-store`, at any depth), because the stub at
-# public/assets/404.html exists — that stub, not a rule here, is what keeps
+# public/assets/404.html exists: that stub, not a rule here, is what keeps
 # asset misses uncacheable.
 #
 # Do not add a rule matching /assets/* to fix anything: `_redirects` supports
 # redirects (301/302/303/307/308) and 200 proxying only, never a 404, so the
-# only rule available would rewrite the miss to something the edge can cache —
+# only rule available would rewrite the miss to something the edge can cache,
 # and it would run first and shadow the stub. `npm run build` fails if one
 # appears; see scripts/check-pages-fallbacks.mjs.
 

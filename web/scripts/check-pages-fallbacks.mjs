@@ -6,7 +6,7 @@
  * `/*  /index.html  200` is there so a deep link like /deals reaches the SPA.
  * The same rule also swallows misses under /assets/, where the build output
  * lives. A missing asset answered `200 text/html` is then cached under the
- * `/assets/*` rule in `_headers` — `immutable`, one year — so the response
+ * `/assets/*` rule in `_headers`: `immutable`, one year, so the response
  * outlives the deploy that puts the file back and every client holding it keeps
  * failing. That is why the repair had to change every asset URL rather than
  * re-upload one file.
@@ -14,7 +14,7 @@
  * Two things keep the fallback honest. Both are easy to undo by accident, and
  * neither is visible in a normal build, so they are asserted here:
  *
- *   1. `public/assets/404.html` — a 404 page inside a directory makes Pages
+ *   1. `public/assets/404.html`: a 404 page inside a directory makes Pages
  *      answer unmatched requests under that directory with a real 404, at any
  *      depth and with any query string, while root-level SPA routing keeps
  *      working. Verified against production: /assets/zzz.js, /assets/sub/z.js,
@@ -22,7 +22,7 @@
  *      cannot cache the miss either.
  *
  *   2. Nothing in `_redirects` may match a path under /assets/. Such a rule
- *      would run first and shadow that 404 — and `_redirects` cannot express a
+ *      would run first and shadow that 404, and `_redirects` cannot express a
  *      404 of its own ("Rewrites (other status codes)" are unsupported:
  *      https://developers.cloudflare.com/pages/configuration/redirects/), so
  *      the only rule available would rewrite the miss to something cacheable.

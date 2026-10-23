@@ -10,7 +10,7 @@
 
       `_redirects` rewrites every unmatched path to /index.html with a 200 so the
       SPA can own client-side routes. That also catches misses under /assets/,
-      which is where build output lives — so a request for a chunk from an older
+      which is where build output lives, so a request for a chunk from an older
       deploy (or for a chunk that a CDN already answered while it was missing)
       comes back as 200 + HTML instead of a 404. The browser then refuses to
       treat HTML as a module or a stylesheet, and the `/assets/*` rule in

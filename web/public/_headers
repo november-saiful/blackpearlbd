@@ -5,7 +5,7 @@
 # values would be comma-joined. The assets rule therefore detaches the broad
 # rule's value first (! Cache-Control) before setting its own.
 
-# HTML and unhashed public files must always revalidate — a stale index.html
+# HTML and unhashed public files must always revalidate: a stale index.html
 # references content-hashed chunks from an old deploy that no longer exist
 # ("Failed to fetch dynamically imported module").
 /*
