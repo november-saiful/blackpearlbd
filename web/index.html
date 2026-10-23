@@ -9,6 +9,9 @@
          from here to annotate deal pages with live data, so the edge needs no
          separate copy of this URL to keep in step. -->
     <meta name="x-api-origin" content="%VITE_API_URL%" />
+    <!-- The first data reads go cross-origin to the Worker; open that
+         connection while the stylesheet and module graph load. -->
+    <link rel="preconnect" href="%VITE_API_URL%" crossorigin />
     <!-- Display type for the home hero carousel. Both families fall back to
          system faces if the network is unavailable. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
