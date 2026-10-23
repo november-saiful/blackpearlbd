@@ -330,7 +330,7 @@ upload.get('/folder-usage', authMiddleware, adminMiddleware, async (c) => {
   });
 });
 
-// Delete a whole folder — every object under a prefix — from R2 (admin only).
+// Delete a whole folder, every object under a prefix, from R2 (admin only).
 // R2 has no real directories, so "the folder deals/kuakata-sea" is the set of
 // keys starting with that prefix; deleting the folder means deleting all of them.
 // A folder deals still point into is refused unless the caller asks for those
@@ -568,7 +568,7 @@ upload.post('/reorganize', authMiddleware, adminMiddleware, async (c) => {
       const afterDeals = oldKey.replace(/^deals\//, '');
       if (afterDeals.includes('/')) continue; // Already in a subfolder
 
-      // This file is in the root deals/ folder — move it
+      // This file is in the root deals/ folder, move it
       const ext = oldKey.split('.').pop() || 'jpg';
       const filename = oldKey.split('/').pop() || oldKey;
       const newKey = `deals/${deal.slug}/${filename}`;
@@ -805,7 +805,7 @@ upload.get('/slug-folders', authMiddleware, adminMiddleware, async (c) => {
 });
 
 // Create a slug folder in R2 by placing a .keep marker (admin only)
-// This is a one-time action — the slug becomes permanent for the deal.
+// This is a one-time action, the slug becomes permanent for the deal.
 upload.post('/create-folder', authMiddleware, adminMiddleware, async (c) => {
   const env = c.env as Env;
   if (!env.BLACKPEARL_BUCKET) {
@@ -826,7 +826,7 @@ upload.post('/create-folder', authMiddleware, adminMiddleware, async (c) => {
     // Also check if any files exist under this prefix (from prior uploads)
     const page = await env.BLACKPEARL_BUCKET.list({ prefix: `deals/${slug}/`, limit: 1 });
     if ((page.objects || []).length === 0) {
-      // Truly empty — create the .keep marker
+      // Truly empty: create the .keep marker
       await env.BLACKPEARL_BUCKET.put(folderKey, new Uint8Array(0), {
         httpMetadata: { contentType: 'application/x-empty' },
       });

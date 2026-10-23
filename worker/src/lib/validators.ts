@@ -50,7 +50,7 @@ export const DEAL_DESCRIPTION_ALIGN_VALUES = [
 // deliberately independent: renaming a stop must never be undone by a later
 // re-snap, and a snapped stop must not force its address into the title.
 //
-// Every field has to be declared here — this schema strips unlisted keys before
+// Every field has to be declared here, this schema strips unlisted keys before
 // the insert, which is how stop images were being silently discarded.
 const WaypointSchema = z.object({
   name: z.string().max(200).default(''),
@@ -109,7 +109,7 @@ export const CreateDealSchema = z.object({
  * the admin-managed `package_destinations` list, so it sends the slug
  * (`destination_value`, e.g. 'thailand', 'dhaka-division') and has no id for
  * the geo `destinations` tree. `destination_id` stays accepted for clients that
- * do have one, and at least one of the two must be present — otherwise the
+ * do have one, and at least one of the two must be present, otherwise the
  * package would not say where the traveller wants to go.
  */
 export const CreateCustomPackageSchema = z
@@ -231,7 +231,7 @@ export const UpdateReviewStatusSchema = z.object({
   is_approved: z.boolean(),
 });
 
-/** `waypoints` is `lat,lon|lat,lon|...` — the same form Geoapify expects. */
+/** `waypoints` is `lat,lon|lat,lon|...`: the same form Geoapify expects. */
 export const GeoRouteQuerySchema = z.object({
   waypoints: z
     .string()

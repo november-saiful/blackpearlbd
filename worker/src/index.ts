@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { corsMiddleware } from './middleware/cors';
+import { affectsPublicContent, bumpContentVersion } from './lib/content-version';
+import type { Env } from './types';
 import auth from './routes/auth';
 import profile from './routes/profile';
 import deals from './routes/deals';
@@ -16,6 +18,25 @@ const app = new Hono();
 
 // Global middleware
 app.use('*', corsMiddleware);
+
+// Retire the edge-rendered pages whenever a write could change one.
+//
+// The Pages Function keys its cached HTML on a content version, so bumping that
+// version is what makes an admin's edit show up in the page's <head>, its Open
+// Graph tags and the sitemap at once, without the Pages side having to know
+// which URLs exist. No KV namespace bound means no-op.
+app.use('*', async (c, next) => {
+  await next();
+  if (!affectsPublicContent(c.req.method, c.req.path) || !c.res.ok) return;
+
+  const bump = bumpContentVersion(c.env as Env);
+  try {
+    c.executionCtx.waitUntil(bump);
+  } catch {
+    // No execution context to hand it to: let the write finish on its own.
+    void bump;
+  }
+});
 
 // Health check
 app.get('/', (c) => {

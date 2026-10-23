@@ -115,7 +115,12 @@ deals.get('/:slug', async (c) => {
   // Public deal record. It changes only when an admin publishes or retires a
   // deal, so a 30-second short-TTL means anogin traffic keeps hitting the
   // edge cache while a change lands within a half minute.
-  const { value, source } = await readThroughCache(
+  //
+  // An unknown slug answers with `deal: null` rather than an error, and is
+  // cached like any other read: 404 is the honest answer, and the Pages
+  // Function relies on it to keep a dead slug out of the index without
+  // mistaking a broken API for a missing deal.
+  const { value, source } = await readThroughCache<{ deal: unknown | null }>(
     'deal/' + slug,
     c.req.raw,
     PUBLIC_DEAL_POLICY,
@@ -127,12 +132,17 @@ deals.get('/:slug', async (c) => {
         .eq('slug', slug)
         .eq('is_active', true)
         .single();
-      if (error || !data) throw new Error('Deal not found');
+      if (error) {
+        // PGRST116 is "no rows": the slug is not an active deal. Anything else
+        // is a real failure and must not be cached as a 404.
+        if (error.code === 'PGRST116') return { deal: null };
+        throw error;
+      }
       return { deal: data };
     },
   );
 
-  return c.json(value, 200, {
+  return c.json(value, value.deal ? 200 : 404, {
     'X-Geo-Cache': source,
     'Cache-Control': `public, max-age=${PUBLIC_DEAL_POLICY.maxAgeSeconds}, must-revalidate`,
   });
@@ -197,7 +207,7 @@ deals.patch('/:id', authMiddleware, adminMiddleware, async (c) => {
     return c.json({ error: 'Invalid input', details: result.error.issues }, 400);
   }
 
-  // Slug is immutable after creation — strip it from the update payload
+  // Slug is immutable after creation, strip it from the update payload
   const { slug: _slug, ...updateData } = result.data;
 
   const env = c.env as Env;

@@ -5,14 +5,14 @@ compatibility_date = "2024-01-01"
 # R2 bucket for file storage (deal images, etc.)
 # Declared at the TOP LEVEL so it applies to the default environment.
 # NOTE: `npx wrangler deploy` (no --env) and the GitHub Actions workflow both
-# deploy the DEFAULT environment — bindings under [env.production] are ignored
+# deploy the DEFAULT environment, bindings under [env.production] are ignored
 # there, which previously caused "Storage not configured" (500) on upload.
 # When deploying with `--env production`, uncomment the [env.production] block.
 r2_buckets = [{ binding = "BLACKPEARL_BUCKET", bucket_name = "blackpearl-assets" }]
 
 # ── Production environment ──────────────────────────────────────────────────
 # Reproducible deploy target. Secrets are stored in the Cloudflare dashboard
-# (via `wrangler secret put`) — the values below are NOT the real secrets.
+# (via `wrangler secret put`), the values below are NOT the real secrets.
 # Run once after cloning to restore them:
 #   cd blackpearl/worker
 #   echo "<SUPABASE_URL>"     | npx wrangler secret put SUPABASE_URL --env production
@@ -36,7 +36,7 @@ r2_buckets = [{ binding = "BLACKPEARL_BUCKET", bucket_name = "blackpearl-assets"
 # uploaded separately via `wrangler secret put` and never stored in this file.
 
 # ── Custom domain (optional, but required for the edge cache) ────────────────
-# Cloudflare's Cache API does nothing on *.workers.dev — documented, and silent:
+# Cloudflare's Cache API does nothing on *.workers.dev, documented, and silent:
 # put/match "succeed" while caching nothing. The /geo read-through cache has an
 # isolate-memory layer that works regardless, but the shared edge layer needs the
 # Worker served from a real domain on your zone. Run the probe afterwards:
@@ -44,7 +44,7 @@ r2_buckets = [{ binding = "BLACKPEARL_BUCKET", bucket_name = "blackpearl-assets"
 #
 # Attaching a Custom Domain creates a DNS record, so it needs Zone:DNS:Edit as
 # well as Workers Routes:Edit. The cached `wrangler login` token only has
-# `zone (read)`, which is why this is left commented out — an unauthorised route
+# `zone (read)`, which is why this is left commented out, an unauthorised route
 # would fail the whole deploy rather than just the domain attach. Either:
 #   a) add it once in the dashboard (Workers & Pages → blackpearl-api →
 #      Settings → Domains & Routes → Add → Custom Domain), which needs no CLI

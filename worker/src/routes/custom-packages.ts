@@ -46,7 +46,7 @@ customPackages.get('/destinations', async (c) => {
 // Signed in or not: the builder is the top of the funnel, so a traveller who
 // declines to make an account still gets a quote instead of a dead end. A
 // guest request belongs to nobody, which is why it has to carry contact
-// details — the admin queue is the only place it can be answered from.
+// details: the admin queue is the only place it can be answered from.
 customPackages.post('/', optionalAuthMiddleware, async (c) => {
   const body = await c.req.json();
   const result = CreateCustomPackageSchema.safeParse(body);

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 /*
  * The route handlers are exercised through the real Hono app, so the request
  * shape, the status codes and the middleware chain are all the shipped ones.
- * Only the two things a Worker test cannot have — Supabase and R2 — are faked.
+ * Only the two things a Worker test cannot have, Supabase and R2, are faked.
  *
  * `vi.hoisted` runs before the imports below, so the mocked supabase factory
  * has something to read when `./upload` is first imported.

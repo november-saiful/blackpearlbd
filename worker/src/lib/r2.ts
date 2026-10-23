@@ -17,7 +17,7 @@ export function r2KeyFromImageUrl(url: unknown): string | null {
   } catch {
     return null;
   }
-  // Drop any querystring and keep only keys under the deals/ prefix —
+  // Drop any querystring and keep only keys under the deals/ prefix,
   // deal images are never stored elsewhere.
   key = key.split('?')[0];
   return key.startsWith(R2_IMAGE_PREFIX) ? key : null;

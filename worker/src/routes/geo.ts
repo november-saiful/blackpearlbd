@@ -14,7 +14,7 @@ import { Env } from '../types';
  * JS bundle. They now run here, so the key is a Worker secret and the client
  * only ever sees the app's own response shapes.
  *
- * Admin-only: the deal form is the sole consumer — public deal pages render the
+ * Admin-only: the deal form is the sole consumer, public deal pages render the
  * route geometry that was saved with the deal and never geocode. Keeping it
  * behind auth means the Geoapify quota can't be drained by anonymous traffic.
  *
@@ -154,8 +154,8 @@ export async function handleRoute(c: Context) {
 }
 
 /**
- * Cache diagnostics. Deliberately public: it returns counters only — no queries,
- * no cached content, no credentials — and it has to be reachable by a plain
+ * Cache diagnostics. Deliberately public: it returns counters only, no queries,
+ * no cached content, no credentials, and it has to be reachable by a plain
  * `curl` (or the browser) straight after a deploy to answer the one question a
  * cache change raises: is the edge cache actually working here?
  */

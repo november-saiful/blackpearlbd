@@ -24,7 +24,7 @@ interface NotifyOptions {
 /**
  * Insert an in-app notification for a user.
  *
- * Email sending is intentionally not included here — it will be added in a
+ * Email sending is intentionally not included here, it will be added in a
  * future phase with Resend. For now this only writes to the notifications
  * table so the frontend bell icon can pick it up.
  */

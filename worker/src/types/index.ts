@@ -5,9 +5,15 @@ export interface Env {
   BLACKPEARL_BUCKET?: R2Bucket;
   /**
    * Geoapify key for place search, routing and reverse geocoding. Optional so
-   * the API still boots without it — the /geo routes report 503 instead.
+   * the API still boots without it, the /geo routes report 503 instead.
    */
   GEOAPIFY_API_KEY?: string;
+  /**
+   * Optional KV namespace holding the content version the Pages Function keys
+   * its cached HTML on. Bind the same namespace to the Pages project; without
+   * it, pages still refresh, just on a time bucket rather than on a write.
+   */
+  CONTENT_VERSION_KV?: KVNamespace;
 }
 
 export interface Profile {
@@ -51,7 +57,7 @@ export interface TourDeal {
   updated_at: string;
 }
 
-/** One step of a tour itinerary — not necessarily a calendar day. */
+/** One step of a tour itinerary, not necessarily a calendar day. */
 export interface ItineraryPhase {
   /** 1-based position within the tour. */
   phase?: number;

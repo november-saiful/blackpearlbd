@@ -1,12 +1,12 @@
 /**
  * Two-layer read-through cache for the /geo proxy.
  *
- * Layer 1 — isolate memory. Each Worker isolate serves many requests for the
+ * Layer 1: isolate memory. Each Worker isolate serves many requests for the
  * duration of its life, and the repeated calls all come from one admin iterating
  * on a deal: a search retyped with different spacing, or the same pin reverse
  * geocoded again while snapping a route.
  *
- * Layer 2 — Cloudflare's edge cache (`caches.default`), shared across all
+ * Layer 2: Cloudflare's edge cache (`caches.default`), shared across all
  * requests hitting the same data centre. Note this layer is only functional when
  * the Worker is served from a **custom domain**: on `*.workers.dev` cache
  * operations are documented no-ops, which is why layer 1 carries the load there.
@@ -206,7 +206,7 @@ export interface GeoCachePurgeResult {
  * edge half possible at all: the Cache API has no way to list or pattern-match
  * keys, so an entry can only be deleted if its key is known. Entries cached by
  * *other* isolates are therefore unreachable from here and age out with their
- * TTL — acceptable because the TTLs are short (1h / 24h) and a fresh answer is
+ * TTL: acceptable because the TTLs are short (1h / 24h) and a fresh answer is
  * written back by the next lookup.
  */
 export async function purgeGeoCache(): Promise<GeoCachePurgeResult> {
@@ -252,7 +252,7 @@ interface EdgeProbe {
    * trustworthy signal: a put+match inside one request proves nothing, because
    * the cache can serve a same-request write from a local buffer even when
    * nothing is persisted. A probe that only checks within one request reports a
-   * healthy cache on a host where caching does nothing — which is exactly the
+   * healthy cache on a host where caching does nothing, which is exactly the
    * false positive this probe used to produce.
    */
   persistedAcrossRequests: boolean;
@@ -335,7 +335,7 @@ export interface GeoCacheStatsSnapshot {
 }
 
 /**
- * Counters are per isolate, so this describes the isolate that answered — treat
+ * Counters are per isolate, so this describes the isolate that answered: treat
  * it as a live sample, not a fleet-wide total.
  */
 export async function geoCacheStats(requestUrl: string): Promise<GeoCacheStatsSnapshot> {

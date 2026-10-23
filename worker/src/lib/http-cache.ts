@@ -5,16 +5,16 @@
  * related-deal slices) rather than upstream Geoapify lookups. Same two layers,
  * same failure posture:
  *
- * Layer 1 — isolate memory. Cheap, always available, bounded, and lost when the
+ * Layer 1: isolate memory. Cheap, always available, bounded, and lost when the
  * isolate is evicted.
  *
- * Layer 2 — Cloudflare's edge cache (`caches.default`), shared across requests
+ * Layer 2: Cloudflare's edge cache (`caches.default`), shared across requests
  * reaching the same data centre. Only functional on a **custom domain**: on
  * `*.workers.dev` cache operations are documented no-ops that silently succeed,
  * so layer 1 carries the whole load there. Every edge call is wrapped so an
  * inoperative or failing cache degrades to a miss and never fails a request.
  *
- * A `produce` that throws is not cached — the error propagates to Hono, and the
+ * A `produce` that throws is not cached, the error propagates to Hono, and the
  * next request tries the origin again rather than pinning a failure for the TTL.
  */
 

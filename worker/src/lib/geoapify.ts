@@ -6,7 +6,7 @@
  * app-owned shapes, so the frontend never talks to Geoapify and a provider swap
  * only touches this file.
  *
- * The API key stays server-side (GEOAPIFY_API_KEY secret) — it is never sent to
+ * The API key stays server-side (GEOAPIFY_API_KEY secret), it is never sent to
  * the browser, so it cannot be scraped out of the JS bundle and abused.
  */
 
@@ -65,7 +65,7 @@ function asString(value: unknown): string {
 /**
  * Geoapify answers GeoJSON (`features[]`) by default and `results[]` when
  * `format=json` is asked for. Both are handled so that a shape difference can
- * never be mistaken for "no places found" — which is exactly what happened
+ * never be mistaken for "no places found", which is exactly what happened
  * when the browser parsed `results` without requesting that format.
  */
 function eachPlace(payload: GeoapifyPayload | null) {
