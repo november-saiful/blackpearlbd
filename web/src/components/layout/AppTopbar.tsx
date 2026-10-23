@@ -345,7 +345,12 @@ export function AppTopbar({ className }: { className?: string }) {
        * The hero follows the active theme, so the floating topbar uses the
        * same tokens. Scrolling switches the header to its solid state.
        */}
-      <div className={cn(isHome && 'fixed inset-x-0 top-0 z-50')}>
+      <div
+        className={cn(
+          'z-50',
+          isHome ? 'fixed inset-x-0 top-0' : 'sticky top-0',
+        )}
+      >
         {showAnnouncement && (
           <div className="w-full border-b border-white/40 bg-gradient-to-r from-secondary/50 via-white/35 to-white/25 backdrop-blur-xl dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-1.5 text-xs sm:text-sm">
@@ -377,7 +382,7 @@ export function AppTopbar({ className }: { className?: string }) {
                   'border-transparent',
                   scrolled && 'glass-bar border-transparent',
                 )
-              : 'glass-bar sticky top-0 border-transparent',
+              : 'glass-bar border-transparent',
             className,
           )}
         >
