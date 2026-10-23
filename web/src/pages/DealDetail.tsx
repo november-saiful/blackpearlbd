@@ -1,30 +1,38 @@
 import { useParams } from 'react-router-dom';
 import { useEffect } from 'react';
-import { useQueries } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { DealDetail as DealDetailComponent } from '@/components/deals/DealDetail';
-import { useRelatedDeals } from '@/hooks/useRelatedDeals';
 import { DealDetailSkeleton } from '@/components/skeletons/DealDetailSkeleton';
 import { applyDealMeta, applyDealNotFoundMeta } from '@/components/layout/PageTitle';
 import { formatDealLocation } from '@/components/deals/deals-destination';
+import type { TourDeal } from '@/types';
 
 export default function DealDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const queryClient = useQueryClient();
 
-  // Parallelise the independent reads: the deal itself, its reviews and the
-  // sibling deals shown on the side. The Worker pre-warms and serves these
-  // from its edge cache, so this block resolves in one round trip.
-  const queries = useQueries({
-    queries: [
-      { queryKey: ['deal', slug], queryFn: () => api.getDeal(slug || ''), staleTime: 5 * 60 * 1000 },
-      { queryKey: ['deal-reviews', slug], queryFn: () => api.getDealReviews(slug || ''), staleTime: 5 * 60 * 1000 },
-      { queryKey: ['related-deals', slug], queryFn: () => api.getRelatedDeals(slug || ''), staleTime: 5 * 60 * 1000 },
-    ] as const,
+  // Only the deal record gates this page. Reviews render inside the component
+  // through their own query, and the sibling strip derives from the deals list
+  // the grid already fetched; both used to be requested here and awaited here,
+  // so the skeleton sat on two responses nothing on this screen read.
+  //
+  // The cached list also seeds this query: arriving from Home or the grid paints
+  // the real page at once, because the card the visitor tapped is the same row
+  // the list endpoint already returned. A deep link has no list yet and falls
+  // back to the fetch.
+  const dealQuery = useQuery({
+    queryKey: ['deal', slug],
+    queryFn: () => api.getDeal(slug || ''),
+    staleTime: 5 * 60 * 1000,
+    placeholderData: () => {
+      const list = queryClient.getQueryData<{ deals: TourDeal[] }>(['deals']);
+      const match = list?.deals.find((d) => d.slug === slug);
+      return match ? { deal: match } : undefined;
+    },
   });
-  const deal = queries[0].data?.deal;
-  const reviews = queries[1].data?.reviews || [];
-  const relatedDeals = queries[2].data?.deals || [];
-  const isLoading = queries.some((q) => q.isLoading);
+  const deal = dealQuery.data?.deal;
+  const isLoading = dealQuery.isPending;
 
   useEffect(() => {
     if (deal) {

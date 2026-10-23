@@ -4,7 +4,7 @@ import { adminMiddleware } from '../middleware/admin';
 import { CreateDealSchema, BulkRemoveDealsSchema } from '../lib/validators';
 import { createSupabaseAdminClient } from '../lib/supabase';
 import { collectR2ImageKeys } from '../lib/r2';
-import { readThroughCache, type CachePolicy } from '../lib/http-cache';
+import { readThroughCache, cacheControlHeader, type CachePolicy } from '../lib/http-cache';
 import { Env } from '../types';
 
 const deals = new Hono();
@@ -13,6 +13,7 @@ const deals = new Hono();
 const PUBLIC_DEALS_POLICY: CachePolicy = {
   maxAgeSeconds: 60,
   public: true,
+  mustRevalidate: true,
   vary: ['Authorization'],
 };
 
@@ -47,7 +48,7 @@ deals.get('/', async (c) => {
 
   return c.json(value, 200, {
     'X-Geo-Cache': source,
-    'Cache-Control': `public, max-age=${PUBLIC_DEALS_POLICY.maxAgeSeconds}, ${PUBLIC_DEALS_POLICY.public ? 'public' : 'private'}, must-revalidate`,
+    'Cache-Control': cacheControlHeader(PUBLIC_DEALS_POLICY),
     'Vary': PUBLIC_DEALS_POLICY.vary?.join(', ')!,
   });
 });
@@ -103,7 +104,7 @@ deals.get('/related', async (c) => {
 
   return c.json(related.value, 200, {
     'X-Geo-Cache': related.source,
-    'Cache-Control': `public, max-age=${PUBLIC_DEALS_POLICY.maxAgeSeconds}, must-revalidate`,
+    'Cache-Control': cacheControlHeader(PUBLIC_DEAL_POLICY),
   });
 });
 
@@ -144,7 +145,7 @@ deals.get('/:slug', async (c) => {
 
   return c.json(value, value.deal ? 200 : 404, {
     'X-Geo-Cache': source,
-    'Cache-Control': `public, max-age=${PUBLIC_DEAL_POLICY.maxAgeSeconds}, must-revalidate`,
+    'Cache-Control': cacheControlHeader(PUBLIC_DEAL_POLICY),
   });
 });
 

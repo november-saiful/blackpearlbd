@@ -43,6 +43,27 @@ export interface CachePolicy {
   vary?: string[];
 }
 
+/**
+ * The one place a policy becomes a `Cache-Control` string.
+ *
+ * Routes used to write this by hand, and two of them drifted: one repeated the
+ * `public` directive, another advertised the list policy's 60 seconds while
+ * storing the entry for 30. Deriving the header from the same object that sets
+ * the TTL keeps the promise and the storage lifetime the same number.
+ */
+export function cacheControlHeader(policy: CachePolicy): string {
+  return cacheDirectives(policy).join(', ');
+}
+
+function cacheDirectives(policy: CachePolicy): string[] {
+  const directives = [
+    policy.public === false ? 'private' : 'public',
+    `max-age=${policy.maxAgeSeconds}`,
+  ];
+  if (policy.mustRevalidate) directives.push('must-revalidate');
+  return directives;
+}
+
 function memoGet<T>(key: string): T | undefined {
   const entry = memo.get(key);
   if (!entry) return undefined;
@@ -91,11 +112,6 @@ async function edgeGet<T>(key: Request): Promise<T | undefined> {
 async function edgePut(key: Request, value: unknown, policy: CachePolicy) {
   const cache = edgeCache();
   if (!cache) return;
-  const directives = [
-    policy.public === false ? 'private' : 'public',
-    `max-age=${policy.maxAgeSeconds}`,
-  ];
-  if (policy.mustRevalidate) directives.push('must-revalidate');
   try {
     await cache.put(
       key,
@@ -103,7 +119,7 @@ async function edgePut(key: Request, value: unknown, policy: CachePolicy) {
         headers: {
           'content-type': 'application/json',
           // cache.put() takes the TTL from the response's Cache-Control.
-          'cache-control': directives.join(', '),
+          'cache-control': cacheControlHeader(policy),
         },
       }),
     );

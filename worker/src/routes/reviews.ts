@@ -3,28 +3,79 @@ import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth';
 import { adminMiddleware } from '../middleware/admin';
 import { CreateReviewSchema, UpdateReviewSchema, UpdateReviewStatusSchema } from '../lib/validators';
 import { createSupabaseAdminClient } from '../lib/supabase';
+import { readThroughCache, cacheControlHeader, type CachePolicy } from '../lib/http-cache';
 import { Env } from '../types';
 
 const reviews = new Hono();
 
+// ── Cache policy ───────────────────────────────────────────────────────────
+// Approved reviews are public, read-only, and change only when an admin
+// approves or unhides one, so they belong in the same short-TTL cache as the
+// deal record they describe. Before this, both public review reads hit Postgres
+// on every visit: the slowest call a deal page makes, and the one that never
+// got faster no matter how often it was asked.
+const PUBLIC_REVIEWS_POLICY: CachePolicy = {
+  maxAgeSeconds: 30,
+  public: true,
+  mustRevalidate: true,
+};
+
+type ReviewRow = Record<string, any>;
+
+type ReviewStatsValue = {
+  avg_rating: number;
+  review_count: number;
+  distribution: number[];
+};
+
+/**
+ * The part of a deal's reviews every visitor shares.
+ *
+ * `dealId` travels with it because the per-author merge below needs it, and
+ * `found` marks a slug that is not an active deal so the route can answer 404
+ * without a second lookup.
+ */
+type CachedDealReviews = {
+  dealId: string;
+  approved: ReviewRow[];
+  stats: ReviewStatsValue;
+  found: boolean;
+};
+
+const MISSING_DEAL: CachedDealReviews = {
+  dealId: '',
+  approved: [],
+  stats: { avg_rating: 0, review_count: 0, distribution: [0, 0, 0, 0, 0] },
+  found: false,
+};
+
 // ── Public: latest approved reviews across all deals (for homepage testimonials) ─
 reviews.get('/featured', async (c) => {
   const env = c.env as Env;
-  const admin = createSupabaseAdminClient(env);
   const limit = Math.min(parseInt(c.req.query('limit') || '10', 10), 20);
 
-  const { data, error } = await admin
-    .from('reviews')
-    .select('*, user:profiles(full_name, avatar_url), deal:tour_deals(title, slug)')
-    .eq('is_approved', true)
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  const { value, source } = await readThroughCache<{ reviews: ReviewRow[] }>(
+    'featured-reviews',
+    c.req.raw,
+    PUBLIC_REVIEWS_POLICY,
+    async () => {
+      const admin = createSupabaseAdminClient(env);
+      const { data, error } = await admin
+        .from('reviews')
+        .select('*, user:profiles(full_name, avatar_url), deal:tour_deals(title, slug)')
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-  if (error) {
-    return c.json({ error: 'Failed to fetch reviews' }, 500);
-  }
+      if (error) throw error;
+      return { reviews: (data || []) as ReviewRow[] };
+    },
+  );
 
-  return c.json({ reviews: data || [] });
+  return c.json(value, 200, {
+    'X-Geo-Cache': source,
+    'Cache-Control': cacheControlHeader(PUBLIC_REVIEWS_POLICY),
+  });
 });
 
 // ── Public: list reviews for a deal ────────────────────────────────────────
@@ -33,71 +84,85 @@ reviews.get('/featured', async (c) => {
 reviews.get('/deals/:slug', optionalAuthMiddleware, async (c) => {
   const slug = c.req.param('slug');
   const env = c.env as Env;
-  const admin = createSupabaseAdminClient(env);
   const userId = c.get('userId');
 
-  // Resolve deal slug → id
-  const { data: deal, error: dealError } = await admin
-    .from('tour_deals')
-    .select('id')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
+  const { value, source } = await readThroughCache<CachedDealReviews>(
+    'deal-reviews',
+    c.req.raw,
+    PUBLIC_REVIEWS_POLICY,
+    async () => {
+      const admin = createSupabaseAdminClient(env);
 
-  if (dealError || !deal) {
-    return c.json({ error: 'Deal not found' }, 404);
+      const { data: deal, error: dealError } = await admin
+        .from('tour_deals')
+        .select('id')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single();
+
+      if (dealError || !deal) return MISSING_DEAL;
+
+      const { data: approvedData, error: approvedError } = await admin
+        .from('reviews')
+        .select('*, user:profiles(full_name, avatar_url)')
+        .eq('deal_id', deal.id)
+        .eq('is_approved', true)
+        .order('created_at', { ascending: false });
+
+      if (approvedError) throw approvedError;
+
+      const approved = (approvedData || []) as ReviewRow[];
+
+      // Stats are computed from approved reviews only
+      const total = approved.length;
+      const avgRating = total > 0
+        ? Math.round((approved.reduce((sum, r) => sum + r.rating, 0) / total) * 100) / 100
+        : 0;
+      const distribution = [0, 0, 0, 0, 0];
+      for (const r of approved) {
+        distribution[r.rating - 1]++;
+      }
+
+      return {
+        dealId: deal.id as string,
+        approved,
+        stats: { avg_rating: avgRating, review_count: total, distribution },
+        found: true,
+      };
+    },
+  );
+
+  const cacheHeaders = {
+    'X-Geo-Cache': source,
+    'Cache-Control': cacheControlHeader(PUBLIC_REVIEWS_POLICY),
+  };
+
+  if (!value.found) {
+    return c.json({ error: 'Deal not found' }, 404, cacheHeaders);
   }
 
-  // Fetch all approved reviews for this deal
-  const { data: approvedData, error: approvedError } = await admin
-    .from('reviews')
-    .select('*, user:profiles(full_name, avatar_url)')
-    .eq('deal_id', deal.id)
-    .eq('is_approved', true)
-    .order('created_at', { ascending: false });
-
-  if (approvedError) {
-    return c.json({ error: 'Failed to fetch reviews' }, 500);
-  }
-
-  const allApproved = approvedData || [];
-
-  // If the user is authenticated, also fetch their own unapproved review(s)
-  let userPending: typeof allApproved = [];
+  // The author's pending review is the one piece of this response that differs
+  // between visitors, so it stays outside the shared entry and is merged here.
+  let mergedReviews = value.approved;
   if (userId) {
+    const admin = createSupabaseAdminClient(env);
     const { data: pendingData } = await admin
       .from('reviews')
       .select('*, user:profiles(full_name, avatar_url)')
-      .eq('deal_id', deal.id)
+      .eq('deal_id', value.dealId)
       .eq('user_id', userId)
       .eq('is_approved', false)
       .order('created_at', { ascending: false });
 
     if (pendingData) {
-      userPending = pendingData;
+      // Deduplicate by id in case the user's review was just approved between queries.
+      const approvedIds = new Set(value.approved.map((r) => r.id));
+      const uniquePending = (pendingData as ReviewRow[]).filter((r) => !approvedIds.has(r.id));
+      mergedReviews = [...value.approved, ...uniquePending];
     }
   }
 
-  // Merge: approved first (newest first), then user's pending reviews at the end.
-  // Deduplicate by id in case the user's review was just approved between queries.
-  const approvedIds = new Set(allApproved.map((r) => r.id));
-  const uniquePending = userPending.filter((r) => !approvedIds.has(r.id));
-  const mergedReviews = [...allApproved, ...uniquePending];
-
-  // Stats are computed from approved reviews only
-  const total = allApproved.length;
-  const avgRating = total > 0
-    ? Math.round((allApproved.reduce((sum, r) => sum + r.rating, 0) / total) * 100) / 100
-    : 0;
-  const distribution = [0, 0, 0, 0, 0];
-  for (const r of allApproved) {
-    distribution[r.rating - 1]++;
-  }
-
-  return c.json({
-    reviews: mergedReviews,
-    stats: { avg_rating: avgRating, review_count: total, distribution },
-  });
+  return c.json({ reviews: mergedReviews, stats: value.stats }, 200, cacheHeaders);
 });
 
 // ── Authenticated: create a review ─────────────────────────────────────────

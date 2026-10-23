@@ -144,15 +144,6 @@ export const api = {
       `/admin/package-districts?division=${encodeURIComponent(divisionValue)}`,
     ),
 
-  // Related Deals
-  getRelatedDeals: (slug: string) =>
-    fetchApi<{ deals: TourDeal[] }>(`/deals/related?slug=${encodeURIComponent(slug)}`),
-
-  // Generic search across public deals (used by the homepage parallel pre-warm,
-  // a debounce-free fallback if the related query ever goes stale).
-  searchDeals: (query: string, limit = 12) =>
-    fetchApi<{ deals: TourDeal[] }>(`/deals/search?q=${encodeURIComponent(query)}&limit=${limit}`),
-
   // Reviews
   getDealReviews: (slug: string) =>
     fetchApi<{ reviews: Review[]; stats: ReviewStats }>(`/reviews/deals/${slug}`),
