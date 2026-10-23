@@ -58,6 +58,18 @@ import type { Env } from '../types';
 
 const env = {} as Env;
 
+function request(path: string, userId?: string) {
+  return reviews.request(path, { headers: userId ? { 'X-Test-User': userId } : {} }, env);
+}
+
+/** The parsed body, typed loosely because these assertions read across fields. */
+async function bodyOf(response: Response) {
+  return (await response.json()) as {
+    reviews: Array<{ id: string }>;
+    stats: { review_count: number };
+  };
+}
+
 function approved(slugPart: string) {
   return {
     id: `approved-${slugPart}`,
@@ -87,14 +99,14 @@ describe('public review caching', () => {
   it('serves a repeat visit without touching the database', async () => {
     state.reviews = [approved('a')];
 
-    const first = await reviews.request('/deals/deal-a', { env });
-    const firstBody = await first.json();
+    const first = await request('/deals/deal-a');
+    const firstBody = await bodyOf(first);
     expect(first.headers.get('X-Geo-Cache')).toBe('origin');
     expect(firstBody.reviews).toHaveLength(1);
     expect(firstBody.stats.review_count).toBe(1);
     const callsAfterOrigin = state.calls.length;
 
-    const second = await reviews.request('/deals/deal-a', { env });
+    const second = await request('/deals/deal-a');
     expect(second.headers.get('X-Geo-Cache')).toBe('isolate');
     expect(await second.json()).toEqual(firstBody);
     expect(state.calls).toHaveLength(callsAfterOrigin);
@@ -103,63 +115,53 @@ describe('public review caching', () => {
   it('answers a signed-in visitor from the shared entry plus their own pending review', async () => {
     state.reviews = [approved('b'), pending('b')];
 
-    const anonymous = await reviews.request('/deals/deal-b', { env });
-    expect((await anonymous.json()).reviews).toHaveLength(1);
+    const anonymous = await bodyOf(await request('/deals/deal-b'));
+    expect(anonymous.reviews).toHaveLength(1);
 
-    const asAuthor = await reviews.request('/deals/deal-b', {
-      headers: { 'X-Test-User': 'author-1' },
-      env,
-    });
-    const body = await asAuthor.json();
-    expect(body.reviews.map((row: { id: string }) => row.id)).toEqual([
-      'approved-b',
-      'pending-b',
-    ]);
+    const body = await bodyOf(await request('/deals/deal-b', 'author-1'));
+    expect(body.reviews.map((row) => row.id)).toEqual(['approved-b', 'pending-b']);
     // Stats stay about the deal, not about whoever is asking.
     expect(body.stats.review_count).toBe(1);
 
     // The merged response must not become the shared entry.
-    const next = await reviews.request('/deals/deal-b', { env });
-    expect((await next.json()).reviews).toHaveLength(1);
+    const next = await bodyOf(await request('/deals/deal-b'));
+    expect(next.reviews).toHaveLength(1);
   });
 
   it('keeps the per-author read to one query on a warm deal', async () => {
     state.reviews = [approved('c'), pending('c')];
 
-    await reviews.request('/deals/deal-c', { env });
+    await request('/deals/deal-c');
     state.calls = [];
 
-    await reviews.request('/deals/deal-c', {
-      headers: { 'X-Test-User': 'author-1' },
-      env,
-    });
+    await request('/deals/deal-c', 'author-1');
     expect(state.calls).toEqual(['reviews']);
   });
 
   it('caches the homepage testimonial slice', async () => {
     state.reviews = [approved('d')];
 
-    const first = await reviews.request('/featured?limit=6', { env });
+    const first = await request('/featured?limit=6');
     expect(first.headers.get('X-Geo-Cache')).toBe('origin');
-    expect((await first.json()).reviews).toHaveLength(1);
+    expect((await bodyOf(first)).reviews).toHaveLength(1);
 
-    const second = await reviews.request('/featured?limit=6', { env });
+    const second = await request('/featured?limit=6');
     expect(second.headers.get('X-Geo-Cache')).toBe('isolate');
   });
 
   it('states the cache directive once, with the TTL the entry is stored for', async () => {
     state.reviews = [approved('e')];
 
-    const response = await reviews.request('/deals/deal-e', { env });
+    const response = await request('/deals/deal-e');
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=30, must-revalidate');
   });
 
   it('still reports an unknown deal as missing, and remembers that too', async () => {
-    const first = await reviews.request('/deals/retired-deal', { env });
+    const first = await request('/deals/retired-deal');
     expect(first.status).toBe(404);
 
     state.calls = [];
-    const second = await reviews.request('/deals/retired-deal', { env });
+    const second = await request('/deals/retired-deal');
     expect(second.status).toBe(404);
     expect(second.headers.get('X-Geo-Cache')).toBe('isolate');
     expect(state.calls).toEqual([]);
