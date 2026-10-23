@@ -130,8 +130,12 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: 0.13;
-  mix-blend-mode: overlay;
+  opacity: 0.07;
+  /* A blend mode makes the element and everything painted below it one
+     compositing group, so the whole hero is re-rastered whenever any part of it
+     moves: which the active slide does continuously. Laid over the photo at a
+     low alpha instead of blended into it, the grain reads the same and the
+     scroll stays on its own layer. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -530,10 +534,12 @@
 
 .hero-carousel__thumb-progress i {
   display: block;
-  width: 0;
+  width: 100%;
   height: 100%;
   border-radius: 2px;
   background: #fff;
+  transform-origin: left center;
+  transform: scaleX(0);
 }
 
 .hero-carousel__thumb.is-active .hero-carousel__thumb-progress i {
@@ -544,12 +550,15 @@
   animation-play-state: paused;
 }
 
+/* The dwell bar runs for seconds at a time, so it must not be a layout
+   animation: width dirties the page on every one of those frames, while a
+   scaleX is handed to the compositor and costs the main thread nothing. */
 @keyframes hero-carousel-fillbar {
   from {
-    width: 0;
+    transform: scaleX(0);
   }
   to {
-    width: 100%;
+    transform: scaleX(1);
   }
 }
 

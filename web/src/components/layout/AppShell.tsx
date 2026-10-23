@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { AppTopbar } from './AppTopbar'
 import { MobileDock } from './MobileDock'
 import { ScrollToTop } from './ScrollToTop'
 import { PhonePrompt } from './PhonePrompt'
 import { Footer3 } from '@/components/watermelon-ui/footer-3'
 import { footerNavigation } from '@/config/navigation'
+import { attachScrollHoverGate } from '@/lib/scroll-hover-gate'
 import { Instagram, Facebook } from 'lucide-react'
 
 type AppShellProps = {
@@ -12,10 +13,22 @@ type AppShellProps = {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const scroller = useRef<HTMLDivElement>(null)
+
+  // The gate flags the scroller so the stylesheet can take the pointer off the
+  // content while a wheel gesture is moving it. It writes an attribute rather
+  // than state: this fires on every scroll event, and a render would rebuild the
+  // topbar and the whole page beneath it.
+  useEffect(() => {
+    const node = scroller.current
+    if (!node) return
+    return attachScrollHoverGate(node)
+  }, [])
+
   return (
     <div className="relative isolate flex h-svh flex-col overflow-hidden bg-background no-scrollbar">
       <div aria-hidden className="app-ambient" />
-      <div className="relative z-10 flex-1 overflow-y-auto pb-20 md:pb-0">
+      <div ref={scroller} data-app-scroller className="relative z-10 flex-1 overflow-y-auto pb-20 md:pb-0">
         <ScrollToTop />
         <PhonePrompt />
         <AppTopbar />

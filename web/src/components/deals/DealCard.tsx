@@ -102,7 +102,7 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
       to={`/deals/${deal.slug}`}
       aria-label={`${deal.title}: ${category.label} in ${location}`}
       className={cn(
-        'glass glass-hover group relative flex h-full flex-col overflow-hidden rounded-2xl text-card-foreground transition-all duration-300',
+        'glass glass-hover paint-contained group relative flex h-full flex-col overflow-hidden rounded-2xl text-card-foreground',
         'hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
         className,
       )}

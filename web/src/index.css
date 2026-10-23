@@ -279,7 +279,9 @@
     --ambient-orb-2: hsl(199 82% 84% / 0.8);
     --ambient-orb-3: hsl(164 52% 83% / 0.7);
     --ambient-orb-4: hsl(45 88% 88% / 0.7);
-    --ambient-grain: 0.16;
+    /* Laid straight over the wallpaper rather than soft-lit into it, so the
+     * alpha has to come down to land the same amount of tooth. */
+    --ambient-grain: 0.07;
   }
 
   .dark {
@@ -288,7 +290,7 @@
     --ambient-orb-2: hsl(245 68% 46% / 0.42);
     --ambient-orb-3: hsl(276 58% 42% / 0.32);
     --ambient-orb-4: hsl(206 70% 34% / 0.36);
-    --ambient-grain: 0.22;
+    --ambient-grain: 0.1;
   }
 }
 
@@ -400,6 +402,29 @@
     background-color: var(--ogui-lg-fill-hover, hsl(0 0% 100% / 0.6));
   }
 
+  /* Hover is the most expensive thing a scroll frame can trigger. A surface
+   * entering it animates a fill and an inset rim, which repaints the whole area,
+   * and a pointer resting over the page cannot help but cross a succession of
+   * cards while they move underneath. On a measured scroll of the home page that
+   * was 18 frames over 33ms against 5 with the pointer taken away; it is also the
+   * page visibly twitching under the cursor.
+   *
+   * So while a wheel or trackpad gesture is moving the page, AppShell flags the
+   * scroller and nothing inside the page can be hovered or clicked until it
+   * settles, which a press brings forward. A touch flick is deliberately left
+   * alone: it fires no hover, and the lift off the screen is a tap the page must
+   * answer. See `lib/scroll-hover-gate`. */
+  [data-scrolling] main,
+  [data-scrolling] footer {
+    pointer-events: none;
+  }
+
+  /* A card in a grid is its own little page: what happens inside it, including
+   * its own hover, must not dirty the layout or the ink of anything around it. */
+  .paint-contained {
+    contain: layout style paint;
+  }
+
   /* Brand action surface: keeps the site's primary tint. */
   .glass-primary {
     position: relative;
@@ -472,8 +497,9 @@
     position: absolute;
     inset: 0;
     opacity: var(--ambient-grain);
+    /* See the hero grain: a blend mode ties the whole viewport to the layer it
+     * blends into, which is the last thing a scrolling page wants to pay for. */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-    mix-blend-mode: soft-light;
   }
 
   /* Without backdrop-filter the material has to become opaque, or text over the

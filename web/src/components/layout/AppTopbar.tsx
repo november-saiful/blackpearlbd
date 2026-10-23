@@ -376,7 +376,7 @@ export function AppTopbar({ className }: { className?: string }) {
 
         <header
           className={cn(
-            'z-50 border-b px-4 text-foreground transition-all duration-300 md:px-6 lg:px-[var(--site-gutter)]',
+            'z-50 border-b px-4 text-foreground transition-[background-color,box-shadow] duration-300 md:px-6 lg:px-[var(--site-gutter)]',
             isHome
               ? cn(
                   'border-transparent',
