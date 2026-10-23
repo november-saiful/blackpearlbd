@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 /**
  * Mirrors `components/deals/DealDetail.tsx`: the coverflow rack, the header
  * block (location, code, title, facts, price and actions) and the two-column
- * itinerary/about area. Sized so the real deal lands without the page moving.
+ * itinerary accordion/about area. Sized so the real deal lands without the
+ * page moving.
  */
 export function DealDetailSkeleton() {
   return (
@@ -43,18 +44,24 @@ export function DealDetailSkeleton() {
           <CardHeader>
             <Skeleton className="h-6 w-28" />
           </CardHeader>
-          <CardContent className="space-y-8">
-            {[0, 1, 2].map((index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="size-6 rounded-full" />
-                  <Skeleton className="h-4 w-40" />
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/60">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="size-8 rounded-full" />
+                    <Skeleton className="h-4 w-40 max-w-full" />
+                    <Skeleton className="ml-auto size-4 rounded" />
+                  </div>
+                  {index === 0 && (
+                    <div className="mt-4 space-y-2 pl-11">
+                      <Skeleton className="h-3.5 w-full" />
+                      <Skeleton className="h-3.5 w-11/12" />
+                    </div>
+                  )}
                 </div>
-                <Skeleton className="h-3.5 w-full" />
-                <Skeleton className="h-3.5 w-11/12" />
-                <Skeleton className="h-3.5 w-3/4" />
-              </div>
-            ))}
+              ))}
+            </div>
           </CardContent>
         </Card>
 

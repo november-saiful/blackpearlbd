@@ -1482,7 +1482,7 @@ export function DealsManager() {
                 {routeMessage && <p className={'mt-2 text-xs ' + (routeMessage.includes('ready') ? 'text-emerald-700' : 'text-amber-700')} role="status">{routeMessage}</p>}
 
               </div>
-              {/* Itinerary Phases / Timeline Editor */}
+              {/* Itinerary Phases Editor */}
               <div className="col-span-1 sm:col-span-2 border-t pt-4">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
@@ -1491,7 +1491,7 @@ export function DealsManager() {
                       Itinerary Phases
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      Add the steps of this tour in order, a one-day tour can have several phases. This appears as an animated timeline on the deal page.
+                      Add the steps of this tour in order, a one-day tour can have several phases. This appears as an expandable accordion on the deal page.
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
