@@ -648,3 +648,22 @@
     scrollbar-width: none;
   }
 }
+
+/* The liquid material paints a blurred inset rim, a directional blur and a large
+ * outer blur on every surface, and the home page carries more than a hundred of
+ * them. That is what scrolling spends its frames on: over the same gesture,
+ * raster time fell from 4.7s to under 1s with the blurs removed. The material
+ * keeps its depth from a crisp 1px highlight, the hairline border and one small
+ * lift instead.
+ *
+ * This has to sit outside `@layer`: the library declares these tokens in a zero
+ * specific `:where()` scope. `.ogui-theme` repeats them on the provider's own
+ * wrapper, so it needs the override as well or the app's surfaces never see it.
+ */
+:root,
+.ogui-theme {
+  --ogui-lg-rim: inset 0 1px 0 0 hsl(0 0% 100% / 0.4);
+  --ogui-lg-bloom: inset 0 0 0 0 transparent;
+  --ogui-lg-lift: 0 1px 2px 0 hsl(222 40% 20% / 0.1);
+  --ogui-lg-lift-high: 0 2px 6px -2px hsl(222 40% 20% / 0.18);
+}

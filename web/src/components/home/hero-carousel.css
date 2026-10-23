@@ -92,7 +92,12 @@
   object-position: center;
   transform: scale(1.04);
   transform-origin: 50% 50%;
-  transition: transform 11s linear;
+  /* The zoom is an animation rather than a transition so a gesture can pause it
+   * where it stands. Freezing a transition would snap the photo to its end scale
+   * on the first wheel tick, and a paused animation costs the compositor
+   * nothing while the page moves. Only the visible slide runs it. */
+  animation: hero-carousel-kenburns 11s linear both;
+  animation-play-state: paused;
 }
 
 .hero-carousel__bg:nth-child(2n) img {
@@ -110,6 +115,25 @@
 .hero-carousel__bg.is-active img {
   transform: scale(1.17);
   will-change: transform;
+  animation-play-state: running;
+}
+
+/* While the page is moving the photo holds still, so the gesture gets the whole
+ * frame budget, and below the fold there is nothing to zoom for. The deck's own
+ * pause does not stop it: hovering to read should not also flatten the one
+ * piece of motion left in the hero. */
+[data-scrolling] .hero-carousel__bg.is-active img,
+.hero-carousel.is-offscreen .hero-carousel__bg.is-active img {
+  animation-play-state: paused;
+}
+
+@keyframes hero-carousel-kenburns {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.17);
+  }
 }
 
 /* Cinematic scrims keep the copy readable whatever the photo is doing. */
@@ -486,24 +510,30 @@
   /* Empty frame until that slide's photo is in the cache. */
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(9, 11, 17, 0.55));
   transform: scale(0.94);
-  filter: grayscale(1) brightness(0.5);
   transition:
-    filter 0.55s ease,
     transform 0.55s var(--ease),
     border-color 0.55s ease,
     box-shadow 0.55s ease;
 }
 
+/* The dim lives on the photo, not on this frame: a filter on the frame keeps the
+ * dwell bar inside it off the compositor, and the bar animates for seven
+ * seconds at a time. */
 .hero-carousel__thumb-media img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  filter: grayscale(1) brightness(0.5);
+  transition: filter 0.55s ease;
 }
 
 .hero-carousel__thumb:hover .hero-carousel__thumb-media {
-  filter: grayscale(0.4) brightness(0.8);
   transform: scale(0.98);
+}
+
+.hero-carousel__thumb:hover .hero-carousel__thumb-media img {
+  filter: grayscale(0.4) brightness(0.8);
 }
 
 .hero-carousel__thumb.is-active .hero-carousel__thumb-media {
@@ -511,8 +541,11 @@
   box-shadow:
     0 10px 30px -10px rgba(0, 0, 0, 0.9),
     0 0 0 1px rgba(255, 255, 255, 0.12);
-  filter: none;
   transform: scale(1);
+}
+
+.hero-carousel__thumb.is-active .hero-carousel__thumb-media img {
+  filter: none;
 }
 
 .hero-carousel__thumb-progress {
@@ -744,6 +777,7 @@
 @media (prefers-reduced-motion: reduce) {
   .hero-carousel__bg img {
     transform: none !important;
+    animation: none !important;
     transition: opacity 0.4s ease;
   }
 
@@ -960,10 +994,13 @@ html.light .hero-carousel__arrow:focus-visible {
 html.light .hero-carousel__thumb-media {
   border-color: hsl(var(--foreground) / 0.14);
   background: linear-gradient(135deg, hsl(var(--foreground) / 0.1), hsl(var(--background) / 0.7));
+}
+
+html.light .hero-carousel__thumb-media img {
   filter: grayscale(1) brightness(0.95) opacity(0.55);
 }
 
-html.light .hero-carousel__thumb:hover .hero-carousel__thumb-media {
+html.light .hero-carousel__thumb:hover .hero-carousel__thumb-media img {
   filter: grayscale(0.4) brightness(1) opacity(0.9);
 }
 
@@ -972,6 +1009,9 @@ html.light .hero-carousel__thumb.is-active .hero-carousel__thumb-media {
   box-shadow:
     0 10px 30px -12px hsl(var(--foreground) / 0.35),
     0 0 0 1px hsl(var(--foreground) / 0.06);
+}
+
+html.light .hero-carousel__thumb.is-active .hero-carousel__thumb-media img {
   filter: none;
 }
 

@@ -127,6 +127,7 @@ export function HeroCarousel({
   const [hoverPaused, setHoverPaused] = useState(false)
   const [focusPaused, setFocusPaused] = useState(false)
   const [tabHidden, setTabHidden] = useState(false)
+  const [offscreen, setOffscreen] = useState(false)
   const [userPaused, setUserPaused] = useState(
     () =>
       typeof window !== 'undefined' &&
@@ -156,7 +157,8 @@ export function HeroCarousel({
 
   const activeIndex = slides.length > 0 ? Math.min(index, slides.length - 1) : 0
   const activeSlide = slides[activeIndex] as HeroSlide | undefined
-  const paused = hoverPaused || focusPaused || tabHidden || userPaused
+  const hasSlides = slides.length > 0
+  const paused = hoverPaused || focusPaused || tabHidden || offscreen || userPaused
 
   const goTo = useCallback(
     (target: number) => {
@@ -229,6 +231,19 @@ export function HeroCarousel({
     wasPaused.current = paused
   }, [paused])
 
+  // The deck is below the fold for most of a visit, and a rotation no one can
+  // see still decodes, crossfades and scales full-screen photos while the
+  // visitor scrolls the grid, so it stops the moment it leaves the viewport.
+  // Keyed on the section actually existing: the loading placeholder has no ref,
+  // so an effect with no dependency would run before there is anything to watch.
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section) return
+    const observer = new IntersectionObserver(([entry]) => setOffscreen(!entry.isIntersecting))
+    observer.observe(section)
+    return () => observer.disconnect()
+  }, [hasSlides])
+
   useEffect(() => {
     const section = sectionRef.current
     if (!section) return
@@ -242,7 +257,7 @@ export function HeroCarousel({
       section.removeEventListener('mouseenter', onEnter)
       section.removeEventListener('mouseleave', onLeave)
     }
-  }, [])
+  }, [hasSlides])
 
   useEffect(() => {
     const onVisibility = () => setTabHidden(document.hidden)
@@ -315,7 +330,7 @@ export function HeroCarousel({
   return (
     <section
       ref={sectionRef}
-      className={cn('hero-carousel', paused && 'is-paused')}
+      className={cn('hero-carousel', paused && 'is-paused', offscreen && 'is-offscreen')}
       style={style}
       aria-roledescription="carousel"
       aria-label="Featured tour deals"
