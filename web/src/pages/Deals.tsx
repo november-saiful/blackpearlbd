@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Career3, { type JobListing } from '@/components/watermelon-ui/career-3';
-import { DealsFilterBar } from '@/components/deals/DealsFilterBar';
 import { matchesDealsFilter } from '@/components/deals/deals-filter';
 import {
   applyDealsQuery,
@@ -20,6 +19,27 @@ import { formatCurrency } from '@/lib/utils';
 import { formatDealLocation } from '@/components/deals/deals-destination';
 import { humanizeDealText } from '@/lib/text';
 import type { TourDeal } from '@/types';
+
+// The filter bar is the only thing on this page that needs the reui filters
+// engine, and that engine is the largest bundle the site owns. Loading it with
+// the route made every visitor download it before the first card appeared,
+// even though most never open a filter.
+const DealsFilterBar = lazy(() =>
+  import('@/components/deals/DealsFilterBar').then((module) => ({
+    default: module.DealsFilterBar,
+  })),
+);
+
+/** The bar collapsed to its Add filter pill, so the toolbar keeps its height. */
+function FilterBarSkeleton() {
+  return (
+    <div
+      className="h-11 min-w-0 flex-1 animate-pulse rounded-full bg-muted"
+      role="status"
+      aria-label="Loading filters"
+    />
+  );
+}
 
 /** One deal, in the shape the grid's card list expects. */
 function toJobListing(rawDeal: TourDeal): JobListing {
@@ -132,12 +152,14 @@ export default function Deals() {
              rather than a full-width select of its own under the chips. Search
              lives in the topbar palette, so there is nothing here for it. */
           <div className="flex items-start gap-2 sm:gap-4">
-            <DealsFilterBar
-              deals={deals}
-              query={query}
-              onQueryChange={setQuery}
-              className="min-w-0 flex-1"
-            />
+            <Suspense fallback={<FilterBarSkeleton />}>
+              <DealsFilterBar
+                deals={deals}
+                query={query}
+                onQueryChange={setQuery}
+                className="min-w-0 flex-1"
+              />
+            </Suspense>
 
             <DealsSortMenu value={sortBy} onChange={setSortBy} />
           </div>
