@@ -1,13 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
 
 export function useBookings() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const authLoading = useAuthStore((state) => state.isLoading);
 
+  // Guests have no bookings, so asking for them only earns a 401 on every
+  // page. Wait for the session restore before deciding.
   const bookingsQuery = useQuery({
     queryKey: ['bookings'],
     queryFn: () => api.getBookings(),
+    enabled: Boolean(user) && !authLoading,
   });
 
   const createBookingMutation = useMutation({

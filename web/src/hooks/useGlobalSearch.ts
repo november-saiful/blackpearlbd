@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { useDeals } from './useDeals';
-import { useBookings } from './useBookings';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { api } from '@/lib/api';
 import { humanizeDealText, humanizeDashes } from '@/lib/text';
 import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/stores/authStore';
 import type { TourDeal, CustomPackage } from '@/types';
 
 export type SearchResultType = 'deal' | 'package' | 'bookmark';
@@ -37,11 +37,14 @@ export function useGlobalSearch(query: string) {
   // The same store every bookmark button writes to, so a deal bookmarked a
   // second ago is searchable, and guests' bookmarks show up too.
   const { bookmarks } = useBookmarkStore();
-  const { bookings } = useBookings();
+  const user = useAuthStore((state) => state.user);
 
+  // Custom packages are private to the signed-in traveller. Guest searches
+  // should not issue the request at all.
   const { data: packagesData, isLoading: packagesLoading } = useQuery({
     queryKey: ['custom-packages'],
     queryFn: () => api.getCustomPackages(),
+    enabled: Boolean(user),
   });
 
   const packages = packagesData?.customPackages || [];
