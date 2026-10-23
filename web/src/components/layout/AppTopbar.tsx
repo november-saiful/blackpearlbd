@@ -352,7 +352,7 @@ export function AppTopbar({ className }: { className?: string }) {
         )}
       >
         {showAnnouncement && (
-          <div className="w-full border-b border-white/40 bg-gradient-to-r from-secondary/50 via-white/35 to-white/25 backdrop-blur-xl dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent">
+          <div className="w-full border-b border-white/40 bg-gradient-to-r from-secondary/60 via-white/80 to-white/70 dark:border-white/10 dark:from-white/10 dark:via-white/5 dark:to-transparent">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 py-1.5 text-xs sm:text-sm">
               <span className="glass-chip rounded px-1.5 py-0.5 font-medium text-foreground">
                 New

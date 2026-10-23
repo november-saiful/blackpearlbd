@@ -163,7 +163,7 @@ export function UserDropdown({
               className={cn(
                 'rounded-full border-[0.5px] text-[11px] capitalize',
                 isAdmin
-                  ? 'border-amber-300/60 bg-amber-300/25 text-amber-800 backdrop-blur-md dark:border-amber-500/30 dark:bg-amber-400/10 dark:text-amber-300'
+                  ? 'border-amber-300/60 bg-amber-300/40 text-amber-800 dark:border-amber-500/30 dark:bg-amber-400/10 dark:text-amber-300'
                   : 'glass-chip text-muted-foreground',
               )}
             >

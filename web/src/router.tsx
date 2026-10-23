@@ -9,7 +9,7 @@ import { RootLayout } from '@/components/layout/RootLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { reloadForStaleBuild } from '@/lib/preload-recovery';
-import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 // ── Chunk-load recovery ───────────────────────────────────────────────────
 // A tab running an older build can request a hashed chunk that a redeploy
@@ -71,10 +71,26 @@ const AdminReviews = lazyPage(() => import('@/pages/Admin/Reviews'));
 const AdminMedia = lazyPage(() => import('@/pages/Admin/Media'));
 
 // ── Suspense wrapper ─────────────────────────────────────────────────
+// The fallback has to hold a full viewport: at 60vh the footer was already
+// on screen when the lazy page mounted, then the hero pushed it out and the
+// shift registered as a 0.32 CLS. A page-shaped skeleton reserves the space
+// and reads as loading instead of as a stalled spinner.
 function PageLoader() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    <div
+      className="min-h-[100svh] px-4 py-6 md:px-8"
+      role="status"
+      aria-label="Loading page"
+    >
+      <div className="mx-auto max-w-6xl space-y-5">
+        <div className="h-[42vh] min-h-[240px] animate-pulse rounded-xl bg-muted" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="h-48 animate-pulse rounded-xl bg-muted/70" />
+          <div className="h-48 animate-pulse rounded-xl bg-muted/70" />
+          <div className="h-48 animate-pulse rounded-xl bg-muted/70" />
+        </div>
+      </div>
+      <span className="sr-only">Loading</span>
     </div>
   );
 }

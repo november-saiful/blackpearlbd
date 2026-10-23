@@ -43,10 +43,10 @@ export function getTierProgress(pearls: number) {
 
 export function getStatusColor(status: string) {
   switch (status) {
-    case 'approved': return 'border-emerald-300/50 bg-emerald-100/50 text-emerald-800 backdrop-blur-md dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200';
-    case 'pending': return 'border-amber-300/50 bg-amber-100/50 text-amber-800 backdrop-blur-md dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200';
-    case 'processing': return 'border-blue-300/50 bg-blue-100/50 text-blue-800 backdrop-blur-md dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-200';
-    case 'rejected': return 'border-rose-300/50 bg-rose-100/50 text-rose-800 backdrop-blur-md dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-200';
+    case 'approved': return 'border-emerald-300/50 bg-emerald-100/50 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-200';
+    case 'pending': return 'border-amber-300/50 bg-amber-100/50 text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200';
+    case 'processing': return 'border-blue-300/50 bg-blue-100/50 text-blue-800 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-200';
+    case 'rejected': return 'border-rose-300/50 bg-rose-100/50 text-rose-800 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-200';
     case 'cancelled': return 'glass-chip text-muted-foreground';
     default: return 'glass-chip text-muted-foreground';
   }

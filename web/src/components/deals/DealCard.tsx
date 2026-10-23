@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CalendarDays, MapPin, Route as RouteIcon, Sparkles } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -33,6 +33,34 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
   const stops = (deal.route_waypoints || []).length;
   const blurb = (deal.short_description || deal.description || '').trim();
 
+  const frameRef = useRef<HTMLDivElement>(null);
+  // A deal photo is roughly 200 KB and there is no smaller rendition to serve,
+  // so a grid of them has to wait its turn. Native loading="lazy" starts about
+  // 1250 px early, which on a phone means six thumbnails downloading while the
+  // hero photo is still in flight and pushes the first screen out by seconds.
+  // This mounts the img only when the card is genuinely close to the viewport.
+  const [nearViewport, setNearViewport] = useState(false);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame || !image || nearViewport) return;
+    if (!('IntersectionObserver' in window)) {
+      setNearViewport(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setNearViewport(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px 0px' },
+    );
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [image, nearViewport]);
+
   return (
     <Link
       to={`/deals/${deal.slug}`}
@@ -44,20 +72,23 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
       )}
     >
       {/* Thumbnail */}
-      <div className="glass-soft relative aspect-[16/10] w-full overflow-hidden">
-        {image ? (
+      <div ref={frameRef} className="glass-soft relative aspect-[16/10] w-full overflow-hidden">
+        {!image ? (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-muted to-secondary/20">
+            <MapPin className="h-9 w-9 text-primary/40" />
+          </div>
+        ) : nearViewport ? (
           <img
             src={image}
             alt={deal.title}
             loading="lazy"
             decoding="async"
+            // Lowercase because React 18 has no fetchPriority prop. Even the
+            // near-viewport rows should never outrank the hero photo.
+            {...{ fetchpriority: 'low' }}
             className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
           />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-muted to-secondary/20">
-            <MapPin className="h-9 w-9 text-primary/40" />
-          </div>
-        )}
+        ) : null}
 
         {/* Keeps the chips readable over any photo */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
@@ -83,7 +114,7 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
         )}
 
         <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2">
-          <span className="inline-flex max-w-[70%] items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+          <span className="inline-flex max-w-[70%] items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white">
             <MapPin className="h-3 w-3 shrink-0" />
             <span className="truncate">{location}</span>
           </span>

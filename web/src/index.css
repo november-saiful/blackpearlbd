@@ -16,6 +16,27 @@
   font-display: swap;
 }
 
+/* Display faces for the hero, self-hosted latin subsets (both OFL) so the
+   first paint needs no third-party connection. Declared globally so the face
+   is known when the first stylesheet parses, but a route that never uses
+   these families never downloads them. Bengali glyphs fall through to
+   SolaimanLipi on the hero's `.is-bengali` classes. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('/fonts/display/inter-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Bebas Neue';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/display/bebas-neue-latin.woff2') format('woff2');
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -272,9 +293,15 @@
 }
 
 @layer components {
-  /* Material base. Each `var(--ogui-lg-x, <fallback>)` carries the
-   * pre-migration value as its fallback: if the liquid scope is ever missing,
-   * surfaces resolve to those instead of collapsing to transparent. */
+  /* Glass without backdrop-filter.
+   *
+   * A blurred surface has to re-sample everything behind it on every scroll
+   * frame. With several opaque layers stacked over the hero and cards, a
+   * mid-range phone drops to roughly 30fps. The material reads just as glassy
+   * from a translucent fill, a hairline edge, an inner rim and a soft shadow,
+   * and those cost nothing to scroll. Blur now lives only on transient
+   * OpenGlass overlays (dialogs, menus, popovers), which are open while the
+   * page underneath is static. Do not add it back to a persistent surface. */
   .glass,
   .glass-strong,
   .glass-soft,
@@ -285,9 +312,7 @@
   .glass-nav-pill {
     position: relative;
     border: 1px solid var(--ogui-lg-hairline, hsl(0 0% 100% / 0.5));
-    background-color: var(--ogui-lg-surface, hsl(0 0% 100% / 0.46));
-    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
-    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    background-color: hsl(var(--card) / 0.72);
     box-shadow:
       var(--ogui-lg-rim, inset 0 0 14px hsl(0 0% 100% / 0.3)),
       var(--ogui-lg-bloom, inset 0 0 0 transparent),
@@ -296,9 +321,7 @@
 
   /* Menus, dialogs, floating panels: the densest sheet. */
   .glass-strong {
-    background-color: var(--ogui-lg-sheet, hsl(0 0% 100% / 0.66));
-    -webkit-backdrop-filter: var(--ogui-lg-blur-heavy, blur(36px) saturate(1.8));
-    backdrop-filter: var(--ogui-lg-blur-heavy, blur(36px) saturate(1.8));
+    background-color: hsl(var(--card) / 0.92);
     box-shadow:
       var(--ogui-lg-rim, inset 0 0 14px hsl(0 0% 100% / 0.3)),
       var(--ogui-lg-bloom, inset 0 0 0 transparent),
@@ -307,26 +330,18 @@
 
   /* Insets and grouped wells: the surface, thinned right down. */
   .glass-soft {
-    background-color: color-mix(
-      in srgb,
-      var(--ogui-lg-surface, hsl(0 0% 100% / 0.46)) 62%,
-      transparent
-    );
+    background-color: hsl(var(--card) / 0.46);
   }
 
   /* Text controls: the control fill with the library's recessed well. */
   .glass-field {
-    background-color: var(--ogui-lg-fill, hsl(0 0% 100% / 0.54));
+    background-color: hsl(var(--card) / 0.78);
     box-shadow: var(--ogui-lg-well-shadow, inset 0 1px 2px hsl(222 40% 20% / 0.06));
   }
 
   /* Chips and badges: a small, crisp pane that reads as a distinct object. */
   .glass-chip {
-    background-color: color-mix(
-      in srgb,
-      var(--ogui-lg-fill, hsl(0 0% 100% / 0.4)) 78%,
-      transparent
-    );
+    background-color: hsl(var(--card) / 0.64);
     box-shadow:
       var(--ogui-lg-lift, 0 1px 2px hsl(222 40% 20% / 0.12)),
       0 0 0 0.5px var(--ogui-lg-hairline, hsl(0 0% 100% / 0.5));
@@ -336,18 +351,14 @@
   .glass-bar {
     border: 0;
     border-radius: 0;
-    background-color: var(--ogui-lg-sheet, hsl(0 0% 100% / 0.66));
-    -webkit-backdrop-filter: var(--ogui-lg-blur-heavy, blur(36px) saturate(1.8));
-    backdrop-filter: var(--ogui-lg-blur-heavy, blur(36px) saturate(1.8));
+    background-color: hsl(var(--background) / 0.94);
     box-shadow: inset 0 -1px 0 0 var(--ogui-lg-hairline, hsl(0 0% 100% / 0.5));
   }
 
-  /* Floating mobile dock. One translucent layer only: stacking a bar and a
-   * pill made the combined fill nearly opaque and killed the blur. */
+  /* Floating mobile dock. One solid-enough pane, so the icons stay crisp over
+   * whatever scrolls underneath without paying for a live blur. */
   .glass-nav {
-    background-color: var(--ogui-lg-sheet, hsl(0 0% 100% / 0.34));
-    -webkit-backdrop-filter: var(--ogui-lg-blur-heavy, blur(28px) saturate(1.85));
-    backdrop-filter: var(--ogui-lg-blur-heavy, blur(28px) saturate(1.85));
+    background-color: hsl(var(--card) / 0.95);
     box-shadow:
       var(--ogui-lg-rim, inset 0 0 14px hsl(0 0% 100% / 0.3)),
       var(--ogui-lg-bloom, inset 0 0 0 transparent),
@@ -355,13 +366,26 @@
   }
 
   .glass-nav-pill {
-    background-color: color-mix(
-      in srgb,
-      var(--ogui-lg-fill, hsl(0 0% 100% / 0.4)) 78%,
-      transparent
-    );
-    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
-    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    background-color: hsl(var(--card) / 0.78);
+  }
+
+  /* OpenGlass's liquid recipe frosts every control, including the persistent
+   * topbar and dock buttons. They take the same blur-free material as the
+   * surfaces they sit on. Overlays inherit the rule from here too. */
+  .ogui-button,
+  .ogui-overlay-trigger > button,
+  .ogui-toggle-button,
+  .ogui-toast__restore,
+  .ogui-badge,
+  .ogui-segments,
+  .ogui-tabs__list,
+  .ogui-pagination,
+  .ogui-card,
+  .ogui-accordion,
+  .ogui-alert,
+  .ogui-banner {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 
   .glass-hover {
@@ -376,37 +400,31 @@
     background-color: var(--ogui-lg-fill-hover, hsl(0 0% 100% / 0.6));
   }
 
-  /* Brand action surface: keeps the site's primary tint, wears OpenGlass blur. */
+  /* Brand action surface: keeps the site's primary tint. */
   .glass-primary {
     position: relative;
     border: 1px solid hsl(var(--primary) / 0.22);
-    background-color: hsl(var(--primary) / 0.9);
+    background-color: hsl(var(--primary) / 0.92);
     color: hsl(var(--primary-foreground));
-    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
-    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
     box-shadow:
       inset 0 1px 0 0 hsl(0 0% 100% / 0.2),
       0 10px 24px -16px hsl(var(--primary) / 0.65);
   }
 
   .glass-primary:hover {
-    background-color: hsl(var(--primary) / 0.96);
+    background-color: hsl(var(--primary) / 0.98);
   }
 
+  /* A veil, not a pane: the darkening has to read on its own without a blur. */
   .glass-scrim {
-    background-color: var(--ogui-lg-scrim, hsl(230 44% 4% / 0.55));
-    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
-    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+    background-color: hsl(224 40% 8% / 0.56);
   }
 
-  /* Tooltips: dark in both appearances, so the fill stays deliberate and only
-   * the blur comes from the library. */
+  /* Tooltips: dark in both appearances. */
   .glass-tooltip {
-    background-color: hsl(224 24% 14% / 0.8);
+    background-color: hsl(224 24% 14% / 0.94);
     border: 1px solid hsl(0 0% 100% / 0.16);
     color: hsl(0 0% 100%);
-    -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
-    backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
     box-shadow: var(--ogui-lg-lift-high, 0 2px 4px hsl(222 40% 20% / 0.16));
   }
 

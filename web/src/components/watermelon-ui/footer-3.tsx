@@ -101,7 +101,7 @@ export function Footer3({
           </div>
         </div>
 
-        <div className="border-t border-white/40 bg-white/20 px-4 py-6 backdrop-blur-xl md:px-6 dark:border-white/10 dark:bg-white/5">
+        <div className="border-t border-white/40 bg-white/50 px-4 py-6 md:px-6 dark:border-white/10 dark:bg-white/5">
           <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             {copyright && (
               <p className="text-muted-foreground text-sm">{copyright}</p>

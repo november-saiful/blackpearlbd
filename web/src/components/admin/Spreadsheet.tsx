@@ -107,7 +107,7 @@ export function SheetHeadCell({
     <th
       scope="col"
       className={cn(
-        'sticky top-0 whitespace-nowrap border-b border-r border-border bg-white/45 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur-xl last:border-r-0 dark:bg-white/10',
+        'sticky top-0 whitespace-nowrap border-b border-r border-border bg-white/85 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground last:border-r-0 dark:bg-white/10',
         stickyLeft ? 'left-0 z-20' : 'z-10',
         className,
       )}
@@ -145,7 +145,7 @@ export function SheetGutterCell({
   return (
     <td
       className={cn(
-        'sticky left-0 z-[1] w-12 min-w-12 border-b border-r border-border bg-white/45 text-center align-middle text-[11px] font-medium tabular-nums backdrop-blur-xl transition-colors group-hover:bg-white/60 dark:bg-white/10 dark:group-hover:bg-white/15',
+        'sticky left-0 z-[1] w-12 min-w-12 border-b border-r border-border bg-white/85 text-center align-middle text-[11px] font-medium tabular-nums transition-colors group-hover:bg-white/95 dark:bg-white/10 dark:group-hover:bg-white/15',
         muted && 'text-muted-foreground/50',
         !muted && 'text-muted-foreground',
         className,

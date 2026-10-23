@@ -120,6 +120,10 @@ export function HeroCarousel({
   // resume after hover/tab pause). Also remounts the progress bar animation.
   const [cycle, setCycle] = useState(0)
   const [mounted, setMounted] = useState(false)
+  // The first slide arrives with the page: it is already the largest element on
+  // screen, so fading its copy in only postpones the moment it is painted. It
+  // renders revealed until the first rotation, after which every slide staggers.
+  const [introPending, setIntroPending] = useState(true)
   const [hoverPaused, setHoverPaused] = useState(false)
   const [focusPaused, setFocusPaused] = useState(false)
   const [tabHidden, setTabHidden] = useState(false)
@@ -128,6 +132,24 @@ export function HeroCarousel({
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches,
   )
+
+  // Only the active photo is mounted at first. Each slide is a full-screen
+  // upload of roughly 200 KB, and a strip of five of them starves the hero
+  // text, the fonts and the deals request on a phone connection. The next
+  // slide is warmed once the active one has painted; a slide's thumbnail
+  // appears only when its photo is already in the HTTP cache.
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(() => new Set())
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null)
+  const lastIndex = useRef(0)
+
+  const markLoaded = useCallback((id: string) => {
+    setLoadedImages((current) => {
+      if (current.has(id)) return current
+      const next = new Set(current)
+      next.add(id)
+      return next
+    })
+  }, [])
 
   const sectionRef = useRef<HTMLElement>(null)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
@@ -151,6 +173,44 @@ export function HeroCarousel({
     const frame = window.requestAnimationFrame(() => setMounted(true))
     return () => window.cancelAnimationFrame(frame)
   }, [])
+
+  // Hold the outgoing photo for the length of the crossfade, then release it
+  // so at most two full-screen images are ever mounted.
+  useEffect(() => {
+    if (activeIndex === lastIndex.current) return
+    const previous = lastIndex.current
+    lastIndex.current = activeIndex
+    setIntroPending(false)
+    setPreviousIndex(previous)
+    const timer = window.setTimeout(() => setPreviousIndex(null), 1200)
+    return () => window.clearTimeout(timer)
+  }, [activeIndex])
+
+  const activeLoaded = activeSlide ? loadedImages.has(activeSlide.id) : false
+
+  // Warm the rest of the strip one photo at a time, starting only after the
+  // current photo has painted. Each download is roughly 200 KB, so firing them
+  // together would compete with the first paint on a phone connection; loading
+  // them in sequence fills the thumbnails in the seconds after the hero lands
+  // and the effect re-runs on every arrival to queue the following one.
+  useEffect(() => {
+    if (!mounted || !activeLoaded || slides.length < 2) return
+    let pending
+    for (let step = 1; step < slides.length; step += 1) {
+      const candidate = slides[(activeIndex + step) % slides.length]
+      if (!loadedImages.has(candidate.id)) {
+        pending = candidate
+        break
+      }
+    }
+    if (!pending) return
+    const timer = window.setTimeout(() => {
+      const image = new Image()
+      image.onload = () => markLoaded(pending.id)
+      image.src = pending.image
+    }, 1200)
+    return () => window.clearTimeout(timer)
+  }, [activeIndex, activeLoaded, loadedImages, markLoaded, mounted, slides])
 
   useEffect(() => {
     if (paused || slides.length < 2) return
@@ -272,21 +332,26 @@ export function HeroCarousel({
 
       <div className="hero-carousel__bgs" aria-hidden="true">
         {slides.map((slide, slideIndex) => {
-          const isActive = mounted && slideIndex === activeIndex
+          const isActive = (mounted || introPending) && slideIndex === activeIndex
+          const showImage = slideIndex === activeIndex || slideIndex === previousIndex
           return (
             <div
               key={slide.id}
               className={cn('hero-carousel__bg', isActive && 'is-active')}
             >
-              <img
-                src={slide.image}
-                alt=""
-                loading={slideIndex === 0 ? 'eager' : 'lazy'}
-                decoding="async"
-                onError={(event) => {
-                  event.currentTarget.style.opacity = '0'
-                }}
-              />
+              {showImage && (
+                <img
+                  src={slide.image}
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  {...{ fetchpriority: slideIndex === activeIndex ? 'high' : 'low' }}
+                  onLoad={() => markLoaded(slide.id)}
+                  onError={(event) => {
+                    event.currentTarget.style.opacity = '0'
+                  }}
+                />
+              )}
             </div>
           )
         })}
@@ -298,7 +363,7 @@ export function HeroCarousel({
       <div className="hero-carousel__stage">
         <div className="hero-carousel__contents">
           {slides.map((slide, slideIndex) => {
-            const isActive = mounted && slideIndex === activeIndex
+            const isActive = (mounted || introPending) && slideIndex === activeIndex
             return (
               <article
                 key={slide.id}
@@ -391,15 +456,17 @@ export function HeroCarousel({
                 onClick={() => goTo(slideIndex)}
               >
                 <span className="hero-carousel__thumb-media">
-                  <img
-                    src={slide.thumb}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    onError={(event) => {
-                      event.currentTarget.style.opacity = '0'
-                    }}
-                  />
+                  {loadedImages.has(slide.id) && (
+                    <img
+                      src={slide.thumb}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      onError={(event) => {
+                        event.currentTarget.style.opacity = '0'
+                      }}
+                    />
+                  )}
                   <span className="hero-carousel__thumb-progress" aria-hidden="true">
                     {isActive && <i key={`${activeIndex}-${cycle}`} />}
                   </span>

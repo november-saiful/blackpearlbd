@@ -327,7 +327,7 @@ export function CoverflowCarousel({
                   else goTo(index);
                 }}
                 className={cn(
-                  "glass-soft absolute left-1/2 top-0 aspect-square overflow-hidden rounded-2xl backdrop-blur-sm will-change-transform",
+                  "glass-soft absolute left-1/2 top-0 aspect-square overflow-hidden rounded-2xl will-change-transform",
                   index === selected && onCardClick && "cursor-zoom-in",
                   cardClassName,
                 )}

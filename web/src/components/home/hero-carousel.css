@@ -65,15 +65,23 @@
   position: absolute;
   inset: 0;
   opacity: 0;
+  /* Only the visible slide keeps a composited photo layer. Once the crossfade
+   * finishes, the outgoing slides stop painting entirely. */
+  visibility: hidden;
   background:
     radial-gradient(80% 80% at 72% 18%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 65%),
     #06070b;
-  transition: opacity 1.15s var(--ease);
-  will-change: opacity;
+  transition:
+    opacity 1.15s var(--ease),
+    visibility 0s linear 1.15s;
 }
 
 .hero-carousel__bg.is-active {
   opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 1.15s var(--ease),
+    visibility 0s;
 }
 
 .hero-carousel__bg img {
@@ -85,7 +93,6 @@
   transform: scale(1.04);
   transform-origin: 50% 50%;
   transition: transform 11s linear;
-  will-change: transform;
 }
 
 .hero-carousel__bg:nth-child(2n) img {
@@ -102,6 +109,7 @@
 
 .hero-carousel__bg.is-active img {
   transform: scale(1.17);
+  will-change: transform;
 }
 
 /* Cinematic scrims keep the copy readable whatever the photo is doing. */
@@ -159,14 +167,21 @@
   justify-content: safe flex-end;
   max-width: min(760px, 100%);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.55s ease;
+  transition:
+    opacity 0.55s ease,
+    visibility 0s linear 0.55s;
 }
 
 .hero-carousel__copy.is-active {
   z-index: 1;
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition:
+    opacity 0.55s ease,
+    visibility 0s;
 }
 
 /* Layout only: the copy block adds no surface, so the text keeps its full
@@ -371,19 +386,17 @@
 }
 
 .hero-carousel__cta--ghost {
-  border: 1px solid var(--ogui-lg-hairline, rgba(255, 255, 255, 0.2));
-  background: var(--ogui-lg-surface, rgba(9, 11, 17, 0.5));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(9, 11, 17, 0.74);
   color: #fff;
-  -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
-  backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
   box-shadow:
-    var(--ogui-lg-rim, inset 0 0 14px rgba(255, 255, 255, 0.06)),
-    var(--ogui-lg-lift, 0 1px 2px rgba(0, 0, 0, 0.18));
+    inset 0 0 14px rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 .hero-carousel__cta--ghost:hover {
   transform: translateY(-3px);
-  background: var(--ogui-lg-fill-hover, rgba(255, 255, 255, 0.16));
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .hero-carousel__cta:focus-visible,
@@ -432,14 +445,12 @@
   flex: 0 0 auto;
   width: clamp(72px, 9.4vw, 136px);
   padding: 7px 7px 9px;
-  border: 1px solid var(--ogui-lg-hairline, rgba(255, 255, 255, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 16px;
-  background-color: var(--ogui-lg-surface, rgba(9, 11, 17, 0.5));
-  -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
-  backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
+  background-color: rgba(9, 11, 17, 0.74);
   box-shadow:
-    var(--ogui-lg-rim, inset 0 0 14px rgba(255, 255, 255, 0.06)),
-    var(--ogui-lg-lift, 0 1px 2px rgba(0, 0, 0, 0.18)),
+    inset 0 0 14px rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.18),
     0 12px 32px -16px rgba(0, 0, 0, 0.7);
   text-align: left;
   transition:
@@ -458,7 +469,7 @@
 }
 
 .hero-carousel__thumb.is-active {
-  background-color: var(--ogui-lg-sheet, rgba(9, 11, 17, 0.66));
+  background-color: rgba(9, 11, 17, 0.92);
 }
 
 .hero-carousel__thumb-media {
@@ -468,6 +479,8 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 9px;
+  /* Empty frame until that slide's photo is in the cache. */
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(9, 11, 17, 0.55));
   transform: scale(0.94);
   filter: grayscale(1) brightness(0.5);
   transition:
@@ -602,15 +615,13 @@
   place-items: center;
   width: clamp(40px, 3.4vw, 50px);
   height: clamp(40px, 3.4vw, 50px);
-  border: 1px solid var(--ogui-lg-hairline, rgba(255, 255, 255, 0.16));
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
-  background: var(--ogui-lg-surface, rgba(9, 11, 17, 0.5));
+  background: rgba(9, 11, 17, 0.74);
   color: #fff;
-  -webkit-backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
-  backdrop-filter: var(--ogui-lg-blur, blur(12px) saturate(1.8));
   box-shadow:
-    var(--ogui-lg-rim, inset 0 0 14px rgba(255, 255, 255, 0.06)),
-    var(--ogui-lg-lift, 0 1px 2px rgba(0, 0, 0, 0.18));
+    inset 0 0 14px rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.18);
   transition:
     background 0.3s,
     color 0.3s,
@@ -905,10 +916,30 @@ html.light .hero-carousel__cta--primary:hover {
     0 0 0 1px hsl(var(--foreground) / 0.25);
 }
 
-/* Light mode only needs to restate the ink. The fill, hairline, blur and
- * shadow all come from the tokens, which already know which theme is on. */
+/* The dark fills above are tuned for white ink. Light mode swaps in a paper
+ * pane so the dark ink keeps its contrast over the photo. */
 html.light .hero-carousel__cta--ghost {
+  border-color: hsl(var(--foreground) / 0.18);
+  background: hsl(var(--background) / 0.8);
   color: hsl(var(--foreground));
+}
+
+html.light .hero-carousel__cta--ghost:hover {
+  background: hsl(var(--background) / 0.94);
+}
+
+html.light .hero-carousel__thumb {
+  border-color: hsl(var(--foreground) / 0.12);
+  background-color: hsl(var(--background) / 0.8);
+}
+
+html.light .hero-carousel__thumb.is-active {
+  background-color: hsl(var(--background) / 0.94);
+}
+
+html.light .hero-carousel__arrow {
+  border-color: hsl(var(--foreground) / 0.2);
+  background: hsl(var(--background) / 0.8);
 }
 
 html.light .hero-carousel__cta:focus-visible,
@@ -919,6 +950,7 @@ html.light .hero-carousel__arrow:focus-visible {
 
 html.light .hero-carousel__thumb-media {
   border-color: hsl(var(--foreground) / 0.14);
+  background: linear-gradient(135deg, hsl(var(--foreground) / 0.1), hsl(var(--background) / 0.7));
   filter: grayscale(1) brightness(0.95) opacity(0.55);
 }
 

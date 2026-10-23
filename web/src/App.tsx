@@ -6,7 +6,7 @@ import { GlassSystemProvider } from 'open-glass-ui';
 import { router } from './router';
 import { ThemeProvider, useTheme } from './lib/theme-provider';
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
