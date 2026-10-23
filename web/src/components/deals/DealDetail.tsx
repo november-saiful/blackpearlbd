@@ -160,7 +160,7 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
       </div>
 
       {/* Itinerary accordion + About this tour, two columns on md+ */}
-      <div className="grid md:grid-cols-2 items-start gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-6 mb-6">
         {deal.itinerary && deal.itinerary.length > 0 && (
           <Card className={!deal.description ? 'md:col-span-2' : ''}>
             <CardHeader>
