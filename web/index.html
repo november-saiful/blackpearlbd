@@ -11,15 +11,17 @@
     <meta name="x-api-origin" content="%VITE_API_URL%" />
     <!-- The API-origin preconnect is injected by vite.config.ts when
          VITE_API_URL is defined, so a build without it stays valid HTML. -->
-    <!-- The home hero cannot paint until the deals response arrives, and five
-         of the six live deal titles are Bengali, which renders in the bold
-         SolaimanLipi face. Start both downloads with the document instead of
-         after React mounts: the app's own deals request reuses the cached
-         response, and the face is ready before the title is laid out. Other
-         routes need neither on their first screen, so they skip the cost. -->
+    <!-- The home hero and the deals grid cannot paint until the deals response
+         arrives, and five of the six live deal titles are Bengali, which
+         renders in the bold SolaimanLipi face. Start those downloads with the
+         document instead of after React mounts: the app's own request reuses
+         the cached response, and the face is ready before the title is laid
+         out. Routes that show neither on their first screen skip the cost. -->
     <script>
       (function () {
-        if (window.location.pathname !== '/') return;
+        var path = window.location.pathname.replace(/\/+$/, '') || '/';
+        var isHome = path === '/';
+        if (!isHome && path !== '/deals') return;
         var head = document.head;
         var meta = document.querySelector('meta[name="x-api-origin"]');
         var origin = meta && meta.getAttribute('content');
@@ -31,6 +33,7 @@
           deals.href = origin.replace(/\/$/, '') + '/deals';
           head.appendChild(deals);
         }
+        if (!isHome) return;
         var face = document.createElement('link');
         face.rel = 'preload';
         face.as = 'font';

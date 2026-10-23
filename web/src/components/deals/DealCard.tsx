@@ -55,7 +55,7 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
           observer.disconnect();
         }
       },
-      { rootMargin: '300px 0px' },
+      { rootMargin: '0px 0px 240px' },
     );
     observer.observe(frame);
     return () => observer.disconnect();
@@ -83,9 +83,6 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
             alt={deal.title}
             loading="lazy"
             decoding="async"
-            // Lowercase because React 18 has no fetchPriority prop. Even the
-            // near-viewport rows should never outrank the hero photo.
-            {...{ fetchpriority: 'low' }}
             className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
           />
         ) : null}
