@@ -55,8 +55,11 @@ export default defineConfig({
           // ── Icons (lucide is large) ───────────────────────────────
           'vendor-icons': ['lucide-react'],
 
-          // ── PDF generation (lazy-loaded by BookingCard/InvoiceGenerator) ──
-          'vendor-pdf': ['jspdf', 'jspdf-autotable', 'canvg'],
+          // PDF generation is deliberately not grouped here. jspdf and its
+          // canvas renderer are reachable only through a dynamic import in
+          // useBookings, and a manual chunk for them also becomes the home of
+          // Vite's preload helper, which makes the entry import the whole
+          // 150 kB chunk up front.
 
           // ── Forms & validation ─────────────────────────────────────
           'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],

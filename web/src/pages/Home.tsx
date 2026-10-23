@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -6,14 +7,18 @@ import { DealCard } from '@/components/deals/DealCard';
 import { api } from '@/lib/api';
 import { DealGrid } from '@/components/deals/DealGrid';
 import { DealCardSkeleton } from '@/components/skeletons/DealCardSkeleton';
+import { PackageFormSkeleton } from '@/components/skeletons/PackageFormSkeleton';
 import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { CTabs6 } from '@/components/examples/c-tabs-6';
-import BuildPackageForm from '@/components/package-builder/BuildPackageForm';
 import { AnimatedReviews } from '@/components/reviews/AnimatedReviews';
 import { Compass, Star, ArrowRight } from 'lucide-react';
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
 import type { TourDeal } from '@/types';
 import { useQueries } from '@tanstack/react-query';
+
+// The builder is a large form behind an inactive tab; Radix unmounts inactive
+// tab content, so this download starts only when the tab is actually opened.
+const BuildPackageForm = lazy(() => import('@/components/package-builder/BuildPackageForm'));
 
 function TourDealsPreview({ deals, isLoading }: { deals: TourDeal[]; isLoading: boolean }) {
   return (
@@ -83,7 +88,11 @@ export default function Home() {
                 id: 'packages',
                 label: 'Build Package',
                 icon: <BuildPackageIcon />,
-                content: <BuildPackageForm embedded />,
+                content: (
+                  <Suspense fallback={<PackageFormSkeleton />}>
+                    <BuildPackageForm embedded />
+                  </Suspense>
+                ),
               },
             ]}
           />

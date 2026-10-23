@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { generateInvoicePDF } from '../lib/pdf-generator';
 import toast from 'react-hot-toast';
 
 export function useBookings() {
@@ -26,6 +25,9 @@ export function useBookings() {
       // Deal-only invoice layout: skip PDF for non-deal bookings.
       if (data.booking?.booking_type === 'deal' && data.booking?.deal) {
         try {
+          // jspdf and its canvas renderer are only worth fetching for a
+          // visitor who actually completes a deal booking.
+          const { generateInvoicePDF } = await import('../lib/pdf-generator');
           await generateInvoicePDF(data.booking);
           toast.success('Booking request submitted! Invoice downloaded.');
         } catch {
@@ -64,6 +66,7 @@ export function useInvoice(bookingId: string) {
       return;
     }
     try {
+      const { generateInvoicePDF } = await import('../lib/pdf-generator');
       await generateInvoicePDF(invoice);
       toast.success('Invoice downloaded');
     } catch {
