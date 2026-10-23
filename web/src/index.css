@@ -371,6 +371,35 @@
     background-color: hsl(var(--card) / 0.78);
   }
 
+  /* OpenGlass fills a skeleton with white at 8%, which vanishes on the
+   * paper-white glass surfaces this site uses in light mode. Tie the fill to
+   * the page ink instead, so a placeholder is a deliberate empty shape in both
+   * themes rather than a blank gap that looks like a missing component. */
+  .ogui-skeleton {
+    background: hsl(var(--foreground) / 0.11);
+  }
+
+  .ogui-skeleton::after {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--foreground) / 0.14),
+      transparent
+    );
+  }
+
+  /* The empty photo slot a deal card shows until its image lands: a soft
+   * diagonal wash with a photo glyph on top, so a card waiting its turn on the
+   * connection reads as intentional instead of hollow. */
+  .deal-photo-slot {
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--foreground) / 0.06),
+      hsl(var(--card) / 0.5) 46%,
+      hsl(var(--primary) / 0.06)
+    );
+  }
+
   /* OpenGlass's liquid recipe frosts every control, including the persistent
    * topbar and dock buttons. They take the same blur-free material as the
    * surfaces they sit on. Overlays inherit the rule from here too. */

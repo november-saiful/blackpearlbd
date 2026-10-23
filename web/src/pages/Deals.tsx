@@ -15,6 +15,7 @@ import { countFilterRules, createFilterQuery } from '@/components/reui/filters/f
 import type { FilterQuery } from '@/components/reui/filters/filters-types';
 import { useDeals } from '@/hooks/useDeals';
 import { DealsPageSkeleton } from '@/components/skeletons/DealCardSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { formatDealLocation } from '@/components/deals/deals-destination';
 import { humanizeDealText } from '@/lib/text';
@@ -34,10 +35,12 @@ const DealsFilterBar = lazy(() =>
 function FilterBarSkeleton() {
   return (
     <div
-      className="h-11 min-w-0 flex-1 animate-pulse rounded-full bg-muted"
+      className="flex h-[2.65rem] min-w-0 flex-1 items-center"
       role="status"
       aria-label="Loading filters"
-    />
+    >
+      <Skeleton className="h-full w-32 rounded-[0.8rem]" />
+    </div>
   );
 }
 

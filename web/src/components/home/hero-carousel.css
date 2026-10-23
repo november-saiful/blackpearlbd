@@ -68,9 +68,13 @@
   /* Only the visible slide keeps a composited photo layer. Once the crossfade
    * finishes, the outgoing slides stop painting entirely. */
   visibility: hidden;
+  /* A designed backdrop, not a void: the accent-lit wash holds the frame while
+   * the full-screen photo downloads, then the photo takes over. Without this
+   * the copy sat on a blank stage for the first seconds of a visit. */
   background:
-    radial-gradient(80% 80% at 72% 18%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 65%),
-    #06070b;
+    radial-gradient(64% 58% at 76% 16%, color-mix(in srgb, var(--accent) 32%, transparent), transparent 64%),
+    radial-gradient(52% 48% at 16% 82%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 62%),
+    linear-gradient(180deg, #0a0c13 0%, #06070b 58%, #05060a 100%);
   transition:
     opacity 1.15s var(--ease),
     visibility 0s linear 1.15s;
@@ -95,7 +99,9 @@
   /* The zoom is an animation rather than a transition so a gesture can pause it
    * where it stands. Freezing a transition would snap the photo to its end scale
    * on the first wheel tick, and a paused animation costs the compositor
-   * nothing while the page moves. Only the visible slide runs it. */
+   * nothing while the page moves. Only the visible slide runs it. The photo is
+   * deliberately not faded in: it is the element the page is scored on, and the
+   * accent-lit backdrop is what fills the frame while it decodes. */
   animation: hero-carousel-kenburns 11s linear both;
   animation-play-state: paused;
 }
@@ -516,6 +522,22 @@
     box-shadow 0.55s ease;
 }
 
+/* Empty thumbnails carry their position instead of reading as vacant: a ghost
+ * numeral keeps the deck looking like five slides while the photos are still
+ * in flight, then gives way to the image. */
+.hero-carousel__thumb-index {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: 'Bebas Neue', Impact, 'Arial Narrow', sans-serif;
+  font-size: clamp(19px, 2.2vw, 27px);
+  line-height: 1;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.32);
+  text-shadow: none;
+}
+
 /* The dim lives on the photo, not on this frame: a filter on the frame keeps the
  * dwell bar inside it off the compositor, and the bar animates for seven
  * seconds at a time. */
@@ -713,6 +735,12 @@
   .hero-carousel__desc {
     display: none;
   }
+
+  /* The real hero drops the description on phones, so the placeholder has to
+     drop it too or the copy panel is taller than the one it becomes. */
+  .hero-skeleton--desc {
+    display: none;
+  }
 }
 
 @media (max-width: 700px) {
@@ -849,6 +877,9 @@
 .hero-skeleton--title {
   width: min(620px, 78%);
   height: clamp(38px, 5.4vw, 74px);
+  /* A text line, not a control: the giant pills read as UI that does not
+     exist, while a soft rectangle reads as the headline still loading. */
+  border-radius: 16px;
 }
 
 .hero-skeleton--short {
@@ -870,6 +901,19 @@
   width: 210px;
   height: 46px;
   margin-top: 6px;
+}
+
+/* Deck placeholders: the counter strip and the caption line under each
+ * thumbnail, sized to the real controls so the footer does not resize when the
+ * slides arrive. */
+.hero-skeleton--counter {
+  width: 54px;
+  height: 11px;
+}
+
+.hero-skeleton--thumb-label {
+  width: 100%;
+  height: 7px;
 }
 
 /* The hero is photographic in both themes; the bars have to invert with it. */
@@ -902,7 +946,8 @@ html.light .hero-carousel {
 
 html.light .hero-carousel__bg {
   background:
-    radial-gradient(80% 80% at 72% 18%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 65%),
+    radial-gradient(64% 58% at 76% 16%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 64%),
+    radial-gradient(48% 44% at 14% 84%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 60%),
     hsl(var(--background));
 }
 
@@ -993,7 +1038,12 @@ html.light .hero-carousel__arrow:focus-visible {
 
 html.light .hero-carousel__thumb-media {
   border-color: hsl(var(--foreground) / 0.14);
-  background: linear-gradient(135deg, hsl(var(--foreground) / 0.1), hsl(var(--background) / 0.7));
+  background: linear-gradient(
+    135deg,
+    hsl(var(--foreground) / 0.16),
+    hsl(var(--foreground) / 0.05) 58%,
+    hsl(var(--background) / 0.6)
+  );
 }
 
 html.light .hero-carousel__thumb-media img {
@@ -1017,6 +1067,10 @@ html.light .hero-carousel__thumb.is-active .hero-carousel__thumb-media img {
 
 html.light .hero-carousel__thumb-progress {
   background: hsl(var(--foreground) / 0.22);
+}
+
+html.light .hero-carousel__thumb-index {
+  color: hsl(var(--foreground) / 0.26);
 }
 
 html.light .hero-carousel__thumb.is-active .hero-carousel__thumb-progress i {

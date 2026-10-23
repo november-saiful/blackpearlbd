@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, MapPin, Route as RouteIcon, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarDays,
+  Image as ImageIcon,
+  MapPin,
+  Route as RouteIcon,
+  Sparkles,
+} from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { getDealCategory } from '@/lib/deal-category';
 import { humanizeDealText } from '@/lib/text';
@@ -82,13 +89,21 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
     return onLeadPhotoSettled(() => setMayDownload(true));
   }, [image, nearViewport, mayDownload]);
 
+  // The frame shows a designed placeholder until the bytes are in, so a card
+  // that is waiting for its turn on the connection reads as a photo still
+  // coming, not as a component that failed to render.
+  const [photoReady, setPhotoReady] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
+
   // A photo already in the cache never fires a load event for a freshly mounted
   // img, so the lead has to notice that itself or the grid waits out the clock.
   const settle = () => {
     if (leadPhoto.current) settleLeadPhotoSlot();
   };
   const checkLead = (node: HTMLImageElement | null) => {
-    if (node?.complete) settle();
+    if (!node?.complete) return;
+    if (node.naturalWidth > 0) setPhotoReady(true);
+    settle();
   };
 
   // Lowercase, and spread, because react-dom 18.2 drops the camelCase prop and
@@ -113,19 +128,50 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-muted to-secondary/20">
             <MapPin className="h-9 w-9 text-primary/40" />
           </div>
-        ) : mayDownload ? (
-          <img
-            ref={checkLead}
-            {...leadPriority}
-            src={image}
-            alt={deal.title}
-            loading="lazy"
-            decoding="async"
-            onLoad={settle}
-            onError={settle}
-            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
-          />
-        ) : null}
+        ) : (
+          <>
+            {/* A photo slot, not a blank box: the soft gradient and the photo
+                glyph hold the frame while the image waits for the connection,
+                and fade out under the photo once it lands. */}
+            <div
+              aria-hidden="true"
+              className={cn(
+                'deal-photo-slot absolute inset-0 flex items-center justify-center transition-opacity duration-300',
+                photoReady ? 'opacity-0' : 'opacity-100',
+                !photoReady && !photoFailed && 'animate-pulse',
+              )}
+            >
+              {photoFailed ? (
+                <MapPin className="h-9 w-9 text-primary/40" />
+              ) : (
+                <ImageIcon className="h-8 w-8 text-foreground/15" />
+              )}
+            </div>
+
+            {mayDownload && (
+              <img
+                ref={checkLead}
+                {...leadPriority}
+                src={image}
+                alt={deal.title}
+                loading="lazy"
+                decoding="async"
+                onLoad={() => {
+                  setPhotoReady(true);
+                  settle();
+                }}
+                onError={() => {
+                  setPhotoFailed(true);
+                  settle();
+                }}
+                className={cn(
+                  'relative h-full w-full object-cover transition-[opacity,transform] duration-500 ease-out group-hover:scale-[1.06]',
+                  photoReady ? 'opacity-100' : 'opacity-0',
+                )}
+              />
+            )}
+          </>
+        )}
 
         {/* Keeps the chips readable over any photo */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />

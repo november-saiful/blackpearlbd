@@ -1,10 +1,20 @@
+import { Image as ImageIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function DealCardSkeleton() {
   return (
     <div className="glass flex h-full flex-col overflow-hidden rounded-2xl">
-      {/* Thumbnail */}
-      <Skeleton className="aspect-[16/10] w-full rounded-none" />
+      {/* Thumbnail. The aspect lives on the frame, not on the Skeleton: the
+          skeleton recipe carries a fixed height, and an explicit height wins
+          over aspect-ratio, which collapsed the photo area to one thin bar.
+          The glyph is the same photo slot the real card shows while its image
+          is still coming. */}
+      <div className="relative aspect-[16/10] w-full">
+        <Skeleton className="h-full w-full rounded-none" />
+        <span className="absolute inset-0 grid place-items-center">
+          <ImageIcon className="h-8 w-8 text-foreground/15" />
+        </span>
+      </div>
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2.5 p-4">
         <div className="flex flex-wrap gap-1.5">
@@ -40,15 +50,15 @@ export function DealsPageSkeleton() {
         <Skeleton className="h-9 w-44 max-w-full sm:h-10 sm:w-56 lg:h-12" />
         <Skeleton className="mt-3 h-5 w-72 max-w-full sm:mt-4 sm:h-7 sm:w-80" />
 
-        {/* Filter bar left, sort icon button right, in one row - the sort took
-            the filter bar's own control height so the two line up. */}
+        {/* The collapsed filter bar is one Add filter button, not a full-width
+            pill: matching its 2.65rem height, 0.8rem radius and the sort icon
+            beside it means the real toolbar replaces a same-shaped placeholder
+            rather than redrawing the row. */}
         <div className="mt-6 flex w-full items-start gap-2 sm:mt-10 sm:gap-4">
-          <div className="flex min-w-0 flex-1 flex-wrap gap-2">
-            <Skeleton className="size-10 rounded-md" />
-            <Skeleton className="h-9 w-40 rounded-full" />
-            <Skeleton className="h-9 w-28 rounded-full" />
+          <div className="flex min-w-0 flex-1 items-start">
+            <Skeleton className="h-[2.65rem] w-32 rounded-[0.8rem]" />
           </div>
-          <Skeleton className="size-10 shrink-0 rounded-md" />
+          <Skeleton className="size-10 shrink-0 rounded-[0.8rem]" />
         </div>
 
         {/* Grid */}

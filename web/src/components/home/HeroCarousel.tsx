@@ -471,6 +471,11 @@ export function HeroCarousel({
                 onClick={() => goTo(slideIndex)}
               >
                 <span className="hero-carousel__thumb-media">
+                  {!loadedImages.has(slide.id) && (
+                    <span className="hero-carousel__thumb-index" aria-hidden="true">
+                      {pad(slideIndex + 1)}
+                    </span>
+                  )}
                   {loadedImages.has(slide.id) && (
                     <img
                       src={slide.thumb}
@@ -537,8 +542,9 @@ export function HeroCarousel({
 
 /**
  * Holds the hero's full height while the first catalogue request is in flight.
- * The bars sit exactly where the copy will land, and nothing here pretends to
- * be a deal, so the real slides replace a placeholder rather than other copy.
+ * The bars sit exactly where the copy will land, and the deck keeps its five
+ * thumbnail cards and its navigation, so the real slides replace a placeholder
+ * of the same composition instead of adding a footer the first frame lacked.
  */
 function HeroLoading() {
   return (
@@ -548,6 +554,7 @@ function HeroLoading() {
         <div className="hero-carousel__bg is-active" />
       </div>
       <div className="hero-carousel__scrim" aria-hidden="true" />
+      <div className="hero-carousel__grain" aria-hidden="true" />
       <div className="hero-carousel__stage">
         <div className="hero-carousel__contents">
           <div className="hero-carousel__copy is-active" aria-hidden="true">
@@ -563,6 +570,30 @@ function HeroLoading() {
           </div>
         </div>
       </div>
+
+      <footer className="hero-carousel__deck" aria-hidden="true">
+        <div className="hero-carousel__thumbs">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="hero-carousel__thumb">
+              <span className="hero-carousel__thumb-media">
+                <span className="hero-carousel__thumb-index">{pad(index + 1)}</span>
+              </span>
+              <span className="hero-carousel__thumb-label">
+                <span className="hero-skeleton hero-skeleton--thumb-label" />
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="hero-carousel__deck-nav">
+          <span className="hero-carousel__counter">
+            <span className="hero-skeleton hero-skeleton--counter" />
+          </span>
+          <span className="hero-carousel__arrow hero-carousel__arrow--prev" />
+          <span className="hero-carousel__arrow hero-carousel__arrow--next" />
+          <span className="hero-carousel__arrow" />
+        </div>
+      </footer>
     </section>
   )
 }

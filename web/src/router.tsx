@@ -9,6 +9,7 @@ import { RootLayout } from '@/components/layout/RootLayout';
 import Home from '@/pages/Home';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { reloadForStaleBuild } from '@/lib/preload-recovery';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
@@ -89,11 +90,11 @@ function PageLoader() {
       aria-label="Loading page"
     >
       <div className="mx-auto max-w-6xl space-y-5">
-        <div className="h-[42vh] min-h-[240px] animate-pulse rounded-xl bg-muted" />
+        <Skeleton className="h-[42vh] min-h-[240px] rounded-xl" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="h-48 animate-pulse rounded-xl bg-muted/70" />
-          <div className="h-48 animate-pulse rounded-xl bg-muted/70" />
-          <div className="h-48 animate-pulse rounded-xl bg-muted/70" />
+          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
         </div>
       </div>
       <span className="sr-only">Loading</span>
