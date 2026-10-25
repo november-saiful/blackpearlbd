@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { IconComponent } from '@/components/ui/icons';
-import { HelpCircle, LayoutDashboard, LogOut, Monitor, Moon, Palette, Sun, User } from '@/components/ui/icons';
+import { Globe, HelpCircle, LayoutDashboard, LogOut, Monitor, Moon, Palette, Sun, User } from '@/components/ui/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -8,7 +9,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import type { ContentLocale } from '@/lib/locale';
 
 export type UserDropdownTheme = 'light' | 'dark' | 'system';
 
@@ -39,6 +40,8 @@ export interface UserDropdownProps {
   isAdmin?: boolean;
   theme?: UserDropdownTheme;
   onThemeChange?: (theme: UserDropdownTheme) => void;
+  locale?: ContentLocale;
+  onLocaleChange?: (locale: ContentLocale, event: ReactMouseEvent<HTMLElement>) => void;
   onAction?: (action: UserDropdownAction) => void;
   className?: string;
 }
@@ -62,6 +65,11 @@ const THEME_OPTIONS: { value: UserDropdownTheme; icon: IconComponent; label: str
   { value: 'light', icon: Sun, label: 'Light' },
   { value: 'dark', icon: Moon, label: 'Dark' },
   { value: 'system', icon: Monitor, label: 'System' },
+];
+
+const LANGUAGE_OPTIONS: { value: ContentLocale; label: string; bangla?: boolean }[] = [
+  { value: 'en', label: 'English' },
+  { value: 'bn', label: 'বাংলা', bangla: true },
 ];
 
 function GoogleIcon() {
@@ -93,6 +101,8 @@ export function UserDropdown({
   isAdmin = false,
   theme = 'system',
   onThemeChange,
+  locale = 'en',
+  onLocaleChange,
   onAction,
   className,
 }: UserDropdownProps) {
@@ -134,7 +144,7 @@ export function UserDropdown({
         <Avatar
           tabIndex={0}
           aria-label="Account menu"
-          className="!size-11 cursor-pointer rounded-lg border border-white after:rounded-lg dark:border-gray-700"
+          className="!size-10 cursor-pointer rounded-lg border border-white after:rounded-lg dark:border-gray-700"
         >
           <AvatarImage className="rounded-lg" src={resolvedUser.avatar ?? undefined} alt={resolvedUser.name} />
           <AvatarFallback className="rounded-lg">{resolvedUser.initials}</AvatarFallback>
@@ -171,30 +181,40 @@ export function UserDropdown({
             </Badge>
           </div>
 
-          {/* Same sub-radio pattern the design uses for status, pointed at
-              the theme: inlined on narrow screens where it can't fit. */}
+          {/* One compact row instead of three stacked rows: the panel is short
+              on phones, and the icons already carry the meaning. */}
           {narrow ? (
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="flex items-center gap-1.5 px-2 pb-1 text-xs font-medium text-muted-foreground">
+            <div className="px-2 pb-1">
+              <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <Palette className="size-4" />
                 Appearance
-              </DropdownMenuLabel>
-              {THEME_OPTIONS.map((option) => (
-                <DropdownMenuItem
-                  key={option.value}
-                  className={cn(
-                    'cursor-pointer rounded-lg p-2',
-                    theme === option.value && 'glass-chip text-accent-foreground',
-                  )}
-                  onClick={() => onThemeChange?.(option.value)}
-                >
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <option.icon className="size-5 text-gray-500 dark:text-gray-400" />
-                    {option.label}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuGroup>
+              </div>
+              <div
+                role="group"
+                aria-label="Appearance"
+                className="grid grid-cols-3 gap-1 rounded-lg bg-muted/60 p-1"
+              >
+                {THEME_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={theme === option.value}
+                    aria-label={option.label}
+                    title={option.label}
+                    onClick={() => onThemeChange?.(option.value)}
+                    className={cn(
+                      'flex items-center justify-center rounded-md py-1.5 transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      theme === option.value
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <option.icon className="size-4" />
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : (
             <DropdownMenuGroup>
               <DropdownMenuSub>
@@ -222,6 +242,44 @@ export function UserDropdown({
               </DropdownMenuSub>
             </DropdownMenuGroup>
           )}
+
+          <div className="mt-1 px-2 pb-1">
+            <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Globe className="size-4" />
+              Language
+            </div>
+            <div
+              role="group"
+              aria-label="Content language"
+              className="grid grid-cols-2 gap-1 rounded-lg bg-muted/60 p-1"
+            >
+              {LANGUAGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={locale === option.value}
+                  onClick={(event) => onLocaleChange?.(option.value, event)}
+                  style={
+                    option.bangla
+                      ? {
+                          fontFamily:
+                            "'SolaimanLipi','Noto Sans Bengali','Nirmala UI',sans-serif",
+                        }
+                      : undefined
+                  }
+                  className={cn(
+                    'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    locale === option.value
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <DropdownMenuSeparator />
           <DropdownMenuGroup>{PROFILE_ITEMS.map(renderMenuItem)}</DropdownMenuGroup>

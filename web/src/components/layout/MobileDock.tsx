@@ -50,14 +50,14 @@ export function MobileDock() {
   return (
     <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 md:hidden">
       <Dock
-        size={56}
-        className="glass-nav pointer-events-auto mx-auto gap-1 rounded-[1.75rem] px-1.5 py-1.5"
+        size={48}
+        className="glass-nav pointer-events-auto mx-auto gap-1 rounded-[1.5rem] px-1.5 py-1"
       >
         {navItems.map((item) => {
           const isActive = item.id === activeId
           const Icon = item.icon
           const itemClass = cn(
-            'flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-xl text-xs font-medium outline-none transition-colors',
+            'flex h-full w-full flex-col items-center justify-center gap-0.5 rounded-xl text-[10px] font-medium outline-none transition-colors',
             'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
             isActive ? 'text-foreground' : 'text-foreground/65',
           )
@@ -70,7 +70,7 @@ export function MobileDock() {
                 onClick={() => handleClick(item)}
               >
                 <div className={itemClass}>
-                  <Icon className="size-5" />
+                  <Icon className="size-[18px]" />
                   <span>{item.label}</span>
                 </div>
               </DockItem>
@@ -88,7 +88,7 @@ export function MobileDock() {
                   handleClick(item)
                 }}
               >
-                <Icon className="size-5" />
+                <Icon className="size-[18px]" />
                 <span>{item.label}</span>
               </a>
             </DockItem>

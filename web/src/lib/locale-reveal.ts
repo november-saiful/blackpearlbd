@@ -7,6 +7,7 @@
  */
 import { flushSync } from 'react-dom'
 import type { MouseEvent as ReactMouseEvent } from 'react'
+import type { ContentLocale } from './locale'
 
 const REVEAL_NAME = 'lang-ring'
 
@@ -24,13 +25,10 @@ function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-export function toggleLocaleWithReveal(
-  event: ReactMouseEvent<HTMLElement>,
-  toggleLocale: ToggleLocale,
-) {
+function revealFrom(event: ReactMouseEvent<HTMLElement>, apply: () => void) {
   if (running) return
   if (prefersReducedMotion() || typeof document.startViewTransition !== 'function') {
-    toggleLocale()
+    apply()
     return
   }
 
@@ -58,7 +56,7 @@ export function toggleLocaleWithReveal(
 
   running = true
   const transition = document.startViewTransition(() => {
-    flushSync(toggleLocale)
+    flushSync(apply)
     document.body.appendChild(ring)
   })
 
@@ -71,4 +69,19 @@ export function toggleLocaleWithReveal(
       root.style.removeProperty('--lang-r')
       running = false
     })
+}
+
+export function toggleLocaleWithReveal(
+  event: ReactMouseEvent<HTMLElement>,
+  toggleLocale: ToggleLocale,
+) {
+  revealFrom(event, toggleLocale)
+}
+
+export function setLocaleWithReveal(
+  event: ReactMouseEvent<HTMLElement>,
+  setLocale: (locale: ContentLocale) => void,
+  next: ContentLocale,
+) {
+  revealFrom(event, () => setLocale(next))
 }

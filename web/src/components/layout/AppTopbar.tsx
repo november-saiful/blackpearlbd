@@ -32,7 +32,7 @@ import {
 import { useTheme } from '@/lib/theme-provider'
 import { onOpenSearchPalette } from '@/lib/search-palette'
 import { useContentLocale } from '@/lib/locale'
-import { isLocaleRevealRunning, toggleLocaleWithReveal } from '@/lib/locale-reveal'
+import { isLocaleRevealRunning, setLocaleWithReveal, toggleLocaleWithReveal } from '@/lib/locale-reveal'
 import { useLocalizedDeals } from '@/lib/deal-locale'
 import {
   Popover,
@@ -202,7 +202,7 @@ function NavLinkItem({
       onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium leading-none transition-colors',
+        'inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium leading-none transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         'hover:bg-white/45 hover:text-accent-foreground dark:hover:bg-white/10',
         active
@@ -234,7 +234,7 @@ function LocaleSwitch({ className }: { className?: string }) {
       aria-label={`Content language: ${current}. Switch to ${next}`}
       title={`Switch content to ${next}`}
       className={cn(
-        'glass-field inline-flex !size-11 shrink-0 items-center justify-center rounded-lg p-1.5 text-foreground transition-colors hover:text-foreground/75',
+        'glass-field inline-flex !size-10 shrink-0 items-center justify-center rounded-lg p-2 text-foreground transition-colors hover:text-foreground/75',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         className,
       )}
@@ -247,6 +247,7 @@ function LocaleSwitch({ className }: { className?: string }) {
 export function AppTopbar({ className }: { className?: string }) {
   const { user, profile, isAdmin, isAuthenticated, signInWithGoogle, logout } = useAuth()
   const { theme, setTheme } = useTheme()
+  const { locale, setLocale } = useContentLocale()
   const { pathname } = useLocation()
   const isHome = pathname === '/'
   const [scrolled, setScrolled] = useState(false)
@@ -439,7 +440,7 @@ export function AppTopbar({ className }: { className?: string }) {
             className,
           )}
         >
-          <div className="flex h-16 items-center justify-between gap-3 md:h-20">
+          <div className="flex h-14 items-center justify-between gap-3 md:h-16">
             {/* Left: burger + brand + desktop nav */}
             <div className="flex min-w-0 items-center gap-2">
               <button
@@ -455,13 +456,13 @@ export function AppTopbar({ className }: { className?: string }) {
               >
                 <MenuAltIcon
                   className={cn(
-                    'col-start-1 row-start-1 size-5 transition-all duration-200',
+                    'col-start-1 row-start-1 size-[18px] transition-all duration-200',
                     mobileOpen ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
                   )}
                 />
                 <X
                   className={cn(
-                    'col-start-1 row-start-1 size-5 transition-all duration-200',
+                    'col-start-1 row-start-1 size-[18px] transition-all duration-200',
                     mobileOpen ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
                   )}
                   strokeWidth={1.8}
@@ -472,7 +473,7 @@ export function AppTopbar({ className }: { className?: string }) {
                 <img
                   src="/logo.svg"
                   alt=""
-                  className="size-9 shrink-0 object-contain dark:invert"
+                  className="size-8 shrink-0 object-contain dark:invert"
                 />
                 <span className="max-[359px]:hidden text-lg font-semibold tracking-tight sm:text-xl md:text-2xl">
                   BlackPearl
@@ -495,7 +496,7 @@ export function AppTopbar({ className }: { className?: string }) {
                     type="button"
                     aria-haspopup="true"
                     className={cn(
-                      'inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium leading-none text-muted-foreground transition-colors',
+                      'inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium leading-none text-muted-foreground transition-colors',
                       'hover:bg-white/45 hover:text-accent-foreground dark:hover:bg-white/10',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     )}
@@ -564,13 +565,13 @@ export function AppTopbar({ className }: { className?: string }) {
                 onClick={openPalette}
                 aria-label="Open search (⌘K)"
                 className={cn(
-                  'glass-field hidden h-11 items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground transition-colors xl:flex',
+                  'glass-field hidden h-10 items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground transition-colors xl:flex',
                   'w-64 2xl:w-72',
                   'hover:bg-white/65 hover:text-foreground dark:hover:bg-white/10',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 )}
               >
-                <Search className="size-4 shrink-0" />
+                <Search className="size-[15px] shrink-0" />
                 <span className="truncate">Search deals…</span>
                 <kbd className="glass-chip ml-auto rounded px-1.5 py-0.5 text-[10px] text-muted-foreground">
                   ⌘K
@@ -581,11 +582,11 @@ export function AppTopbar({ className }: { className?: string }) {
                 type="button"
                 variant="outline"
                 size="icon"
-                className="!size-11 hidden rounded-lg md:flex xl:hidden"
+                className="!size-10 hidden rounded-lg md:flex xl:hidden"
                 onClick={openPalette}
                 aria-label="Open search (⌘K)"
               >
-                <Search className="size-5" />
+                <Search className="size-[18px]" />
               </Button>
 
               {/* Call button */}
@@ -595,10 +596,10 @@ export function AppTopbar({ className }: { className?: string }) {
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="!size-11 hidden rounded-lg md:flex"
+                    className="!size-10 hidden rounded-lg md:flex"
                     aria-label="Call us"
                   >
-                    <Phone className="size-5" />
+                    <Phone className="size-[18px]" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent
@@ -623,8 +624,9 @@ export function AppTopbar({ className }: { className?: string }) {
                 </PopoverContent>
               </Popover>
 
-              {/* Content language */}
-              <LocaleSwitch className="shrink-0" />
+              {/* Content language: desktop keeps the globe in the bar, phones
+                  reach it through the account menu. */}
+              <LocaleSwitch className="hidden shrink-0 md:inline-flex" />
 
               {/* Bookmarks button */}
               <Popover open={bookmarkOpen} onOpenChange={handleBookmarkOpen}>
@@ -633,12 +635,12 @@ export function AppTopbar({ className }: { className?: string }) {
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="!size-11 relative rounded-lg"
+                    className="!size-10 relative rounded-lg"
                     aria-label="Open bookmarks"
                   >
-                    <Bookmark className="size-5" />
+                    <Bookmark className="size-[18px]" />
                     {bookmarks.length > 0 && (
-                      <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs font-medium flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 h-[18px] w-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center">
                         {bookmarks.length > 9 ? '9+' : bookmarks.length}
                       </span>
                     )}
@@ -749,6 +751,8 @@ export function AppTopbar({ className }: { className?: string }) {
                 isAdmin={isAdmin}
                 theme={theme}
                 onThemeChange={setTheme}
+                locale={locale}
+                onLocaleChange={(next, event) => setLocaleWithReveal(event, setLocale, next)}
                 onAction={handleAccountAction}
               />
             </div>
