@@ -1,4 +1,4 @@
-import { Star } from 'lucide-react';
+import { Star } from '@/components/ui/icons';
 import { StarRating } from './StarRating';
 import type { ReviewStats } from '@/types';
 

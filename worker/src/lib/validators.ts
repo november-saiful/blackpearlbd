@@ -14,6 +14,25 @@ function optionalClean() {
   });
 }
 
+// Translations are nullable on purpose: null means "no copy in this language
+// yet", which makes readers fall back to the other language. An omitted key on
+// a PATCH must stay omitted (leave the stored value alone), so the transform
+// only rewrites values that were actually sent.
+function translatableText(max = 5000) {
+  return z
+    .union([z.literal(''), z.null(), z.string().max(max)])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === '' || v === null ? null : v));
+}
+
+function translatableList(max = 200) {
+  return z
+    .array(z.string().max(max))
+    .nullable()
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v && v.length > 0 ? v : null));
+}
+
 /**
  * Category chips shown on deal cards. Must stay in sync with the CHECK
  * constraint in supabase/migrations/011_add_deal_category.sql and with
@@ -54,6 +73,8 @@ export const DEAL_DESCRIPTION_ALIGN_VALUES = [
 // the insert, which is how stop images were being silently discarded.
 const WaypointSchema = z.object({
   name: z.string().max(200).default(''),
+  name_en: translatableText(200),
+  name_bn: translatableText(200),
   address: optionalClean().pipe(z.string().max(300).optional()),
   image: optionalClean().pipe(z.string().url().optional()),
   lat: z.number().finite().min(-90).max(90),
@@ -67,13 +88,19 @@ const RouteGeometrySchema = z.object({
 
 export const CreateDealSchema = z.object({
   title: z.string().min(3).max(200),
+  title_en: translatableText(200),
+  title_bn: translatableText(200),
   slug: z.string().regex(/^[a-z0-9-]+$/),
   description: z.string().min(10),
+  description_en: translatableText(),
+  description_bn: translatableText(),
   // Absent means "leave it as it is", which the column stores as null and every
   // reader draws as left. Declared here or the schema strips it before the
   // insert, silently discarding the admin's choice.
   description_align: optionalClean().pipe(z.enum(DEAL_DESCRIPTION_ALIGN_VALUES).optional()),
   short_description: optionalClean().pipe(z.string().max(300).optional()),
+  short_description_en: translatableText(300),
+  short_description_bn: translatableText(300),
   destination: z.string().min(2),
   sub_destination: optionalClean().pipe(z.string().max(200).optional()),
   price: z.coerce.number().positive(),
@@ -87,14 +114,22 @@ export const CreateDealSchema = z.object({
   gallery: z.array(z.string().url()).optional().default([]).transform(v => v && v.length > 0 ? v : undefined),
   hidden_gallery: z.array(z.string().url()).optional().default([]).transform(v => v && v.length > 0 ? v : undefined),
   inclusions: z.array(z.string()).optional().default([]).transform(v => v && v.length > 0 ? v : undefined),
+  inclusions_en: translatableList(),
+  inclusions_bn: translatableList(),
   exclusions: z.array(z.string()).optional().default([]).transform(v => v && v.length > 0 ? v : undefined),
+  exclusions_en: translatableList(),
+  exclusions_bn: translatableList(),
   itinerary: z.array(z.object({
     // `phase` is the current field. `day` is still accepted from older admin
     // clients and from deals stored before the day -> phase rename.
     phase: z.coerce.number().positive().optional(),
     day: z.coerce.number().positive().optional(),
     title: z.string(),
+    title_en: translatableText(300),
+    title_bn: translatableText(300),
     description: z.string(),
+    description_en: translatableText(),
+    description_bn: translatableText(),
     // Must stay declared: unlisted keys are stripped before the insert.
     photos: z.array(z.string()).optional().default([]),
   })).optional(),

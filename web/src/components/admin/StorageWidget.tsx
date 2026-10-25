@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { HardDrive, Folder, File } from 'lucide-react';
+import { HardDrive, Folder, File } from '@/components/ui/icons';
 import { api } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';

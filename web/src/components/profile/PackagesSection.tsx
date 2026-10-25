@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CalendarRange, Loader2, MapPin, Users } from 'lucide-react';
+import { CalendarRange, Loader2, MapPin, Users } from '@/components/ui/icons';
 import { formatCurrency, formatDate, getStatusColor } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useCustomPackages } from '@/hooks/useProfile';

@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from 'react';
 
 const GroupContext = createContext<string | undefined>(undefined);
-import { Check } from 'lucide-react';
+import { Check } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { useComboboxContext } from './context';
 

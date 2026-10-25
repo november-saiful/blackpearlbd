@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Pencil, Trash2, ShieldCheck, Clock } from 'lucide-react';
+import { User, Pencil, Trash2, ShieldCheck, Clock } from '@/components/ui/icons';
 import { StarRating } from './StarRating';
 import { ReviewForm } from './ReviewForm';
 import { useUpdateReview, useDeleteReview } from '@/hooks/useReviews';

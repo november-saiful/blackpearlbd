@@ -7,7 +7,7 @@ import {
   toCalendarDate,
   type CalendarDate,
 } from "@internationalized/date";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "@/components/ui/icons";
 import {
   Button as RACButton,
   Calendar as RACCalendar,

@@ -1,6 +1,6 @@
 import { UsersTable } from '@/components/admin/UsersTable';
 import { AdminNav } from '@/components/admin/AdminNav';
-import { Users } from 'lucide-react';
+import { Users } from '@/components/ui/icons';
 
 export default function AdminUsers() {
   return (

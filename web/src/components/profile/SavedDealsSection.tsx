@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, MapPin, Clock, Trash2 } from 'lucide-react';
+import { Heart, MapPin, Clock, Trash2 } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { BookingModal } from '@/components/bookings/BookingModal';
 import { SavedDealsSkeleton } from '@/components/skeletons/ProfileSectionSkeletons';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { formatCurrency } from '@/lib/utils';
-import { humanizeDealText } from '@/lib/text';
+import { useLocalizedDeals } from '@/lib/deal-locale';
 import { formatDealLocation } from '@/components/deals/deals-destination';
 import type { TourDeal } from '@/types';
 
@@ -15,6 +15,7 @@ export function SavedDealsSection() {
   // Reads the shared bookmark store rather than a separate server query: the
   // list, the topbar badge and the card buttons are then always in step.
   const { bookmarks, removeBookmark, isInitialized } = useBookmarkStore();
+  const localizedBookmarks = useLocalizedDeals(bookmarks);
   const [bookingDeal, setBookingDeal] = useState<TourDeal | null>(null);
 
   if (!isInitialized) {
@@ -39,8 +40,7 @@ export function SavedDealsSection() {
   return (
     <>
       <div className="space-y-4">
-        {bookmarks.map((rawDeal) => {
-          const deal = humanizeDealText(rawDeal);
+        {localizedBookmarks.map((deal) => {
           return (
             <Card key={deal.id} className="overflow-hidden">
               <CardContent className="p-0">

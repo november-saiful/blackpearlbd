@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, Compass, User } from 'lucide-react'
+import { Home, Compass, User } from '@/components/ui/icons'
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon'
 import {
   Select,

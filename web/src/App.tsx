@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { GlassSystemProvider } from 'open-glass-ui';
 import { router } from './router';
 import { ThemeProvider, useTheme } from './lib/theme-provider';
+import { LocaleProvider } from './lib/locale';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,8 +40,10 @@ function App() {
     <ThemeProvider>
       <GlassRoot>
         <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-          <Toaster position="top-right" />
+          <LocaleProvider>
+            <RouterProvider router={router} />
+            <Toaster position="top-right" />
+          </LocaleProvider>
         </QueryClientProvider>
       </GlassRoot>
     </ThemeProvider>

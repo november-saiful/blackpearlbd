@@ -48,10 +48,6 @@ export default {
   				gold: '#FFD700',
   				diamond: '#B9F2FF'
   			},
-			hero: {
-				DEFAULT: 'hsl(var(--hero))',
-				foreground: 'hsl(var(--hero-foreground))'
-			},
 			sidebar: {
 				DEFAULT: 'hsl(var(--sidebar-background))',
 				foreground: 'hsl(var(--sidebar-foreground))',

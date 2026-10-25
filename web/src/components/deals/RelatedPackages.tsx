@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { MapPin, CalendarDays } from 'lucide-react';
+import { MapPin, CalendarDays } from '@/components/ui/icons';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDealCategory } from '@/lib/deal-category';
-import { humanizeDealText } from '@/lib/text';
+import { useLocalizedDeals } from '@/lib/deal-locale';
 import { formatCurrency } from '@/lib/utils';
 import type { TourDeal } from '@/types';
 
@@ -36,6 +36,8 @@ function RelatedPackageSkeletonRow() {
  * the taller itinerary column.
  */
 export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
+  const localizedDeals = useLocalizedDeals(deals);
+
   if (isLoading) {
     return (
       <Card>
@@ -62,8 +64,7 @@ export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
       </CardHeader>
       <CardContent>
         <ul className="space-y-3">
-          {deals.map((rawDeal) => {
-            const deal = humanizeDealText(rawDeal);
+          {localizedDeals.map((deal) => {
             const category = getDealCategory(deal);
             const image = deal.image_url || deal.gallery?.[0] || null;
 

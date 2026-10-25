@@ -22,7 +22,7 @@ import { useRender } from "@base-ui/react/use-render"
 
 import { cn } from "@/lib/utils"
 import { Spinner } from "@/components/ui/spinner"
-import { LoaderCircleIcon, MinusIcon, CheckIcon, RotateCwIcon, ChevronRightIcon } from "lucide-react"
+import { LoaderCircleIcon, MinusIcon, CheckIcon, RotateCwIcon, ChevronRightIcon } from "@/components/ui/icons"
 
 // Base UI extends its synthetic events with a handler-veto escape hatch.
 type VetoableEvent = { preventBaseUIHandler?: () => void }

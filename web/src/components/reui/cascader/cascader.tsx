@@ -78,7 +78,7 @@ import { Slot } from "@radix-ui/react-slot"
 
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ChevronDownIcon, XIcon } from "lucide-react"
+import { ChevronDownIcon, XIcon } from "@/components/ui/icons"
 
 /** Stable `filteredItems` for a level swap; a fixed identity cannot loop. */
 const EMPTY: CascaderNode<never>[] = []

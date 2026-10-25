@@ -1,9 +1,10 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, MapPin, Calendar } from 'lucide-react';
+import { Download, MapPin, Calendar } from '@/components/ui/icons';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
 import { humanizeDashes } from '@/lib/text';
+import { useLocalizedDeal } from '@/lib/deal-locale';
 import { useInvoice } from '@/hooks/useBookings';
 import type { Booking } from '@/types';
 
@@ -13,9 +14,10 @@ interface BookingCardProps {
 
 export function BookingCard({ booking }: BookingCardProps) {
   const { downloadInvoice } = useInvoice(booking.id);
-  
-  const destination = humanizeDashes(booking.deal?.destination || 'Custom Package');
-  const title = humanizeDashes(booking.deal?.title || booking.custom_package?.title || 'Trip');
+  const deal = useLocalizedDeal(booking.deal) ?? booking.deal;
+
+  const destination = humanizeDashes(deal?.destination || 'Custom Package');
+  const title = humanizeDashes(deal?.title || booking.custom_package?.title || 'Trip');
 
   return (
     <Card className="mb-4">

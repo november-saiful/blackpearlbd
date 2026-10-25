@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download } from '@/components/ui/icons';
 import { useInvoice } from '@/hooks/useBookings';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/ui/icons';
 
 interface InvoiceGeneratorProps {
   bookingId: string;

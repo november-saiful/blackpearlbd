@@ -6,11 +6,14 @@ import { DealDetail as DealDetailComponent } from '@/components/deals/DealDetail
 import { DealDetailSkeleton } from '@/components/skeletons/DealDetailSkeleton';
 import { applyDealMeta, applyDealNotFoundMeta } from '@/components/layout/PageTitle';
 import { formatDealLocation } from '@/components/deals/deals-destination';
+import { useContentLocale } from '@/lib/locale';
+import { localizeDeal } from '@/lib/deal-locale';
 import type { TourDeal } from '@/types';
 
 export default function DealDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const queryClient = useQueryClient();
+  const { locale } = useContentLocale();
 
   // Only the deal record gates this page. Reviews render inside the component
   // through their own query, and the sibling strip derives from the deals list
@@ -36,16 +39,17 @@ export default function DealDetailPage() {
 
   useEffect(() => {
     if (deal) {
+      const localized = localizeDeal(deal, locale);
       applyDealMeta({
-        title: deal.title,
-        destination: formatDealLocation(deal.destination, deal.sub_destination),
-        short_description: deal.short_description,
-        description: deal.description,
-        image_url: deal.image_url,
-        slug: deal.slug,
+        title: localized.title,
+        destination: formatDealLocation(localized.destination, localized.sub_destination),
+        short_description: localized.short_description,
+        description: localized.description,
+        image_url: localized.image_url,
+        slug: localized.slug,
       });
     }
-  }, [deal]);
+  }, [deal, locale]);
 
   // Mirrors what the edge renderer writes for the same URL, so the title does
   // not fall back to the generic pending one once the app takes over.

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, Package, Calendar, MessageSquare, Folder, ChevronDown } from 'lucide-react'
+import { LayoutDashboard, Users, Package, Calendar, MessageSquare, Folder, ChevronDown } from '@/components/ui/icons'
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon'
 import {
   DropdownMenu,

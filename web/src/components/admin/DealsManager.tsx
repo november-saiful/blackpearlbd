@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, EyeOff, RefreshCw, LocateFixed, FolderOpen, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, EyeOff, RefreshCw, LocateFixed, FolderOpen, CheckCircle, AlertCircle } from '@/components/ui/icons';
 import { formatCurrency } from '@/lib/utils';
 import { DEAL_CATEGORIES, getDealCategory } from '@/lib/deal-category';
 
@@ -46,11 +46,19 @@ function waypointParam(points: Waypoint[]): string {
 }
 
 type DealFormData = {
+  /**
+   * English copy lives in the canonical field names, Bengali in the `_bn`
+   * twins. The API gets both; the canonical columns are filled from English
+   * when it exists so older clients and the edge renderer keep working.
+   */
   title: string;
+  title_bn: string;
   slug: string;
   description: string;
+  description_bn: string;
   /** How the About section is aligned. Stored per deal, so it is form state. */
   short_description: string;
+  short_description_bn: string;
   destination: string;
   sub_destination: string;
   category: string;
@@ -62,7 +70,9 @@ type DealFormData = {
   gallery: string[];
   hidden_gallery: string[];
   inclusions: string;
+  inclusions_bn: string;
   exclusions: string;
+  exclusions_bn: string;
   is_featured: boolean;
   route_waypoints: Waypoint[];
   route_geometry: RouteGeometry | null;
@@ -70,14 +80,44 @@ type DealFormData = {
 };
 
 const emptyForm: DealFormData = {
-  title: '', slug: '', description: '',
-  short_description: '', destination: '', sub_destination: '', category: '',
+  title: '', title_bn: '', slug: '', description: '', description_bn: '',
+  short_description: '', short_description_bn: '', destination: '', sub_destination: '', category: '',
   price: 0, original_price: 0, duration_days: 1, max_travelers: 0, image_url: '',
   gallery: [],
-  inclusions: '', exclusions: '', is_featured: false, route_waypoints: [], route_geometry: null,
+  inclusions: '', inclusions_bn: '', exclusions: '', exclusions_bn: '',
+  is_featured: false, route_waypoints: [], route_geometry: null,
   hidden_gallery: [],
   itinerary: [],
 };
+
+const BENGALI_SCRIPT = /[ঀ-৿]/;
+
+/** Splits one canonical value into the English and Bengali form fields. */
+function splitBilingual(
+  canonical: string | null | undefined,
+  en: string | null | undefined,
+  bn: string | null | undefined,
+) {
+  const value = canonical || '';
+  return {
+    en: en ?? (value && !BENGALI_SCRIPT.test(value) ? value : ''),
+    bn: bn ?? (value && BENGALI_SCRIPT.test(value) ? value : ''),
+  };
+}
+
+function splitBilingualList(
+  canonical: string[] | null | undefined,
+  en: string[] | null | undefined,
+  bn: string[] | null | undefined,
+) {
+  const text = (canonical || []).join('\n');
+  return {
+    en: (en ?? (text && !BENGALI_SCRIPT.test(text) ? canonical : []) ?? []).join('\n'),
+    bn: (bn ?? (text && BENGALI_SCRIPT.test(text) ? canonical : []) ?? []).join('\n'),
+  };
+}
+
+const lines = (value: string) => value.split('\n').map((line) => line.trim()).filter(Boolean);
 
 export function DealsManager() {
   const { deals, isLoading } = useDeals();
@@ -87,6 +127,9 @@ export function DealsManager() {
   const [selectedDeal, setSelectedDeal] = useState<TourDeal | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<DealFormData>(emptyForm);
+  /** Which language's copy the text fields are editing. */
+  const [copyLocale, setCopyLocale] = useState<'en' | 'bn'>('en');
+  const isBengaliCopy = copyLocale === 'bn';
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkRemoving, setIsBulkRemoving] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -333,11 +376,11 @@ export function DealsManager() {
     reorderWaypoints(index, nextIndex);
   };
 
-  const updateWaypointName = (index: number, name: string) => {
+  const updateWaypointName = (index: number, name: string, field: 'name' | 'name_bn' = 'name') => {
     setFormData((current) => ({
       ...current,
       route_waypoints: current.route_waypoints.map((waypoint, waypointIndex) =>
-        waypointIndex === index ? { ...waypoint, name } : waypoint,
+        waypointIndex === index ? { ...waypoint, [field]: name } : waypoint,
       ),
     }));
   };
@@ -451,11 +494,14 @@ export function DealsManager() {
   };
 
   const validateDeal = (): string | null => {
-    if (!formData.title.trim()) return 'Title is required';
-    // Auto-generate slug from title if empty
+    if (!formData.title.trim() && !formData.title_bn.trim()) {
+      return 'Title is required in English or Bengali';
+    }
+    // Auto-generate the slug from the English title. A Bengali-only title has
+    // no ASCII form, so those deals need the slug typed by hand.
     if (!formData.slug.trim()) {
       const autoSlug = titleToSlug(formData.title.trim());
-      if (!autoSlug) return 'Slug is required';
+      if (!autoSlug) return 'Slug is required for a deal without an English title';
       setFormData((current) => ({ ...current, slug: autoSlug }));
     }
     if (slugError) return slugError;
@@ -464,27 +510,97 @@ export function DealsManager() {
     if (formData.destination.toLowerCase().endsWith('division') && !formData.sub_destination.trim()) {
       return 'Select a sub-destination for this division';
     }
-    if (!formData.description.trim()) return 'Description is required';
+    if (!formData.description.trim() && !formData.description_bn.trim()) {
+      return 'Description is required in English or Bengali';
+    }
     if (!formData.price || formData.price <= 0) return 'Price must be greater than 0';
     if (!formData.image_url) return 'Pick a main thumbnail from the gallery first';
     return null;
   };
 
   // Live preview of the chip the card will show for the current form values.
-  const categoryPreview = getDealCategory(formData);
-
-  const payloadForApi = () => ({
-    ...formData,
-    // Empty means "auto-detect on the card", which the column stores as null.
-    category: formData.category || null,
-    inclusions: formData.inclusions.split('\n').filter(Boolean),
-    exclusions: formData.exclusions.split('\n').filter(Boolean),
-    route_waypoints: formData.route_waypoints.length > 0 ? formData.route_waypoints : null,
-    route_geometry: formData.route_geometry,
-    itinerary: formData.itinerary.length > 0 ? formData.itinerary : undefined,
-    gallery: formData.gallery,
-    hidden_gallery: formData.hidden_gallery,
+  const categoryPreview = getDealCategory({
+    category: formData.category,
+    title: formData.title || formData.title_bn,
+    destination: formData.destination,
+    short_description: formData.short_description || formData.short_description_bn,
   });
+
+  const payloadForApi = () => {
+    const titleEn = formData.title.trim();
+    const titleBn = formData.title_bn.trim();
+    const shortEn = formData.short_description.trim();
+    const shortBn = formData.short_description_bn.trim();
+    const descriptionEn = formData.description.trim();
+    const descriptionBn = formData.description_bn.trim();
+    const inclusionsEn = lines(formData.inclusions);
+    const inclusionsBn = lines(formData.inclusions_bn);
+    const exclusionsEn = lines(formData.exclusions);
+    const exclusionsBn = lines(formData.exclusions_bn);
+
+    return {
+      title: titleEn || titleBn,
+      title_en: titleEn || null,
+      title_bn: titleBn || null,
+      // Derived here as well as in validation: state updates are not visible to
+      // this same event handler, so a slug generated there would not be sent.
+      slug: formData.slug.trim() || titleToSlug(titleEn),
+      description: descriptionEn || descriptionBn,
+      description_en: descriptionEn || null,
+      description_bn: descriptionBn || null,
+      short_description: shortEn || shortBn || undefined,
+      short_description_en: shortEn || null,
+      short_description_bn: shortBn || null,
+      destination: formData.destination,
+      sub_destination: formData.sub_destination || undefined,
+      category: formData.category || null,
+      price: formData.price,
+      original_price: formData.original_price || undefined,
+      duration_days: formData.duration_days,
+      max_travelers: formData.max_travelers || undefined,
+      image_url: formData.image_url || undefined,
+      gallery: formData.gallery,
+      hidden_gallery: formData.hidden_gallery,
+      inclusions: inclusionsEn.length ? inclusionsEn : inclusionsBn,
+      inclusions_en: inclusionsEn.length ? inclusionsEn : null,
+      inclusions_bn: inclusionsBn.length ? inclusionsBn : null,
+      exclusions: exclusionsEn.length ? exclusionsEn : exclusionsBn,
+      exclusions_en: exclusionsEn.length ? exclusionsEn : null,
+      exclusions_bn: exclusionsBn.length ? exclusionsBn : null,
+      is_featured: formData.is_featured,
+      route_waypoints: formData.route_waypoints.length > 0
+        ? formData.route_waypoints.map((waypoint) => {
+            const nameEn = waypoint.name.trim();
+            const nameBn = (waypoint.name_bn || '').trim();
+            return {
+              ...waypoint,
+              name: nameEn || nameBn,
+              name_en: nameEn || null,
+              name_bn: nameBn || null,
+            };
+          })
+        : null,
+      route_geometry: formData.route_geometry,
+      itinerary: formData.itinerary.length > 0
+        ? formData.itinerary.map((phase) => {
+            const phaseTitleEn = phase.title.trim();
+            const phaseTitleBn = (phase.title_bn || '').trim();
+            const phaseDescriptionEn = phase.description.trim();
+            const phaseDescriptionBn = (phase.description_bn || '').trim();
+            return {
+              phase: phase.phase,
+              title: phaseTitleEn || phaseTitleBn,
+              title_en: phaseTitleEn || null,
+              title_bn: phaseTitleBn || null,
+              description: phaseDescriptionEn || phaseDescriptionBn,
+              description_en: phaseDescriptionEn || null,
+              description_bn: phaseDescriptionBn || null,
+              photos: phase.photos || [],
+            };
+          })
+        : undefined,
+    };
+  };
 
   const handleCreate = async () => {
     const problem = validateDeal();
@@ -623,6 +739,7 @@ export function DealsManager() {
 
   const resetForm = () => {
     setFormData({ ...emptyForm, route_waypoints: [] });
+    setCopyLocale('en');
     resetRouteUi();
     setLightboxOpen(false);
     setLightboxIndex(0);
@@ -650,23 +767,60 @@ export function DealsManager() {
       if (wp.image && !allImages.includes(wp.image)) allImages.push(wp.image);
     });
 
-    setFormData({
-      title: deal.title, slug: deal.slug, description: deal.description || '',
-      // A deal saved before alignments existed has no value, and one restored
-      // from an older build may hold something this one cannot draw: both open
-      // on the default rather than on an alignment no button could show.
+    const title = splitBilingual(deal.title, deal.title_en, deal.title_bn);
+    const shortDescription = splitBilingual(
+      deal.short_description,
+      deal.short_description_en,
+      deal.short_description_bn,
+    );
+    const description = splitBilingual(deal.description, deal.description_en, deal.description_bn);
+    const inclusions = splitBilingualList(
+      deal.inclusions,
+      deal.inclusions_en,
+      deal.inclusions_bn,
+    );
+    const exclusions = splitBilingualList(
+      deal.exclusions,
+      deal.exclusions_en,
+      deal.exclusions_bn,
+    );
 
-      short_description: deal.short_description || '', destination: deal.destination,
+    setFormData({
+      title: title.en, title_bn: title.bn,
+      slug: deal.slug,
+      description: description.en, description_bn: description.bn,
+      short_description: shortDescription.en, short_description_bn: shortDescription.bn,
+      destination: deal.destination,
       sub_destination: deal.sub_destination || '',
       category: deal.category || '',
       price: deal.price, original_price: deal.original_price || 0, duration_days: deal.duration_days,
       max_travelers: deal.max_travelers || 0, image_url: deal.image_url || '',
       gallery: allImages,
-      inclusions: (deal.inclusions || []).join('\n'), exclusions: (deal.exclusions || []).join('\n'),
-      is_featured: deal.is_featured, route_waypoints: deal.route_waypoints || [], route_geometry: deal.route_geometry || null,
-      itinerary: (deal.itinerary || []).map((d, i) => ({ phase: i + 1, title: d.title, description: d.description, photos: d.photos || [] })),
+      inclusions: inclusions.en, inclusions_bn: inclusions.bn,
+      exclusions: exclusions.en, exclusions_bn: exclusions.bn,
+      is_featured: deal.is_featured, route_waypoints: (deal.route_waypoints || []).map((waypoint) => {
+        const name = splitBilingual(waypoint.name, waypoint.name_en, waypoint.name_bn);
+        return { ...waypoint, name: name.en, name_bn: name.bn };
+      }), route_geometry: deal.route_geometry || null,
+      itinerary: (deal.itinerary || []).map((phase, i) => {
+        const phaseTitle = splitBilingual(phase.title, phase.title_en, phase.title_bn);
+        const phaseDescription = splitBilingual(
+          phase.description,
+          phase.description_en,
+          phase.description_bn,
+        );
+        return {
+          phase: i + 1,
+          title: phaseTitle.en,
+          title_bn: phaseTitle.bn,
+          description: phaseDescription.en,
+          description_bn: phaseDescription.bn,
+          photos: phase.photos || [],
+        };
+      }),
       hidden_gallery: deal.hidden_gallery || [],
     });
+    setCopyLocale('en');
     resetRouteUi();
     setLightboxOpen(false);
     setLightboxIndex(0);
@@ -924,7 +1078,7 @@ export function DealsManager() {
                       onChange={() => toggleSelected(deal.id)}
                     />
                   </td>
-                  <td className="py-3 px-3"><div className="min-w-0"><p className="text-sm font-medium text-foreground truncate">{deal.title}</p><p className="text-xs text-muted-foreground truncate sm:hidden">{formatDealLocation(deal.destination, deal.sub_destination)}</p>{deal.is_featured && <span className="inline-block mt-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Featured</span>}</div></td>
+                  <td className="py-3 px-3"><div className="min-w-0"><p className="text-sm font-medium text-foreground truncate">{deal.title}</p><p className="text-xs text-muted-foreground truncate sm:hidden">{formatDealLocation(deal.destination, deal.sub_destination)}</p><div className="mt-1 flex flex-wrap items-center gap-1">{deal.is_featured && <span className="inline-block text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">Featured</span>}{deal.title_en && <span className="inline-block text-[10px] bg-muted px-1.5 py-0.5 rounded font-medium text-muted-foreground">EN</span>}{deal.title_bn && <span className="inline-block text-[10px] bg-muted px-1.5 py-0.5 rounded font-medium text-muted-foreground font-bengali">বাংলা</span>}</div></div></td>
                   <td className="py-3 px-3 text-sm text-muted-foreground font-mono hidden lg:table-cell">{deal.deal_code || 'Not set'}</td>
                   <td className="py-3 px-3 text-sm text-muted-foreground hidden sm:table-cell">{formatDealLocation(deal.destination, deal.sub_destination)}</td>
                   <td className="py-3 px-3 text-sm font-medium text-foreground">{formatCurrency(deal.price)}</td>
@@ -953,16 +1107,58 @@ export function DealsManager() {
             onEscapeKeyDown={(event) => { if (lightboxOpen) event.preventDefault(); }}
           >
             <DialogHeader><DialogTitle>{isEditModalOpen ? 'Edit Deal' : 'Create New Deal'}</DialogTitle></DialogHeader>
+            <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium">Post language</p>
+                <p className="text-xs text-muted-foreground">
+                  Write this deal in English and/or Bengali. A language left empty
+                  falls back to the other one on the site.
+                </p>
+              </div>
+              <div role="tablist" aria-label="Copy language" className="glass-field flex shrink-0 items-center rounded-md p-0.5">
+                {(['en', 'bn'] as const).map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    role="tab"
+                    aria-selected={copyLocale === code}
+                    onClick={() => setCopyLocale(code)}
+                    className={
+                      'rounded px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
+                      (copyLocale === code
+                        ? 'bg-white/70 text-foreground shadow-sm dark:bg-white/15'
+                        : 'text-muted-foreground hover:text-foreground') +
+                      (code === 'bn' ? ' font-bengali' : '')
+                    }
+                  >
+                    {code === 'en' ? 'English' : 'বাংলা'}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="col-span-1 sm:col-span-2"><Label>Title *</Label><Input value={formData.title} onChange={(e) => {
-                const title = e.target.value;
-                setFormData((current) => ({
-                  ...current,
-                  title,
-                  // Auto-generate slug from title only when creating (not editing)
-                  ...(!isEditModalOpen && { slug: titleToSlug(title) }),
-                }));
-              }} /></div>
+              <div className="col-span-1 sm:col-span-2">
+                <Label>Title * ({isBengaliCopy ? 'বাংলা' : 'English'})</Label>
+                <Input
+                  value={isBengaliCopy ? formData.title_bn : formData.title}
+                  lang={copyLocale}
+                  className={isBengaliCopy ? 'font-bengali' : undefined}
+                  onChange={(e) => {
+                    const title = e.target.value;
+                    setFormData((current) => isBengaliCopy
+                      ? { ...current, title_bn: title }
+                      : {
+                          ...current,
+                          title,
+                          // Auto-generate slug from the English title only when creating.
+                          ...(!isEditModalOpen && { slug: titleToSlug(title) }),
+                        });
+                  }}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  At least one language is required. The slug is generated from the English title.
+                </p>
+              </div>
               <div>
                 <Label>Slug URL *</Label>
                 {isEditModalOpen ? (
@@ -1087,14 +1283,26 @@ export function DealsManager() {
                 />
               </div>
               <div className="col-span-1 sm:col-span-2">
-                <Label>Description *</Label>
+                <Label>Description * ({isBengaliCopy ? 'বাংলা' : 'English'})</Label>
                 <MarkdownEditor
-                  value={formData.description}
-                  onChange={(value) => setFormData({ ...formData, description: value })}
+                  value={isBengaliCopy ? formData.description_bn : formData.description}
+                  onChange={(value) => setFormData(isBengaliCopy
+                    ? { ...formData, description_bn: value }
+                    : { ...formData, description: value })}
                   rows={4}
                 />
               </div>
-              <div className="col-span-1 sm:col-span-2"><Label>Short Description</Label><Input value={formData.short_description} onChange={(e) => setFormData({ ...formData, short_description: e.target.value })} /></div>
+              <div className="col-span-1 sm:col-span-2">
+                <Label>Short Description ({isBengaliCopy ? 'বাংলা' : 'English'})</Label>
+                <Input
+                  value={isBengaliCopy ? formData.short_description_bn : formData.short_description}
+                  lang={copyLocale}
+                  className={isBengaliCopy ? 'font-bengali' : undefined}
+                  onChange={(e) => setFormData(isBengaliCopy
+                    ? { ...formData, short_description_bn: e.target.value }
+                    : { ...formData, short_description: e.target.value })}
+                />
+              </div>
               <div>
                 <Label>Category</Label>
                 <Select
@@ -1372,8 +1580,30 @@ export function DealsManager() {
                   </>
                 )}
               </div>
-              <div><Label>Inclusions (one per line)</Label><Textarea value={formData.inclusions} onChange={(e) => setFormData({ ...formData, inclusions: e.target.value })} rows={4} /></div>
-              <div><Label>Exclusions (one per line)</Label><Textarea value={formData.exclusions} onChange={(e) => setFormData({ ...formData, exclusions: e.target.value })} rows={4} /></div>
+              <div>
+                <Label>Inclusions ({isBengaliCopy ? 'বাংলা' : 'English'}, one per line)</Label>
+                <Textarea
+                  value={isBengaliCopy ? formData.inclusions_bn : formData.inclusions}
+                  lang={copyLocale}
+                  className={isBengaliCopy ? 'font-bengali' : undefined}
+                  onChange={(e) => setFormData(isBengaliCopy
+                    ? { ...formData, inclusions_bn: e.target.value }
+                    : { ...formData, inclusions: e.target.value })}
+                  rows={4}
+                />
+              </div>
+              <div>
+                <Label>Exclusions ({isBengaliCopy ? 'বাংলা' : 'English'}, one per line)</Label>
+                <Textarea
+                  value={isBengaliCopy ? formData.exclusions_bn : formData.exclusions}
+                  lang={copyLocale}
+                  className={isBengaliCopy ? 'font-bengali' : undefined}
+                  onChange={(e) => setFormData(isBengaliCopy
+                    ? { ...formData, exclusions_bn: e.target.value }
+                    : { ...formData, exclusions: e.target.value })}
+                  rows={4}
+                />
+              </div>
 
               <div className="col-span-2 border-t pt-4">
                 <div className="mb-3 flex items-start justify-between gap-3">
@@ -1404,7 +1634,10 @@ export function DealsManager() {
                 <DealRouteMap waypoints={formData.route_waypoints} geometry={formData.route_geometry} editable onMapClick={addMapWaypoint} className="mt-3 h-72" />
                 <div className="mt-3 space-y-2">
                   {formData.route_waypoints.map((point, index) => {
-                    const stopLabel = point.name.trim() || point.address?.trim() || `Stop ${index + 1}`;
+                    const localizedName = isBengaliCopy
+                      ? (point.name_bn || '').trim()
+                      : point.name.trim();
+                    const stopLabel = localizedName || point.name.trim() || point.address?.trim() || `Stop ${index + 1}`;
                     const waypointRow = (
                       <div
                         key={index}
@@ -1426,11 +1659,18 @@ export function DealsManager() {
                         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">{index + 1}</span>
                         <div className="order-1 flex min-w-0 flex-1 basis-[calc(100%-3rem)] flex-col gap-0.5 sm:order-none">
                           <Input
-                            value={point.name}
-                            onChange={(event) => updateWaypointName(index, event.target.value)}
-                            placeholder={`Title for stop ${index + 1}, e.g. Sunset camp`}
-                            aria-label={`Title for stop ${index + 1}`}
-                            className="h-10 min-w-0 sm:h-8"
+                            value={isBengaliCopy ? (point.name_bn || '') : point.name}
+                            lang={copyLocale}
+                            className={'h-10 min-w-0 sm:h-8' + (isBengaliCopy ? ' font-bengali' : '')}
+                            onChange={(event) =>
+                              updateWaypointName(
+                                index,
+                                event.target.value,
+                                isBengaliCopy ? 'name_bn' : 'name',
+                              )
+                            }
+                            placeholder={`${isBengaliCopy ? 'বাংলা' : 'English'} title for stop ${index + 1}`}
+                            aria-label={`${isBengaliCopy ? 'Bengali' : 'English'} title for stop ${index + 1}`}
                           />
                           {point.address && (
                             <span className="truncate text-[11px] leading-tight text-muted-foreground" title={point.address}>
@@ -1523,15 +1763,26 @@ export function DealsManager() {
                         </div>
                       </div>
                       <Input
-                        value={phase.title}
-                        onChange={(e) => updateItineraryPhase(index, 'title', e.target.value)}
-                        placeholder="Phase title (e.g. Arrival in Dhaka)"
-                        className="mb-2"
+                        value={isBengaliCopy ? (phase.title_bn || '') : phase.title}
+                        lang={copyLocale}
+                        className={isBengaliCopy ? 'mb-2 font-bengali' : 'mb-2'}
+                        onChange={(e) => updateItineraryPhase(
+                          index,
+                          isBengaliCopy ? 'title_bn' : 'title',
+                          e.target.value,
+                        )}
+                        placeholder={`${isBengaliCopy ? 'বাংলা' : 'English'} phase title (e.g. Arrival in Dhaka)`}
                       />
                       <Textarea
-                        value={phase.description}
-                        onChange={(e) => updateItineraryPhase(index, 'description', e.target.value)}
-                        placeholder="What happens in this phase..."
+                        value={isBengaliCopy ? (phase.description_bn || '') : phase.description}
+                        lang={copyLocale}
+                        className={isBengaliCopy ? 'font-bengali' : undefined}
+                        onChange={(e) => updateItineraryPhase(
+                          index,
+                          isBengaliCopy ? 'description_bn' : 'description',
+                          e.target.value,
+                        )}
+                        placeholder={`What happens in this phase (${isBengaliCopy ? 'বাংলা' : 'English'})...`}
                         rows={2}
                       />
                       {/* Photo selector for this phase */}
@@ -1596,6 +1847,8 @@ export function DealsManager() {
               actions={
                 <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     const activeImage = formData.gallery[lightboxIndex];
                     if (!activeImage) return;
@@ -1603,9 +1856,20 @@ export function DealsManager() {
                     setLightboxOpen(false);
                     toast.success('Image set as main thumbnail');
                   }}
-                  className={formData.image_url === formData.gallery[lightboxIndex] ? 'bg-green-600 hover:bg-green-700' : ''}
+                  className={
+                    formData.image_url === formData.gallery[lightboxIndex]
+                      ? 'h-10 rounded-full !border-emerald-300/35 !bg-emerald-400/15 px-4 !text-emerald-50 hover:!bg-emerald-400/20 hover:!text-emerald-50'
+                      : 'h-10 rounded-full !border-white/20 !bg-white/10 px-4 !text-white hover:!bg-white/20 hover:!text-white'
+                  }
                 >
-                  {formData.image_url === formData.gallery[lightboxIndex] ? '✓ Current Main' : 'Set as Main Thumbnail'}
+                  {formData.image_url === formData.gallery[lightboxIndex] ? (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Current main
+                    </>
+                  ) : (
+                    'Set as main'
+                  )}
                 </Button>
               }
             />

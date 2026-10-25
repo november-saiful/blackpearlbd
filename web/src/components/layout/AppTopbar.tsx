@@ -15,17 +15,22 @@ import {
   Mail,
   LogOut,
   ArrowRight,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+  X,
+} from '@/components/ui/icons'
+import type { IconComponent } from '@/components/ui/icons'
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
+import { LanguageGlobe } from '@/components/ui/language-globe'
 import { UserDropdown, type UserDropdownAction } from '@/components/ui/user-dropdown'
 import {
   CommandPalette,
   type CommandItem,
 } from '@/components/ui/command-palette'
 import { useTheme } from '@/lib/theme-provider'
+import { useContentLocale } from '@/lib/locale'
+import { isLocaleRevealRunning, toggleLocaleWithReveal } from '@/lib/locale-reveal'
+import { useLocalizedDeals } from '@/lib/deal-locale'
 import {
   Popover,
   PopoverContent,
@@ -39,7 +44,6 @@ import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 
 import { formatCurrency } from '@/lib/utils'
 import { formatDealLocation } from '@/components/deals/deals-destination'
-import { humanizeDealText } from '@/lib/text'
 
 const PRIMARY_NAV = [
   { href: '/', label: 'Home' },
@@ -55,7 +59,7 @@ type QuickLink = {
   href: string
   title: string
   desc: string
-  icon: LucideIcon
+  icon: IconComponent
   external?: boolean
 }
 
@@ -94,7 +98,7 @@ function useCommandPaletteItems() {
         id: 'home',
         label: 'Home',
         group: 'Navigation',
-        icon: Home as LucideIcon,
+        icon: Home as IconComponent,
         hint: '/',
         onSelect: () => navigate('/'),
       },
@@ -102,7 +106,7 @@ function useCommandPaletteItems() {
         id: 'deals',
         label: 'Tour Deals',
         group: 'Navigation',
-        icon: Compass as LucideIcon,
+        icon: Compass as IconComponent,
         hint: '/deals',
         onSelect: () => navigate('/deals'),
       },
@@ -110,7 +114,7 @@ function useCommandPaletteItems() {
         id: 'build-package',
         label: 'Build Package',
         group: 'Navigation',
-        icon: BuildPackageIcon as LucideIcon,
+        icon: BuildPackageIcon as IconComponent,
         hint: '/build-package',
         onSelect: () => navigate('/build-package'),
       },
@@ -118,7 +122,7 @@ function useCommandPaletteItems() {
         id: 'profile',
         label: 'My Profile',
         group: 'Navigation',
-        icon: User as LucideIcon,
+        icon: User as IconComponent,
         hint: '/profile',
         onSelect: () => navigate('/profile'),
       },
@@ -129,7 +133,7 @@ function useCommandPaletteItems() {
         id: 'admin-dashboard',
         label: 'Admin Dashboard',
         group: 'Admin',
-        icon: LayoutDashboard as LucideIcon,
+        icon: LayoutDashboard as IconComponent,
         hint: '/admin',
         onSelect: () => navigate('/admin'),
       })
@@ -139,7 +143,7 @@ function useCommandPaletteItems() {
       id: 'help',
       label: 'Help & Support',
       group: 'Actions',
-      icon: HelpCircle as LucideIcon,
+      icon: HelpCircle as IconComponent,
       onSelect: () => window.open(SUPPORT_URL, '_blank'),
     })
 
@@ -165,7 +169,7 @@ function useCommandPaletteItems() {
         id: 'search-view-all',
         label: `View all results for "${searchQuery}"`,
         group: 'Search',
-        icon: Search as LucideIcon,
+        icon: Search as IconComponent,
         onSelect: () => navigate(`/search?q=${encodeURIComponent(searchQuery)}`),
       }
       return [...searchItems, viewAllItem, ...navigationItems]
@@ -195,7 +199,7 @@ function NavLinkItem({
       onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+        'inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium leading-none transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         'hover:bg-white/45 hover:text-accent-foreground dark:hover:bg-white/10',
         active
@@ -206,6 +210,34 @@ function NavLinkItem({
     >
       {label}
     </Link>
+  )
+}
+
+/**
+ * Content-language switch. Site chrome stays in English; this only changes the
+ * language tour copy is read in. The globe's lettering morphs between EN and
+ * বাং in place, so the control never changes size.
+ */
+function LocaleSwitch({ className }: { className?: string }) {
+  const { locale, toggleLocale } = useContentLocale()
+  const current = locale === 'en' ? 'English' : 'Bengali'
+  const next = locale === 'en' ? 'Bengali' : 'English'
+
+  return (
+    <button
+      type="button"
+      onClick={(event) => toggleLocaleWithReveal(event, toggleLocale)}
+      lang="en"
+      aria-label={`Content language: ${current}. Switch to ${next}`}
+      title={`Switch content to ${next}`}
+      className={cn(
+        'glass-field inline-flex !size-11 shrink-0 items-center justify-center rounded-lg p-1.5 text-foreground transition-colors hover:text-foreground/75',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        className,
+      )}
+    >
+      <LanguageGlobe locale={locale} instant={isLocaleRevealRunning()} />
+    </button>
   )
 }
 
@@ -287,8 +319,9 @@ export function AppTopbar({ className }: { className?: string }) {
     return () => document.removeEventListener('keydown', onEscape)
   }, [mobileOpen])
 
-  const bookmarkItems: SwipeableListItem[] = bookmarks.map((rawDeal) => {
-    const deal = humanizeDealText(rawDeal)
+  const localizedBookmarks = useLocalizedDeals(bookmarks)
+
+  const bookmarkItems: SwipeableListItem[] = localizedBookmarks.map((deal) => {
     return {
       id: deal.id,
       title: deal.title,
@@ -408,7 +441,7 @@ export function AppTopbar({ className }: { className?: string }) {
                 aria-expanded={mobileOpen}
                 onClick={() => setMobileOpen((open) => !open)}
                 className={cn(
-                  'group relative size-9 shrink-0 rounded-md md:hidden',
+                  'group relative size-9 shrink-0 rounded-md lg:hidden',
                   'text-muted-foreground hover:text-foreground',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 )}
@@ -439,12 +472,12 @@ export function AppTopbar({ className }: { className?: string }) {
                   alt=""
                   className="size-9 shrink-0 object-contain dark:invert"
                 />
-                <span className="hidden text-xl font-semibold tracking-tight min-[360px]:inline md:text-2xl">
+                <span className="hidden text-xl font-semibold tracking-tight sm:inline md:text-2xl">
                   BlackPearl
                 </span>
               </Link>
 
-              <nav className="ml-4 hidden items-center gap-1 md:flex">
+              <nav className="ml-4 hidden items-center gap-1 lg:flex">
                 {PRIMARY_NAV.map((item) => (
                   <NavLinkItem
                     key={item.href}
@@ -460,7 +493,7 @@ export function AppTopbar({ className }: { className?: string }) {
                     type="button"
                     aria-haspopup="true"
                     className={cn(
-                      'rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors',
+                      'inline-flex h-11 shrink-0 items-center whitespace-nowrap rounded-lg px-3 text-sm font-medium leading-none text-muted-foreground transition-colors',
                       'hover:bg-white/45 hover:text-accent-foreground dark:hover:bg-white/10',
                       'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     )}
@@ -529,8 +562,8 @@ export function AppTopbar({ className }: { className?: string }) {
                 onClick={openPalette}
                 aria-label="Open search (⌘K)"
                 className={cn(
-                  'glass-field hidden h-9 items-center gap-2 rounded-md px-3 text-sm text-muted-foreground transition-colors lg:flex',
-                  'w-56 xl:w-72',
+                  'glass-field hidden h-11 items-center gap-2 rounded-lg px-3 text-sm text-muted-foreground transition-colors xl:flex',
+                  'w-64 2xl:w-72',
                   'hover:bg-white/65 hover:text-foreground dark:hover:bg-white/10',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 )}
@@ -546,7 +579,7 @@ export function AppTopbar({ className }: { className?: string }) {
                 type="button"
                 variant="outline"
                 size="icon"
-                className="!size-11 rounded-lg lg:hidden"
+                className="!size-11 rounded-lg xl:hidden"
                 onClick={openPalette}
                 aria-label="Open search (⌘K)"
               >
@@ -587,6 +620,9 @@ export function AppTopbar({ className }: { className?: string }) {
                   </div>
                 </PopoverContent>
               </Popover>
+
+              {/* Content language */}
+              <LocaleSwitch className="shrink-0" />
 
               {/* Bookmarks button */}
               <Popover open={bookmarkOpen} onOpenChange={handleBookmarkOpen}>
@@ -721,7 +757,7 @@ export function AppTopbar({ className }: { className?: string }) {
       {/* Mobile drawer */}
       <div
         className={cn(
-          'fixed inset-0 z-[60] md:hidden transition',
+          'fixed inset-0 z-[60] lg:hidden transition',
           mobileOpen ? 'pointer-events-auto' : 'pointer-events-none',
         )}
         aria-hidden={!mobileOpen}
@@ -759,15 +795,7 @@ export function AppTopbar({ className }: { className?: string }) {
               className="glass-field inline-flex size-9 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Close menu"
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
+              <X className="h-4 w-4" strokeWidth={2} />
             </button>
           </div>
 
@@ -782,6 +810,13 @@ export function AppTopbar({ className }: { className?: string }) {
             <Search className="size-4 shrink-0" />
             Search deals, packages…
           </button>
+
+          <div className="glass-chip mb-4 flex items-center justify-between rounded-lg px-3 py-2">
+            <span className="text-sm font-medium text-muted-foreground">
+              Language
+            </span>
+            <LocaleSwitch />
+          </div>
 
           <nav className="space-y-1">
             {PRIMARY_NAV.map((item) => (

@@ -1,4 +1,4 @@
-import { Heart } from 'lucide-react';
+import { Heart } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useBookmarkStore } from '@/stores/bookmarkStore';

@@ -1,4 +1,4 @@
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon } from "@/components/ui/icons";
 import {
   Button as RACButton,
   DateRangePicker as RACDateRangePicker,

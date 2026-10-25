@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, type ComponentPropsWithoutRef, type ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { useComboboxContext } from './context';
 

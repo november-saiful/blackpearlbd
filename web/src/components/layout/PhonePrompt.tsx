@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Phone } from 'lucide-react';
+import { Phone } from '@/components/ui/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';

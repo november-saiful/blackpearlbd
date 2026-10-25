@@ -16,27 +16,6 @@
   font-display: swap;
 }
 
-/* Display faces for the hero, self-hosted latin subsets (both OFL) so the
-   first paint needs no third-party connection. Declared globally so the face
-   is known when the first stylesheet parses, but a route that never uses
-   these families never downloads them. Bengali glyphs fall through to
-   SolaimanLipi on the hero's `.is-bengali` classes. */
-@font-face {
-  font-family: 'Inter';
-  font-style: normal;
-  font-weight: 300 700;
-  font-display: swap;
-  src: url('/fonts/display/inter-latin-var.woff2') format('woff2');
-}
-
-@font-face {
-  font-family: 'Bebas Neue';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/display/bebas-neue-latin.woff2') format('woff2');
-}
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -64,16 +43,6 @@
     --input: 220 13% 91%;
     --ring: 0 0% 0%;
     --radius: 0.5rem;
-  }
-
-  /* ── Hero / large-fill surfaces ────────────────────────────── */
-  :root {
-    --hero: 0 0% 100%;
-    --hero-foreground: 224 20% 10%;
-  }
-  .dark {
-    --hero: 224 20% 10%;
-    --hero-foreground: 0 0% 100%;
   }
 
   /* ── Dark mode ────────────────────────────────────────────── */
@@ -211,7 +180,6 @@
    * · shadow-card: subtle, for default cards
    * · shadow-elevated: medium, for modals and important panels
    * · shadow-prominent: strong, for popovers and menus
-   * · shadow-hero: extra strong, for hero surfaces
    */
   .shadow-card {
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
@@ -223,10 +191,6 @@
 
   .shadow-prominent {
     box-shadow: 0 10px 15px -3px rgb(0 0 0 / 20%), 0 4px 6px -4px rgb(0 0 0 / 15%);
-  }
-
-  .shadow-hero {
-    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%), 0 0px 0 1px rgb(0 0 0 / 10%);
   }
 
   /*
@@ -588,6 +552,94 @@
     background-color: var(--ogui-lg-fill-hover, hsl(0 0% 100% / 0.7));
   }
 
+  /* Full-screen image viewer. Always dark, so its chrome is fixed-colour rather
+   * than theme tokens: the same pane has to read over any photograph and in
+   * either appearance. The backdrop is the one blur: controls sit on a
+   * translucent fill with a hairline and rim, the same material as the rest of
+   * the site, instead of stacking another live blur on top. */
+  .lightbox-dialog {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: hsl(0 0% 100%);
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+
+  .lightbox-dialog::backdrop {
+    background:
+      radial-gradient(120% 80% at 50% 0%, hsl(224 30% 14% / 0.5), transparent 55%),
+      hsl(226 36% 4% / 0.82);
+    -webkit-backdrop-filter: blur(28px) saturate(125%);
+    backdrop-filter: blur(28px) saturate(125%);
+  }
+
+  .lightbox-glass {
+    border: 1px solid hsl(0 0% 100% / 0.18);
+    background-color: hsl(226 26% 12% / 0.38);
+    background-image: linear-gradient(
+      180deg,
+      hsl(0 0% 100% / 0.16),
+      hsl(0 0% 100% / 0.05) 42%,
+      hsl(0 0% 100% / 0.015)
+    );
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.22),
+      inset 0 0 18px hsl(0 0% 100% / 0.05),
+      0 18px 48px -18px hsl(0 0% 0% / 0.85);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    backdrop-filter: blur(20px) saturate(150%);
+  }
+
+  .lightbox-icon-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.75rem;
+    width: 2.75rem;
+    border-radius: 9999px;
+    color: hsl(0 0% 100% / 0.86);
+    touch-action: manipulation;
+    transition:
+      background-color 180ms ease,
+      color 180ms ease,
+      transform 180ms ease,
+      opacity 180ms ease;
+  }
+
+  .lightbox-icon-button:hover {
+    background-color: hsl(0 0% 100% / 0.14);
+    color: hsl(0 0% 100%);
+  }
+
+  .lightbox-icon-button:active {
+    transform: scale(0.94);
+  }
+
+  .lightbox-icon-button:disabled {
+    opacity: 0.32;
+  }
+
+  .lightbox-icon-button:focus-visible {
+    outline: 2px solid hsl(0 0% 100% / 0.7);
+    outline-offset: 2px;
+  }
+
+  /* The stage owns touch gestures: without this the browser pans/zooms the page
+   * while the photo is being swiped or pinched. */
+  .lightbox-stage {
+    touch-action: none;
+    overscroll-behavior: contain;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
   /* Ambient backdrop: fixed, behind the whole app scroller, so translucent
    * surfaces always have colour to refract no matter how far the page scrolls. */
   .app-ambient {
@@ -675,6 +727,102 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+/* Language switch: a circular reveal that opens from the point that was
+ * pressed, with a hairline ring riding the expanding edge. The old page stays
+ * put underneath while the new page's clip-path grows across it; both the
+ * clip and the ring share one duration and easing so the stroke stays on the
+ * reveal edge. Started by toggleLocaleWithReveal() in lib/locale-reveal.ts,
+ * which also supplies --lang-x / --lang-y / --lang-r. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+  clip-path: circle(0px at var(--lang-x, 50%) var(--lang-y, 50%));
+  animation: lang-reveal-open 720ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes lang-reveal-open {
+  from {
+    clip-path: circle(0px at var(--lang-x, 50%) var(--lang-y, 50%));
+  }
+  to {
+    clip-path: circle(var(--lang-r, 100vmax) at var(--lang-x, 50%) var(--lang-y, 50%));
+  }
+}
+
+/* The ring is a gradient on the transition layer rather than a scaled image,
+ * so its hairline stroke keeps a constant weight as it grows. --lang-p is the
+ * current radius and animates in step with the clip above. */
+@property --lang-p {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+::view-transition-group(lang-ring),
+::view-transition-old(lang-ring),
+::view-transition-new(lang-ring) {
+  animation: none;
+  background: transparent;
+}
+
+::view-transition-group(lang-ring) {
+  z-index: 3;
+}
+
+::view-transition-old(lang-ring) {
+  opacity: 0;
+}
+
+::view-transition-new(lang-ring) {
+  background-image: radial-gradient(
+    circle at var(--lang-x, 50%) var(--lang-y, 50%),
+    transparent calc(var(--lang-p, 0px) - 1px),
+    hsl(var(--foreground) / 0.55) var(--lang-p, 0px),
+    transparent calc(var(--lang-p, 0px) + 1px)
+  );
+  animation: lang-reveal-ring 720ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+@keyframes lang-reveal-ring {
+  0% {
+    --lang-p: 0px;
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    --lang-p: var(--lang-r, 100vmax);
+    opacity: 0;
+  }
+}
+
+.lang-reveal-ring {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root),
+  ::view-transition-new(lang-ring) {
+    animation: none;
   }
 }
 

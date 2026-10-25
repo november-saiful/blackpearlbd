@@ -18,7 +18,7 @@ import { DealsPageSkeleton } from '@/components/skeletons/DealCardSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 import { formatDealLocation } from '@/components/deals/deals-destination';
-import { humanizeDealText } from '@/lib/text';
+import { useLocalizedDeals } from '@/lib/deal-locale';
 import type { TourDeal } from '@/types';
 
 // The filter bar is the only thing on this page that needs the reui filters
@@ -45,8 +45,7 @@ function FilterBarSkeleton() {
 }
 
 /** One deal, in the shape the grid's card list expects. */
-function toJobListing(rawDeal: TourDeal): JobListing {
-  const deal = humanizeDealText(rawDeal);
+function toJobListing(deal: TourDeal): JobListing {
   return {
     id: deal.id,
     title: deal.title,
@@ -68,6 +67,11 @@ function toJobListing(rawDeal: TourDeal): JobListing {
 
 export default function Deals() {
   const { deals, isLoading } = useDeals();
+  const localizedDeals = useLocalizedDeals(deals);
+  const localizedById = useMemo(
+    () => new Map(localizedDeals.map((deal) => [deal.id, deal])),
+    [localizedDeals]
+  );
 
   /*
    * The view lives in the URL, so a filtered and sorted view IS a link: it can
@@ -151,8 +155,8 @@ export default function Deals() {
       sortDeals(
         deals.filter((deal) => matchesDealsFilter(deal, query)),
         sortBy
-      ).map(toJobListing),
-    [deals, query, sortBy]
+      ).map((deal) => toJobListing(localizedById.get(deal.id) ?? deal)),
+    [deals, localizedById, query, sortBy]
   );
 
   if (isLoading) {

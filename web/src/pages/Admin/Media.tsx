@@ -1,6 +1,6 @@
 import { MediaExplorer } from '@/components/admin/MediaExplorer';
 import { AdminNav } from '@/components/admin/AdminNav';
-import { Folder } from 'lucide-react';
+import { Folder } from '@/components/ui/icons';
 
 export default function AdminMedia() {
   return (

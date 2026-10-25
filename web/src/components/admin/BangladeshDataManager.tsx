@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Check, MapPin, Plus, Search, X } from 'lucide-react';
+import { Check, MapPin, Plus, Search, X } from '@/components/ui/icons';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { usePackageDestinations, usePackageDistricts, usePackageTourSpots } from '@/hooks/useAdmin';

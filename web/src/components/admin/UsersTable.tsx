@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Search, ChevronLeft, ChevronRight, Users, Edit, Trash2, Loader2, Shield, Star } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Users, Edit, Trash2, Loader2, Shield, Star } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { formatDate, getTierColor } from '@/lib/utils';
 import { useAdminUsers } from '@/hooks/useAdmin';

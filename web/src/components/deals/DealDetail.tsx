@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Heart, Share2, Calendar, Users, MapPin, Hash, Route, Crosshair, Star, ChevronDown } from 'lucide-react';
+import { Heart, Share2, Calendar, Users, MapPin, Hash, Route, Crosshair, Star } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn, formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { useRelatedDeals } from '@/hooks/useRelatedDeals';
@@ -12,9 +11,10 @@ import { DealRouteMap, isValidWaypoint } from '@/components/deals/DealRouteMap';
 import { CoverflowCarousel, type CoverflowSlide } from '@/components/ruixen/coverflow-carousel';
 import { Lightbox } from '@/components/ui/lightbox';
 import { RelatedPackages } from '@/components/deals/RelatedPackages';
+import { ItineraryAccordion } from '@/components/deals/ItineraryAccordion';
 import { ReviewList } from '@/components/reviews/ReviewList';
 import { formatDealLocation } from './deals-destination';
-import { humanizeDealText } from '@/lib/text';
+import { useLocalizedDeal } from '@/lib/deal-locale';
 import type { TourDeal } from '@/types';
 
 interface DealDetailProps {
@@ -22,7 +22,7 @@ interface DealDetailProps {
 }
 
 export function DealDetail({ deal: rawDeal }: DealDetailProps) {
-  const deal = humanizeDealText(rawDeal);
+  const deal = useLocalizedDeal(rawDeal) ?? rawDeal;
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isRouteOpen, setIsRouteOpen] = useState(false);
@@ -32,15 +32,15 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
   const [itineraryLightboxOpen, setItineraryLightboxOpen] = useState(false);
   const [itineraryPhaseIndex, setItineraryPhaseIndex] = useState(0);
   const [itineraryPhotoIndex, setItineraryPhotoIndex] = useState(0);
-  // Index of the expanded phase, or null while every phase is collapsed.
-  const [openItineraryPhase, setOpenItineraryPhase] = useState<number | null>(0);
   const [repositionKey, setRepositionKey] = useState(0);
 
-  const { related: relatedDeals, isLoading: isRelatedLoading } = useRelatedDeals(deal);
+  const { related: relatedDeals, isLoading: isRelatedLoading } = useRelatedDeals(rawDeal);
 
   const isSaved = isBookmarked(deal.id);
   const location = formatDealLocation(deal.destination, deal.sub_destination);
   const routeWaypoints = (deal.route_waypoints || []).filter(isValidWaypoint);
+
+  const hasItinerary = Boolean(deal.itinerary && deal.itinerary.length > 0);
 
   // Every photo the deal has becomes one coverflow card: the main image first,
   // each upload once. A deal with no photos still gets its placeholder frame.
@@ -74,10 +74,6 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isRouteOpen]);
-
-  useEffect(() => {
-    setOpenItineraryPhase(0);
-  }, [deal.id]);
 
   return (
     <div>
@@ -147,7 +143,7 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
               variant="outline"
               aria-pressed={isSaved}
               aria-label={isSaved ? 'Remove from bookmarks' : 'Save to bookmarks'}
-              onClick={() => toggleBookmark(deal)}
+              onClick={() => toggleBookmark(rawDeal)}
             >
               <Heart className={`w-4 h-4 mr-2 ${isSaved ? 'fill-rose-500 text-rose-500' : ''}`} />
               {isSaved ? 'Saved' : 'Save'}
@@ -159,145 +155,33 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
         </div>
       </div>
 
-      {/* Itinerary accordion + About this tour, two columns on md+ */}
+      {/*
+        Two independent columns on md+: the left flows itinerary → route map →
+        reviews, the right about/inclusions/exclusions → related packages. Phones
+        flatten both wrappers (display: contents) and the order utilities restore
+        the single-column reading order.
+      */}
       <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-6 mb-6">
-        {deal.itinerary && deal.itinerary.length > 0 && (
-          <Card className={!deal.description ? 'md:col-span-2' : ''}>
-            <CardHeader>
-              <CardTitle>Itinerary</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-border/60">
-                {deal.itinerary.map((phase, index) => {
-                  const title = phase.title || `Phase ${phase.phase}`;
-                  const isOpen = openItineraryPhase === index;
-
-                  return (
-                    <div key={`${phase.phase}-${index}`}>
-                      <button
-                        type="button"
-                        onClick={() => setOpenItineraryPhase(isOpen ? null : index)}
-                        aria-expanded={isOpen}
-                        aria-controls={isOpen ? `itinerary-phase-${index}` : undefined}
-                        className="flex w-full items-center gap-3 px-6 py-4 text-left transition-colors hover:bg-white/40 dark:hover:bg-white/5"
-                      >
-                        <span className="glass-chip flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums text-primary">
-                          {String(phase.phase).padStart(2, '0')}
-                        </span>
-                        <span className="min-w-0 flex-1 text-sm font-medium leading-snug text-foreground md:text-base">
-                          {title}
-                        </span>
-                        <ChevronDown
-                          aria-hidden="true"
-                          className={cn(
-                            'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
-                            isOpen && 'rotate-180',
-                          )}
-                        />
-                      </button>
-
-                      {isOpen && (
-                        <div
-                          id={`itinerary-phase-${index}`}
-                          className="animate-in fade-in-0 slide-in-from-top-1 px-6 pb-5 duration-200"
-                        >
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                            {phase.description}
-                          </p>
-                          {phase.photos && phase.photos.length > 0 && (
-                            <div className="mt-4 grid grid-cols-2 gap-3">
-                              {phase.photos.slice(0, 4).map((img, imgIdx) => (
-                                <button
-                                  key={imgIdx}
-                                  type="button"
-                                  onClick={() => {
-                                    setItineraryPhaseIndex(index);
-                                    setItineraryPhotoIndex(imgIdx);
-                                    setItineraryLightboxOpen(true);
-                                  }}
-                                  aria-label={`Open ${title} photo ${imgIdx + 1}`}
-                                  className="overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
-                                >
-                                  <img
-                                    src={img}
-                                    alt={`${title} photo ${imgIdx + 1}`}
-                                    loading="lazy"
-                                    decoding="async"
-                                    onLoad={(event) => event.currentTarget.classList.add('is-in')}
-                                    ref={(node) => {
-                                      if (node?.complete && node.naturalWidth > 0) {
-                                        node.classList.add('is-in');
-                                      }
-                                    }}
-                                    className="photo-fade h-24 w-full object-cover transition-opacity hover:opacity-90 md:h-32"
-                                  />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Right column: About + Inclusions + Exclusions stacked */}
-        <div className={!deal.itinerary || deal.itinerary.length === 0 ? 'md:col-span-2 flex flex-col gap-6' : 'flex flex-col gap-6'}>
-          <Card>
-            <CardHeader>
-              <CardTitle>About this tour</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* All body text in posts is justified by default. */}
-              <p className="text-muted-foreground whitespace-pre-wrap text-justify">
-                {deal.description}
-              </p>
-            </CardContent>
-          </Card>
-
-          {deal.inclusions && deal.inclusions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-emerald-600">What's Included</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {deal.inclusions.map((item, idx) => (
-                    <li key={idx} className="flex items-start">
-                      <span className="text-emerald-500 mr-2">✓</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+        <div className="max-md:contents flex flex-col gap-6">
+          {hasItinerary && (
+            <section aria-labelledby="itinerary-heading" className="max-md:order-1">
+              <CardTitle id="itinerary-heading" className="mb-4 px-1">
+                Itinerary
+              </CardTitle>
+              <ItineraryAccordion
+                key={deal.id}
+                phases={deal.itinerary}
+                onOpenPhoto={(phaseIndex, photoIndex) => {
+                  setItineraryPhaseIndex(phaseIndex);
+                  setItineraryPhotoIndex(photoIndex);
+                  setItineraryLightboxOpen(true);
+                }}
+              />
+            </section>
           )}
 
-          {deal.exclusions && deal.exclusions.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-rose-600">What's Not Included</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {deal.exclusions.map((item, idx) => (
-                    <li key={idx} className="flex items-start">
-                      <span className="text-rose-500 mr-2">✗</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Inline route map: fills the remaining vertical space */}
           {routeWaypoints.length > 0 && (
-            <Card className="hidden md:flex flex-col flex-1 min-h-0 overflow-hidden shadow-md ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+            <Card className="hidden md:flex flex-col overflow-hidden shadow-md ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
               <CardHeader className="flex-row items-center justify-between space-y-0">
                 <CardTitle>Tour Route</CardTitle>
                 <Button
@@ -310,11 +194,11 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
                   Reposition
                 </Button>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col min-h-0 gap-3">
+              <CardContent className="flex flex-col gap-3">
                 <DealRouteMap
                   waypoints={routeWaypoints}
                   geometry={deal.route_geometry}
-                  className="flex-1 min-h-[220px] w-full"
+                  className="h-[300px] w-full lg:h-[340px]"
                   repositionKey={repositionKey}
                 />
                 <ol aria-label="Tour route stops" className="grid max-h-36 gap-2 overflow-y-auto sm:grid-cols-2">
@@ -339,9 +223,64 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
             </Card>
           )}
 
-          <ReviewList dealSlug={deal.slug} dealId={deal.id} />
+          <div className="max-md:order-3">
+            <ReviewList dealSlug={deal.slug} dealId={deal.id} />
+          </div>
+        </div>
 
-          <div className="mt-auto">
+        <div className="max-md:contents flex flex-col gap-6">
+          {/* About + Inclusions + Exclusions stacked */}
+          <div className="max-md:order-2 flex flex-col gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>About this tour</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {/* All body text in posts is justified by default. */}
+                <p className="text-muted-foreground whitespace-pre-wrap text-justify">
+                  {deal.description}
+                </p>
+              </CardContent>
+            </Card>
+
+            {deal.inclusions && deal.inclusions.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-emerald-600">What's Included</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {deal.inclusions.map((item, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <span className="text-emerald-500 mr-2">✓</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {deal.exclusions && deal.exclusions.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-rose-600">What's Not Included</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {deal.exclusions.map((item, idx) => (
+                      <li key={idx} className="flex items-start">
+                        <span className="text-rose-500 mr-2">✗</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="max-md:order-4">
             <RelatedPackages deals={relatedDeals} isLoading={isRelatedLoading} />
           </div>
         </div>

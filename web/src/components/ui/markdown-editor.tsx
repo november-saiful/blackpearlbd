@@ -15,7 +15,7 @@ import {
   Minus,
   Eye,
   EyeOff,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 export interface MarkdownEditorProps {
   value: string;

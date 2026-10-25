@@ -1,9 +1,12 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export interface Footer3LinkGroup {
   title: string;
-  links: { label: string; href: string }[];
+  links: { label: string; href: string; external?: boolean }[];
+  /** Optional control rendered under the group's links, e.g. a map. */
+  content?: React.ReactNode;
 }
 
 export interface Footer3SocialLink {
@@ -76,7 +79,13 @@ export function Footer3({
                 <div className="lg:col-span-8">
                   <div className="grid grid-cols-2 gap-8 md:grid-cols-3">
                     {linkGroups.map((group, index) => (
-                      <div key={index} className="flex flex-col gap-4">
+                      <div
+                        key={index}
+                        className={cn(
+                          "flex flex-col gap-4",
+                          group.content && "col-span-2 md:col-span-1",
+                        )}
+                      >
                         <h4 className="text-foreground mb-1 text-sm font-semibold">
                           {group.title}
                         </h4>
@@ -85,6 +94,8 @@ export function Footer3({
                             <li key={linkIndex}>
                               <a
                                 href={link.href}
+                                target={link.external ? "_blank" : undefined}
+                                rel={link.external ? "noopener noreferrer" : undefined}
                                 className="text-muted-foreground hover:text-primary text-sm transition-colors"
                               >
                                 {link.label}
@@ -92,6 +103,7 @@ export function Footer3({
                             </li>
                           ))}
                         </ul>
+                        {group.content}
                       </div>
                     ))}
                   </div>

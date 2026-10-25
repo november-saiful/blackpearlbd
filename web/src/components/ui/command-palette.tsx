@@ -1,7 +1,7 @@
 "use client"
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
-import { Search, type LucideIcon } from "lucide-react"
+import { Search, type IconComponent } from "@/components/ui/icons"
 import {
   type ReactNode,
   useCallback,
@@ -25,7 +25,7 @@ export type CommandItem = {
   group?: string
   hint?: string
   keywords?: string[]
-  icon?: LucideIcon
+  icon?: IconComponent
   badge?: ReactNode
   onSelect: () => void
 }

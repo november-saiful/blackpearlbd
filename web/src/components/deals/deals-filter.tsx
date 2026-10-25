@@ -1,4 +1,4 @@
-import { BanknoteIcon, CompassIcon, MapPinIcon } from 'lucide-react';
+import { BanknoteIcon, CompassIcon, MapPinIcon } from '@/components/ui/icons';
 import { DEFAULT_FILTER_OPERATORS } from '@/components/reui/filters/filters-operators';
 import type {
   FilterField,

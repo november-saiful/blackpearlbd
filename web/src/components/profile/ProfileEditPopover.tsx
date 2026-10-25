@@ -1,4 +1,4 @@
-import { Settings, Loader2 } from 'lucide-react';
+import { Settings, Loader2 } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';

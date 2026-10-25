@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useDeals } from './useDeals';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { api } from '@/lib/api';
-import { humanizeDealText, humanizeDashes } from '@/lib/text';
+import { humanizeDashes } from '@/lib/text';
+import { localizePlaceName, useLocalizedDeals } from '@/lib/deal-locale';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import type { TourDeal, CustomPackage } from '@/types';
@@ -32,12 +33,41 @@ function fuzzyMatch(query: string, text: string): boolean {
   return false;
 }
 
+/**
+ * Both language versions are searchable regardless of which one the visitor is
+ * reading, so a Bengali title still matches a query typed in the English view
+ * and an English title matches Bengali keywords.
+ */
+function searchableDealText(deal: TourDeal): string {
+  return [
+    deal.title,
+    deal.title_en,
+    deal.title_bn,
+    deal.short_description,
+    deal.short_description_en,
+    deal.short_description_bn,
+    deal.description,
+    deal.description_en,
+    deal.description_bn,
+    deal.deal_code,
+    localizePlaceName(deal.destination, 'en'),
+    localizePlaceName(deal.destination, 'bn'),
+    deal.sub_destination,
+    deal.sub_destination ? localizePlaceName(deal.sub_destination, 'en') : '',
+    deal.sub_destination ? localizePlaceName(deal.sub_destination, 'bn') : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 export function useGlobalSearch(query: string) {
   const { deals, isLoading: dealsLoading } = useDeals();
   // The same store every bookmark button writes to, so a deal bookmarked a
   // second ago is searchable, and guests' bookmarks show up too.
   const { bookmarks } = useBookmarkStore();
   const user = useAuthStore((state) => state.user);
+  const localizedDeals = useLocalizedDeals(deals);
+  const localizedBookmarks = useLocalizedDeals(bookmarks);
 
   // Custom packages are private to the signed-in traveller. Guest searches
   // should not issue the request at all.
@@ -56,16 +86,10 @@ export function useGlobalSearch(query: string) {
     const all: SearchResult[] = [];
 
     // Search deals
-    deals.forEach((rawDeal) => {
-      const deal = humanizeDealText(rawDeal);
-      const searchText = [
-        deal.title,
-        deal.destination,
-        deal.deal_code || '',
-        deal.description || '',
-      ].join(' ');
+    deals.forEach((rawDeal, index) => {
+      const deal = localizedDeals[index] ?? rawDeal;
 
-      if (fuzzyMatch(q, searchText)) {
+      if (fuzzyMatch(q, searchableDealText(rawDeal))) {
         all.push({
           id: deal.id,
           type: 'deal',
@@ -80,15 +104,10 @@ export function useGlobalSearch(query: string) {
     });
 
     // Search bookmarks
-    bookmarks.forEach((rawDeal) => {
-      const deal = humanizeDealText(rawDeal);
-      const searchText = [
-        deal.title,
-        deal.destination,
-        deal.deal_code || '',
-      ].join(' ');
+    bookmarks.forEach((rawDeal, index) => {
+      const deal = localizedBookmarks[index] ?? rawDeal;
 
-      if (fuzzyMatch(q, searchText)) {
+      if (fuzzyMatch(q, searchableDealText(rawDeal))) {
         // Avoid duplicates if already in deals results
         if (!all.some((r) => r.id === deal.id)) {
           all.push({
@@ -130,7 +149,7 @@ export function useGlobalSearch(query: string) {
     });
 
     return all;
-  }, [query, deals, bookmarks, packages]);
+  }, [query, deals, bookmarks, packages, localizedDeals, localizedBookmarks]);
 
   return { results, isLoading: dealsLoading || packagesLoading };
 }

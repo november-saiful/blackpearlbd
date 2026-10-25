@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Loader2, Plus } from 'lucide-react';
+import { MapPin, Loader2, Plus, ArrowLeft, ArrowRight, Check } from '@/components/ui/icons';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Combobox, ComboboxTrigger, ComboboxValue, ComboboxContent, ComboboxInput, ComboboxList, ComboboxItem, ComboboxEmpty, ComboboxGroup, ComboboxSeparator } from '@/components/ui/combobox';
 import { DateRangePicker } from '@/components/base/date-picker/date-range-picker';
@@ -35,24 +35,12 @@ import {
 } from '@/lib/package-builder';
 import type { PackageDestination } from '@/types';
 
-// ── SVG Icons ────────────────────────────────────────────────────────
-const ArrowRightIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
-  </svg>
-);
+// ── Icons ────────────────────────────────────────────────────────────
+const ArrowRightIcon = () => <ArrowRight size={16} strokeWidth={2} />;
 
-const ArrowLeftIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M19 12H5" /><path d="m12 19-7-7 7-7" />
-  </svg>
-);
+const ArrowLeftIcon = () => <ArrowLeft size={16} strokeWidth={2} />;
 
-const CheckSvg = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
+const CheckSvg = () => <Check size={16} strokeWidth={2} />;
 
 // ── Destination data ──────────────────────────────────────────────
 

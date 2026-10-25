@@ -11,7 +11,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { reloadForStaleBuild } from '@/lib/preload-recovery';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from '@/components/ui/icons';
 
 // ── Chunk-load recovery ───────────────────────────────────────────────────
 // A tab running an older build can request a hashed chunk that a redeploy

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye } from '@/components/ui/icons';
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
 import { cn } from '@/lib/utils';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';

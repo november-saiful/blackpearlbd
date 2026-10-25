@@ -1,4 +1,4 @@
-import { User } from 'lucide-react';
+import { User } from '@/components/ui/icons';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ProfileEditPopover } from './ProfileEditPopover';

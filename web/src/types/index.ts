@@ -19,6 +19,9 @@ export interface Waypoint {
    * carries the geocoded description.
    */
   name: string;
+  /** Bilingual copies of `name`; null once an admin clears the translation. */
+  name_en?: string | null;
+  name_bn?: string | null;
   /** Geocoded description of the point, e.g. "Bhulbaria, Santhia Upazila, Bangladesh". */
   address?: string;
   lat: number;
@@ -67,9 +70,16 @@ export interface TourDeal {
   id: string;
   deal_code: string | null;
   title: string;
+  /** Bilingual copies of `title`; the canonical column stays the fallback. */
+  title_en?: string | null;
+  title_bn?: string | null;
   slug: string;
   description: string | null;
+  description_en?: string | null;
+  description_bn?: string | null;
   short_description: string | null;
+  short_description_en?: string | null;
+  short_description_bn?: string | null;
   destination: string;
   /** More specific place inside the selected destination division. */
   sub_destination?: string | null;
@@ -89,7 +99,11 @@ export interface TourDeal {
   /** Gallery images excluded from the deal-page carousel. */
   hidden_gallery: string[];
   inclusions: string[];
+  inclusions_en?: string[] | null;
+  inclusions_bn?: string[] | null;
   exclusions: string[];
+  exclusions_en?: string[] | null;
+  exclusions_bn?: string[] | null;
   itinerary: ItineraryPhase[];
   route_waypoints: Waypoint[] | null;
   route_geometry: RouteGeometry | null;
@@ -131,7 +145,11 @@ export interface ReviewStats {
 export interface ItineraryPhase {
   phase: number;
   title: string;
+  title_en?: string | null;
+  title_bn?: string | null;
   description: string;
+  description_en?: string | null;
+  description_bn?: string | null;
   photos: string[];
 }
 

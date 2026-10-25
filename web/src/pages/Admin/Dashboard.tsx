@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAdminStats } from '@/hooks/useAdmin';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
 import { AdminDashboardSkeleton } from '@/components/skeletons/AdminDashboardSkeleton';
-import { LayoutDashboard } from 'lucide-react';
+import { LayoutDashboard } from '@/components/ui/icons';
 
 export default function AdminDashboard() {
   const { stats, recentBookings, isLoading } = useAdminStats();

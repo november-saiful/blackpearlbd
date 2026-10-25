@@ -2,6 +2,7 @@ import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { Glass } from "open-glass-ui"
 import { cn } from "@/lib/utils"
+import { Check, ChevronRight, CircleDot } from "@/components/ui/icons"
 
 const DropdownMenu = DropdownMenuPrimitive.Root
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
@@ -26,20 +27,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="ml-auto"
-    >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
+    <ChevronRight className="ml-auto" strokeWidth={2} />
   </DropdownMenuPrimitive.SubTrigger>
 ))
 DropdownMenuSubTrigger.displayName =
@@ -127,20 +115,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="size-4"
-        >
-          <path d="M20 6 9 17l-5-5" />
-        </svg>
+        <Check className="size-4" strokeWidth={2} />
       </DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}
@@ -163,21 +138,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="size-2"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <circle cx="12" cy="12" r="4" fill="currentColor" />
-        </svg>
+        <CircleDot className="size-2" strokeWidth={2} />
       </DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}

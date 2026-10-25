@@ -8,7 +8,7 @@ import {
   Calendar,
   Settings,
   HelpCircle,
-} from 'lucide-react'
+} from '@/components/ui/icons'
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon'
 
 export interface NavigationItem {

@@ -42,7 +42,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ListFilterPlusIcon } from "lucide-react"
+import { ListFilterPlusIcon } from "@/components/ui/icons"
 
 /**
  * Projects ONLY the field tree: operators or values as nodes would force the

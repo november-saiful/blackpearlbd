@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/ui/icons";
 import { AnimatedBookmarkButton } from "@/components/deals/AnimatedBookmarkButton";
 import { DealCard } from "@/components/deals/DealCard";
 import { useBookmarkStore } from "@/stores/bookmarkStore";

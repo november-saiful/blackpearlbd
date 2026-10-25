@@ -15,7 +15,7 @@ import { Popover as PopoverPrimitive } from "@base-ui/react"
 import { useDirection } from "@base-ui/react/direction-provider"
 
 import { cn } from "@/lib/utils"
-import { ChevronRightIcon } from "lucide-react"
+import { ChevronRightIcon } from "@/components/ui/icons"
 
 /**
  * The pinned footer, and the side-anchored flyout a footer row can open. These

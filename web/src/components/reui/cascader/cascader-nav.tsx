@@ -20,7 +20,7 @@ import { useDirection } from "@base-ui/react/direction-provider"
 import { Slot } from "@radix-ui/react-slot"
 
 import { cn } from "@/lib/utils"
-import { ChevronRightIcon, ChevronLeftIcon } from "lucide-react"
+import { ChevronRightIcon, ChevronLeftIcon } from "@/components/ui/icons"
 
 /* -------------------------------------------------------------------------- */
 /*                                  Separator                                 */

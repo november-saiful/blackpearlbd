@@ -1,5 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Calendar, DollarSign, Clock } from 'lucide-react';
+import { Users, Calendar, DollarSign, Clock } from '@/components/ui/icons';
 import { formatCurrency } from '@/lib/utils';
 import type { AdminStats } from '@/types';
 

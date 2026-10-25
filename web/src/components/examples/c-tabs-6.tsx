@@ -27,7 +27,7 @@ export interface CTabs6Props {
 }
 
 /**
- * reui "Tabs with icons" pattern (c-tabs-6), adapted for lucide-react icons.
+ * reui "Tabs with icons" pattern (c-tabs-6), adapted for the Hugeicons icon module.
  * https://reui.io/blocks/tabs
  */
 export function CTabs6({

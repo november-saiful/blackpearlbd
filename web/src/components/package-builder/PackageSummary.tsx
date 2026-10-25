@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
-import { Globe } from 'lucide-react';
+import { Globe } from '@/components/ui/icons';
 
 interface PackageSummaryProps {
   destination: string | null;

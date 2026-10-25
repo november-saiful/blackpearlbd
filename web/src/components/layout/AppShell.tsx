@@ -5,9 +5,16 @@ import { MobileDock } from './MobileDock'
 import { ScrollToTop } from './ScrollToTop'
 import { PhonePrompt } from './PhonePrompt'
 import { Footer3 } from '@/components/watermelon-ui/footer-3'
+import { ViewOnMap } from '@/components/watermelon-ui/view-on-map'
 import { footerNavigation } from '@/config/navigation'
 import { attachScrollHoverGate } from '@/lib/scroll-hover-gate'
-import { Instagram, Facebook } from 'lucide-react'
+import { Instagram, Facebook } from '@/components/ui/icons'
+
+// CID link: opens the Black Pearl business listing (name, hours, address)
+// instead of a bare coordinate pin. The embed drops a pin at the same
+// coordinates without needing a Maps API key.
+const OFFICE_MAP_URL = 'https://www.google.com/maps?cid=10981613975378009793'
+const OFFICE_MAP_EMBED = 'https://www.google.com/maps?q=23.738177,90.3879379&z=17&output=embed'
 
 type AppShellProps = {
   children: ReactNode
@@ -78,10 +85,16 @@ export function AppShell({ children }: AppShellProps) {
             {
               title: 'Contact',
               links: [
-                { label: 'Office #307, 300-Alisan Plaza, Elephant Road, Dhaka-1205', href: '#' },
+                { label: 'Office #307, 300-Alisan Plaza, Elephant Road, Dhaka-1205', href: OFFICE_MAP_URL, external: true },
                 { label: '+880 1897655530', href: 'tel:+8801897655530' },
                 { label: 'team@blackpearl.bd', href: 'mailto:team@blackpearl.bd' },
               ],
+              content: (
+                <ViewOnMap
+                  mapSrc={OFFICE_MAP_EMBED}
+                  locationName="Black Pearl, Elephant Road, Dhaka"
+                />
+              ),
             },
           ]}
           socialLinks={[

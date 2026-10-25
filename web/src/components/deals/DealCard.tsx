@@ -7,10 +7,10 @@ import {
   MapPin,
   Route as RouteIcon,
   Sparkles,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { cn, formatCurrency } from '@/lib/utils';
 import { getDealCategory } from '@/lib/deal-category';
-import { humanizeDealText } from '@/lib/text';
+import { useLocalizedDeal } from '@/lib/deal-locale';
 import {
   claimLeadPhotoSlot,
   onLeadPhotoSettled,
@@ -35,7 +35,7 @@ interface DealCardProps {
  * can all render the same card.
  */
 export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
-  const deal = humanizeDealText(rawDeal);
+  const deal = useLocalizedDeal(rawDeal) ?? rawDeal;
   const image = deal.image_url || deal.gallery?.[0] || '';
   const category = getDealCategory(deal);
   const location = formatDealLocation(deal.destination, deal.sub_destination);

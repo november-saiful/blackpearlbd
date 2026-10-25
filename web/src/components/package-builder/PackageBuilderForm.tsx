@@ -13,7 +13,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PackageBuilderSchema, type PackageBuilderValues } from '@/lib/validators';
 import toast from 'react-hot-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/ui/icons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/base/date-picker/date-picker';
 import { getLocalTimeZone, today, parseDate } from '@internationalized/date';

@@ -19,7 +19,7 @@ import {
   AvatarGroup,
   AvatarImage,
 } from "@/components/ui/avatar"
-import { StarIcon, UserMinusIcon, TypeIcon, CircleDotIcon, UserRoundCheckIcon, GlobeIcon, BookUserIcon, Building2Icon, HashIcon, ArchiveIcon } from "lucide-react"
+import { StarIcon, UserMinusIcon, TypeIcon, CircleDotIcon, UserRoundCheckIcon, GlobeIcon, BookUserIcon, Building2Icon, HashIcon, ArchiveIcon } from "@/components/ui/icons"
 
 /* -------------------------------------------------------------------------- */
 /*                                  Fixtures                                  */

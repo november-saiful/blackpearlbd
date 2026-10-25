@@ -84,7 +84,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { RefreshCwIcon, CircleAlertIcon, GripVerticalIcon, ChevronDownIcon, EllipsisVerticalIcon, XIcon, PlusIcon, CopyIcon, UngroupIcon, Trash2Icon, ListFilterIcon, FolderPlusIcon } from "lucide-react"
+import { RefreshCwIcon, CircleAlertIcon, GripVerticalIcon, ChevronDownIcon, EllipsisVerticalIcon, XIcon, PlusIcon, CopyIcon, UngroupIcon, Trash2Icon, ListFilterIcon, FolderPlusIcon } from "@/components/ui/icons"
 
 /* -------------------------------------------------------------------------- */
 /*                                  Columns                                   */

@@ -2,6 +2,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
 import { humanizeDashes } from '@/lib/text';
+import { useContentLocale } from '@/lib/locale';
+import { localizeDeal } from '@/lib/deal-locale';
 import type { Booking } from '@/types';
 
 interface OthersSectionProps {
@@ -9,6 +11,8 @@ interface OthersSectionProps {
 }
 
 export function OthersSection({ bookings }: OthersSectionProps) {
+  const { locale } = useContentLocale();
+
   if (bookings.length === 0) {
     return (
       <p className="text-center text-muted-foreground py-8">
@@ -20,8 +24,9 @@ export function OthersSection({ bookings }: OthersSectionProps) {
   return (
     <div className="space-y-4">
       {bookings.map((booking) => {
-        const destination = humanizeDashes(booking.deal?.destination || 'Custom Package');
-        const title = humanizeDashes(booking.deal?.title || booking.custom_package?.title || 'Trip');
+        const deal = booking.deal ? localizeDeal(booking.deal, locale) : null;
+        const destination = humanizeDashes(deal?.destination || 'Custom Package');
+        const title = humanizeDashes(deal?.title || booking.custom_package?.title || 'Trip');
         const type = booking.booking_type === 'deal' ? 'Deal' : 'Custom';
         const date = booking.custom_package?.travel_date || booking.booked_at;
 

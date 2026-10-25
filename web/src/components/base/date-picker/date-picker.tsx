@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon } from "@/components/ui/icons";
 import {
   Button as RACButton,
   DatePicker as RACDatePicker,

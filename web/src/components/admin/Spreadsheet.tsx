@@ -11,7 +11,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from 'react';
-import { Check, ChevronDown, GripVertical, Loader2, Trash2, X } from 'lucide-react';
+import { Check, ChevronDown, GripVertical, Loader2, Trash2, X } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 
 /**

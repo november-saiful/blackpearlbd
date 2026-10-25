@@ -13,6 +13,8 @@ export function normalizeItinerary(raw: unknown): ItineraryPhase[] {
     .filter((entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === 'object')
     .map((entry, index) => {
       const position = Number(entry.phase ?? entry.day);
+      const translation = (key: string) =>
+        typeof entry[key] === 'string' ? { [key]: entry[key] as string } : {};
       return {
         phase: Number.isFinite(position) && position > 0 ? position : index + 1,
         title: typeof entry.title === 'string' ? entry.title : '',
@@ -20,6 +22,10 @@ export function normalizeItinerary(raw: unknown): ItineraryPhase[] {
         photos: Array.isArray(entry.photos)
           ? entry.photos.filter((photo): photo is string => typeof photo === 'string')
           : [],
+        ...translation('title_en'),
+        ...translation('title_bn'),
+        ...translation('description_en'),
+        ...translation('description_bn'),
       };
     });
 }

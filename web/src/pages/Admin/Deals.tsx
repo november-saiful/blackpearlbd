@@ -1,6 +1,6 @@
 import { DealsManager } from '@/components/admin/DealsManager';
 import { AdminNav } from '@/components/admin/AdminNav';
-import { Package } from 'lucide-react';
+import { Package } from '@/components/ui/icons';
 
 export default function AdminDeals() {
   return (

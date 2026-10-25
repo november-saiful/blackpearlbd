@@ -1,7 +1,7 @@
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { Glass } from "open-glass-ui"
-import { Check, ChevronDown, ChevronUp } from "lucide-react"
+import { Check, ChevronDown, ChevronUp } from "@/components/ui/icons"
 import { cn } from "@/lib/utils"
 
 const Select = SelectPrimitive.Root

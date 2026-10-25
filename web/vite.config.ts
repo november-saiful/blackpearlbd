@@ -168,8 +168,8 @@ export default defineConfig(({ mode }) => {
               'tailwind-merge',
             ],
 
-            // ── Icons (lucide is large) ───────────────────────────────
-            'vendor-icons': ['lucide-react'],
+            // ── Icons ────────────────────────────────────────────────
+            'vendor-icons': ['@hugeicons/react', '@hugeicons/core-free-icons'],
 
             // PDF generation is deliberately not grouped here. jspdf and its
             // canvas renderer are reachable only through a dynamic import in

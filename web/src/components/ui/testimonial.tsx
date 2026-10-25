@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { Star } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from '@/components/ui/icons';
+import { Star } from '@/components/ui/icons';
 
 type Testimonial = {
   quote: string;

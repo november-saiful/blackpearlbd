@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, MessageSquare, Star, ShieldCheck, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MessageSquare, Star, ShieldCheck, User } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/utils';
 import { useAdminReviews } from '@/hooks/useAdmin';

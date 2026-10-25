@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronDown, Compass, MapPin } from 'lucide-react';
+import { ChevronDown, Compass, MapPin } from '@/components/ui/icons';
 import { CustomPackagesManager } from '@/components/admin/CustomPackagesManager';
 import { DestinationManager } from '@/components/admin/DestinationManager';
 import { BangladeshDataManager } from '@/components/admin/BangladeshDataManager';

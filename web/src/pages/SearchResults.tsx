@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useGlobalSearch, type SearchResult } from '@/hooks/useGlobalSearch';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, MapPin, Package, Bookmark, ArrowLeft } from 'lucide-react';
+import { Search, MapPin, Package, Bookmark, ArrowLeft } from '@/components/ui/icons';
 import { formatCurrency } from '@/lib/utils';
 import { SearchResultsSkeleton } from '@/components/skeletons/SearchResultsSkeleton';
 

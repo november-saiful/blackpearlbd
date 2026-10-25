@@ -11,7 +11,7 @@ import { PackageFormSkeleton } from '@/components/skeletons/PackageFormSkeleton'
 import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { CTabs6 } from '@/components/examples/c-tabs-6';
 import { AnimatedReviews } from '@/components/reviews/AnimatedReviews';
-import { Compass, Star, ArrowRight } from 'lucide-react';
+import { Compass, Star, ArrowRight } from '@/components/ui/icons';
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
 import type { TourDeal } from '@/types';
 import { useQueries } from '@tanstack/react-query';
@@ -64,11 +64,11 @@ export default function Home() {
 
   return (
     <div>
-      {/* Hero: full-viewport cinematic deal carousel; the topbar floats over it. */}
+      {/* Hero: full-viewport deal carousel; the topbar floats over it. */}
       <HeroCarousel
         deals={allDeals}
-        isLoading={dealsQuery.isLoading}
         hasError={dealsQuery.isError}
+        isLoading={dealsQuery.isLoading}
       />
 
       {/* Quick access tabs: below the first screen */}

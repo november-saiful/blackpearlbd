@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { LucideIcon } from 'lucide-react';
-import { HelpCircle, LayoutDashboard, LogOut, Monitor, Moon, Palette, Sun, User } from 'lucide-react';
+import type { IconComponent } from '@/components/ui/icons';
+import { HelpCircle, LayoutDashboard, LogOut, Monitor, Moon, Palette, Sun, User } from '@/components/ui/icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -44,7 +44,7 @@ export interface UserDropdownProps {
 }
 
 interface MenuItem {
-  icon: LucideIcon;
+  icon: IconComponent;
   label: string;
   action: UserDropdownAction;
 }
@@ -58,7 +58,7 @@ const ADMIN_ITEMS: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Admin', action: 'admin' },
 ];
 
-const THEME_OPTIONS: { value: UserDropdownTheme; icon: LucideIcon; label: string }[] = [
+const THEME_OPTIONS: { value: UserDropdownTheme; icon: IconComponent; label: string }[] = [
   { value: 'light', icon: Sun, label: 'Light' },
   { value: 'dark', icon: Moon, label: 'Dark' },
   { value: 'system', icon: Monitor, label: 'System' },

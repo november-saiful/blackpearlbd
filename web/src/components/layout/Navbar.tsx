@@ -8,7 +8,7 @@ import {
   LogOut, 
   Shield,
   ChevronDown
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 

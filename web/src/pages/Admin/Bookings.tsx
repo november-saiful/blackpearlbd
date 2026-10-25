@@ -1,6 +1,6 @@
 import { BookingsManager } from '@/components/admin/BookingsManager';
 import { AdminNav } from '@/components/admin/AdminNav';
-import { Calendar } from 'lucide-react';
+import { Calendar } from '@/components/ui/icons';
 
 export default function AdminBookings() {
   return (

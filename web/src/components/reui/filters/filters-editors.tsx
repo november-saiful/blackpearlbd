@@ -55,7 +55,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import { Input } from "@/components/ui/input"
-import { CheckIcon, XIcon } from "lucide-react"
+import { CheckIcon, XIcon } from "@/components/ui/icons"
 
 /* -------------------------------------------------------------------------- */
 /*                              The options service                           */

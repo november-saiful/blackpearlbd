@@ -1,4 +1,4 @@
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon } from '@/components/ui/icons';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function DealCardSkeleton() {

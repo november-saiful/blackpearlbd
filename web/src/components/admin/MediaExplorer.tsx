@@ -23,7 +23,7 @@ import {
   CheckSquare,
   PenLine,
   AlertTriangle,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import {
   Dialog,
   DialogContent,

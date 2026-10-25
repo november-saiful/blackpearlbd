@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { useBookings } from '@/hooks/useBookings';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/lib/utils';
-import { humanizeDealText } from '@/lib/text';
-import { Loader2, User } from 'lucide-react';
+import { useLocalizedDeal } from '@/lib/deal-locale';
+import { Loader2, User } from '@/components/ui/icons';
 import type { TourDeal } from '@/types';
 
 interface BookingModalProps {
@@ -17,7 +17,7 @@ interface BookingModalProps {
 }
 
 export function BookingModal({ isOpen, onClose, deal: rawDeal }: BookingModalProps) {
-  const deal = humanizeDealText(rawDeal);
+  const deal = useLocalizedDeal(rawDeal) ?? rawDeal;
   const { isAuthenticated, profile } = useAuth();
   const { createBooking, isCreating } = useBookings();
   const [travelerDetails, setTravelerDetails] = useState({

@@ -66,7 +66,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { ChevronRightIcon, CornerDownRightIcon, CopyIcon, ArrowLeftRightIcon, LayersIcon, SlidersHorizontalIcon, Trash2Icon, XIcon, EllipsisVerticalIcon } from "lucide-react"
+import { ChevronRightIcon, CornerDownRightIcon, CopyIcon, ArrowLeftRightIcon, LayersIcon, SlidersHorizontalIcon, Trash2Icon, XIcon, EllipsisVerticalIcon } from "@/components/ui/icons"
 
 /** Which part of the chip a pointer or key is aimed at. No `field`: the chip's
  *  attribute segment is display only, and only the builder re-picks one. */

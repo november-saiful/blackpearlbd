@@ -1,6 +1,6 @@
 import { ReviewsManager } from '@/components/admin/ReviewsManager';
 import { AdminNav } from '@/components/admin/AdminNav';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare } from '@/components/ui/icons';
 
 export default function AdminReviews() {
   return (
