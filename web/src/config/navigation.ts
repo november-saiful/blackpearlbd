@@ -1,6 +1,6 @@
 import {
   Home,
-  Compass,
+  Backpack,
   Package,
   User,
   LayoutDashboard,
@@ -26,7 +26,7 @@ export interface NavigationGroup {
 // Regular user navigation items
 export const userNavigation: NavigationItem[] = [
   { name: 'Home', href: '/', icon: Home },
-  { name: 'Tour Deals', href: '/deals', icon: Compass },
+  { name: 'Tour Deals', href: '/deals', icon: Backpack },
   { name: 'Build Package', href: '/build-package', icon: BuildPackageIcon },
   { name: 'My Profile', href: '/profile', icon: User },
 ]

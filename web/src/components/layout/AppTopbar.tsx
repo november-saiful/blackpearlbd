@@ -1,11 +1,12 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
   Search,
   User,
   Home,
-  Compass,
+  Backpack,
   LayoutDashboard,
   HelpCircle,
   Phone,
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/icons'
 import type { IconComponent } from '@/components/ui/icons'
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon'
+import { MenuAltIcon } from '@/components/icons/MenuAltIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { LanguageGlobe } from '@/components/ui/language-globe'
@@ -28,6 +30,7 @@ import {
   type CommandItem,
 } from '@/components/ui/command-palette'
 import { useTheme } from '@/lib/theme-provider'
+import { onOpenSearchPalette } from '@/lib/search-palette'
 import { useContentLocale } from '@/lib/locale'
 import { isLocaleRevealRunning, toggleLocaleWithReveal } from '@/lib/locale-reveal'
 import { useLocalizedDeals } from '@/lib/deal-locale'
@@ -106,7 +109,7 @@ function useCommandPaletteItems() {
         id: 'deals',
         label: 'Tour Deals',
         group: 'Navigation',
-        icon: Compass as IconComponent,
+        icon: Backpack as IconComponent,
         hint: '/deals',
         onSelect: () => navigate('/deals'),
       },
@@ -157,7 +160,7 @@ function useCommandPaletteItems() {
       id: `search-${result.id}`,
       label: result.title,
       group: result.type === 'deal' ? 'Deals' : result.type === 'bookmark' ? 'Bookmarks' : 'Packages',
-      icon: result.type === 'deal' ? Compass : result.type === 'bookmark' ? Bookmark : Package,
+      icon: result.type === 'deal' ? Backpack : result.type === 'bookmark' ? Bookmark : Package,
       hint: result.dealCode || undefined,
       onSelect: () => navigate(result.href),
     }))
@@ -288,6 +291,10 @@ export function AppTopbar({ className }: { className?: string }) {
   )
 
   const openPalette = useCallback(() => setPaletteOpen(true), [])
+
+  // The mobile dock's search item lives outside this tree, so it opens the
+  // palette through the shared event rather than a prop chain.
+  useEffect(() => onOpenSearchPalette(openPalette), [openPalette])
 
   // On the home route the topbar floats over the edge-to-edge hero: fully
   // transparent at the top of the page, solid once scrolled.
@@ -441,28 +448,23 @@ export function AppTopbar({ className }: { className?: string }) {
                 aria-expanded={mobileOpen}
                 onClick={() => setMobileOpen((open) => !open)}
                 className={cn(
-                  'group relative size-9 shrink-0 rounded-md lg:hidden',
+                  'group relative grid size-9 shrink-0 place-items-center rounded-md lg:hidden',
                   'text-muted-foreground hover:text-foreground',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 )}
               >
-                <span
+                <MenuAltIcon
                   className={cn(
-                    'absolute inset-x-2 top-[11px] h-[2px] rounded bg-current transition-transform',
-                    mobileOpen && 'translate-y-[6px] rotate-45',
+                    'col-start-1 row-start-1 size-5 transition-all duration-200',
+                    mobileOpen ? 'scale-75 opacity-0' : 'scale-100 opacity-100',
                   )}
                 />
-                <span
+                <X
                   className={cn(
-                    'absolute inset-x-2 top-1/2 h-[2px] -translate-y-1/2 rounded bg-current transition-opacity',
-                    mobileOpen ? 'opacity-0' : 'opacity-100',
+                    'col-start-1 row-start-1 size-5 transition-all duration-200',
+                    mobileOpen ? 'scale-100 opacity-100' : 'scale-75 opacity-0',
                   )}
-                />
-                <span
-                  className={cn(
-                    'absolute inset-x-2 bottom-[11px] h-[2px] rounded bg-current transition-transform',
-                    mobileOpen && '-translate-y-[6px] -rotate-45',
-                  )}
+                  strokeWidth={1.8}
                 />
               </button>
 
@@ -472,7 +474,7 @@ export function AppTopbar({ className }: { className?: string }) {
                   alt=""
                   className="size-9 shrink-0 object-contain dark:invert"
                 />
-                <span className="hidden text-xl font-semibold tracking-tight sm:inline md:text-2xl">
+                <span className="max-[359px]:hidden text-lg font-semibold tracking-tight sm:text-xl md:text-2xl">
                   BlackPearl
                 </span>
               </Link>
@@ -579,7 +581,7 @@ export function AppTopbar({ className }: { className?: string }) {
                 type="button"
                 variant="outline"
                 size="icon"
-                className="!size-11 rounded-lg xl:hidden"
+                className="!size-11 hidden rounded-lg md:flex xl:hidden"
                 onClick={openPalette}
                 aria-label="Open search (⌘K)"
               >
@@ -754,14 +756,16 @@ export function AppTopbar({ className }: { className?: string }) {
         </header>
       </div>
 
-      {/* Mobile drawer */}
-      <div
-        className={cn(
-          'fixed inset-0 z-[60] lg:hidden transition',
-          mobileOpen ? 'pointer-events-auto' : 'pointer-events-none',
-        )}
-        aria-hidden={!mobileOpen}
-      >
+      {/* Portalled to the body: the shell's scroll container is its own
+          stacking context, so an in-tree drawer paints under the dock. */}
+      {createPortal(
+        <div
+          className={cn(
+            'fixed inset-0 z-[120] lg:hidden transition',
+            mobileOpen ? 'pointer-events-auto' : 'pointer-events-none',
+          )}
+          aria-hidden={!mobileOpen}
+        >
         <div
           className={cn(
             'glass-scrim absolute inset-0 transition-opacity',
@@ -772,8 +776,8 @@ export function AppTopbar({ className }: { className?: string }) {
 
         <aside
           className={cn(
-            'glass-strong absolute right-0 top-0 h-full w-80 max-w-[calc(100vw-0.75rem)] overflow-y-auto rounded-l-2xl p-4 transition-transform',
-            mobileOpen ? 'translate-x-0' : 'translate-x-full',
+            'glass-strong absolute left-0 top-0 h-full w-80 max-w-[calc(100vw-0.75rem)] overflow-y-auto rounded-r-2xl p-4 transition-transform',
+            mobileOpen ? 'translate-x-0' : 'translate-x-[-100%]',
           )}
           role="dialog"
           aria-modal="true"
@@ -837,6 +841,27 @@ export function AppTopbar({ className }: { className?: string }) {
               </Link>
             ))}
           </nav>
+
+          <div className="mt-5">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Call Us
+            </div>
+            <div className="glass-field rounded-xl p-3">
+              <p className="mb-2 text-center text-xs text-muted-foreground">
+                Slide to call
+              </p>
+              <SlideActionButton
+                className="w-full"
+                completeLabel="Calling…"
+                onComplete={() => {
+                  setMobileOpen(false)
+                  window.location.href = `tel:${CONTACT_PHONE}`
+                }}
+              >
+                Call +880 1897655530
+              </SlideActionButton>
+            </div>
+          </div>
 
           <div className="mt-5">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -915,7 +940,9 @@ export function AppTopbar({ className }: { className?: string }) {
             )}
           </div>
         </aside>
-      </div>
+        </div>,
+        document.body,
+      )}
     </>
   )
 }

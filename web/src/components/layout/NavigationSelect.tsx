@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, Compass, User } from '@/components/ui/icons'
+import { Home, Backpack, User } from '@/components/ui/icons'
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon'
 import {
   Select,
@@ -20,7 +20,7 @@ interface NavPage {
 
 const userPages: NavPage[] = [
   { id: 'home', label: 'Home', icon: Home, href: '/' },
-  { id: 'deals', label: 'Tour Deals', icon: Compass, href: '/deals' },
+  { id: 'deals', label: 'Tour Deals', icon: Backpack, href: '/deals' },
   { id: 'build', label: 'Build Package', icon: BuildPackageIcon, href: '/build-package' },
   { id: 'profile', label: 'Profile', icon: User, href: '/profile' },
 ]

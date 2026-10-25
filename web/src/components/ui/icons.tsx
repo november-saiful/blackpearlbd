@@ -10,6 +10,7 @@ import {
   ArrowLeftRightIcon as ArrowLeftRightGlyph,
   ArrowRight01Icon,
   ArrowUpDownIcon as ArrowUpDownGlyph,
+  Backpack03Icon,
   BanknoteIcon as BanknoteGlyph,
   BellIcon,
   BoldIcon,
@@ -77,7 +78,7 @@ import {
   Logout01Icon,
   Mail01Icon,
   MapPinIcon as MapPinGlyph,
-  Menu01Icon,
+  Menu09Icon,
   MessageSquareIcon,
   MinusIcon as MinusGlyph,
   MonitorIcon,
@@ -174,6 +175,7 @@ export const CircleDot = make(CircleDotGlyph, 'CircleDot')
 export const Clock = make(Clock01Icon, 'Clock')
 export const Code = make(CodeIcon, 'Code')
 export const Compass = make(Compass01Icon, 'Compass')
+export const Backpack = make(Backpack03Icon, 'Backpack')
 export const Copy = make(Copy01Icon, 'Copy')
 export const CornerDownRight = make(CornerDownRightGlyph, 'CornerDownRight')
 export const Crosshair = make(CrosshairIcon, 'Crosshair')
@@ -217,7 +219,7 @@ export const Loader2 = make(Loading03Icon, 'Loader2')
 export const LogOut = make(Logout01Icon, 'LogOut')
 export const Mail = make(Mail01Icon, 'Mail')
 export const MapPin = make(MapPinGlyph, 'MapPin')
-export const Menu = make(Menu01Icon, 'Menu')
+export const Menu = make(Menu09Icon, 'Menu')
 export const MessageSquare = make(MessageSquareIcon, 'MessageSquare')
 export const Minus = make(MinusGlyph, 'Minus')
 export const Monitor = make(MonitorIcon, 'Monitor')

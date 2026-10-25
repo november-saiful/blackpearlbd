@@ -11,7 +11,7 @@ import { PackageFormSkeleton } from '@/components/skeletons/PackageFormSkeleton'
 import { HeroCarousel } from '@/components/home/HeroCarousel';
 import { CTabs6 } from '@/components/examples/c-tabs-6';
 import { AnimatedReviews } from '@/components/reviews/AnimatedReviews';
-import { Compass, Star, ArrowRight } from '@/components/ui/icons';
+import { Backpack, Compass, Star, ArrowRight } from '@/components/ui/icons';
 import { BuildPackageIcon } from '@/components/icons/BuildPackageIcon';
 import type { TourDeal } from '@/types';
 import { useQueries } from '@tanstack/react-query';
@@ -81,7 +81,7 @@ export default function Home() {
               {
                 id: 'tours',
                 label: 'Tour Deals',
-                icon: <Compass />,
+                icon: <Backpack />,
                 content: <TourDealsPreview deals={allDeals} isLoading={dealsQuery.isLoading} />,
               },
               {
