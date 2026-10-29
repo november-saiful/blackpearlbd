@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { FocusScope } from '@radix-ui/react-focus-scope';
 import { cn } from '@/lib/utils';
 import { useComboboxContext } from './context';
 
@@ -116,16 +117,21 @@ export function ComboboxContent({
     return () => document.removeEventListener('mousedown', handler);
   }, [open, setOpen, inputRef]);
 
-  // Close on Escape
+  // Close on Escape. Claimed in the capture phase so an enclosing dialog does
+  // not also see the key — its own dismiss handler would otherwise close the
+  // form behind the list on the same press.
   useEffect(() => {
     if (!open) return;
 
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
     };
 
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
   }, [open, setOpen]);
 
   if (!open || !position) return null;
@@ -133,23 +139,39 @@ export function ComboboxContent({
   return createPortal(
     // Glass surfaces create stacking contexts, so only a body portal keeps
     // this panel above cards that come later in the form.
-    <div
-      ref={contentRef}
-      className={cn(
-        'glass-strong fixed z-50 overflow-y-auto rounded-xl bg-white/85 p-1 text-popover-foreground dark:bg-[hsl(222_24%_17%/0.88)]',
-        'animate-in fade-in-0 zoom-in-95',
-        className,
-      )}
-      style={{
-        top: position.top,
-        bottom: position.bottom,
-        left: position.left,
-        width: position.width,
-        maxHeight: position.maxHeight,
-      }}
-    >
-      {children}
-    </div>,
+    //
+    // Living outside the form's own subtree costs us two things when the
+    // combobox sits inside a modal dialog, so both are restored here:
+    // a modal Radix dialog sets `pointer-events: none` on <body> (the panel
+    // would be click-through), and it traps focus inside its own content node
+    // (the search field would lose focus the moment it gained it). Opting the
+    // panel back into pointer events and giving it its own focus scope — which
+    // pauses the dialog's scope while open — makes it behave like the dialog's
+    // own content.
+    <FocusScope asChild loop trapped>
+      <div
+        ref={contentRef}
+        // A modal dialog locks scrolling for everything outside its own
+        // content, which would leave this list frozen under the wheel. Keeping
+        // these two events local lets the browser scroll the list natively.
+        onWheel={(event) => event.stopPropagation()}
+        onTouchMove={(event) => event.stopPropagation()}
+        className={cn(
+          'glass-strong pointer-events-auto fixed z-50 overflow-y-auto rounded-xl bg-white/85 p-1 text-popover-foreground dark:bg-[hsl(222_24%_17%/0.88)]',
+          'animate-in fade-in-0 zoom-in-95',
+          className,
+        )}
+        style={{
+          top: position.top,
+          bottom: position.bottom,
+          left: position.left,
+          width: position.width,
+          maxHeight: position.maxHeight,
+        }}
+      >
+        {children}
+      </div>
+    </FocusScope>,
     document.body,
   );
 }
