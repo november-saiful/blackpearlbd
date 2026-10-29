@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDealCategory } from '@/lib/deal-category';
 import { useLocalizedDeals } from '@/lib/deal-locale';
-import { formatCurrency } from '@/lib/utils';
+import { useContentLocale } from '@/lib/locale';
+import { formatPrice } from '@/lib/utils';
 import { formatDurationShort } from '@/lib/duration';
 import type { TourDeal } from '@/types';
 
@@ -38,6 +39,7 @@ function RelatedPackageSkeletonRow() {
  */
 export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
   const localizedDeals = useLocalizedDeals(deals);
+  const { locale } = useContentLocale();
   const navigate = useNavigate();
 
   if (isLoading) {
@@ -122,11 +124,11 @@ export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
                       </span>
                       <span className="flex items-center gap-1">
                         <CalendarDays className="h-3 w-3" />
-                        {formatDurationShort(deal.duration_days)}
+                        {formatDurationShort(deal.duration_days, locale)}
                       </span>
                     </div>
                     <span className="mt-1 block text-sm font-bold text-primary">
-                      {formatCurrency(deal.price)}
+                      {formatPrice(deal.price, locale)}
                     </span>
                   </div>
                 </div>

@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { getGeoCurrency, getGeoLocale } from '@/hooks/useGeoLocation';
+import type { ContentLocale } from '@/lib/locale';
+import { formatBengaliPrice } from '@/lib/numerals';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -22,6 +24,16 @@ export function formatCurrency(amount: number, currencyCode?: string, locale?: s
     currency,
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+/**
+ * The price as the reader's language writes it: `BDT 4,800` in English,
+ * `৪,৮০০ টাকা` in Bengali. {@link formatCurrency} follows the visitor's geo
+ * locale, which is why a Bengali page used to keep Latin digits.
+ */
+export function formatPrice(amount: number, locale: ContentLocale = 'en') {
+  if (locale === 'bn') return formatBengaliPrice(amount, getGeoCurrency());
+  return formatCurrency(amount);
 }
 
 export function getTierColor(status: string) {

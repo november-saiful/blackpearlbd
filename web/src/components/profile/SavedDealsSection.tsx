@@ -6,9 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BookingModal } from '@/components/bookings/BookingModal';
 import { SavedDealsSkeleton } from '@/components/skeletons/ProfileSectionSkeletons';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
-import { formatCurrency } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
 import { useLocalizedDeals } from '@/lib/deal-locale';
+import { useContentLocale } from '@/lib/locale';
 import { formatDealLocation } from '@/components/deals/deals-destination';
 import type { TourDeal } from '@/types';
 
@@ -17,6 +18,7 @@ export function SavedDealsSection() {
   // list, the topbar badge and the card buttons are then always in step.
   const { bookmarks, removeBookmark, isInitialized } = useBookmarkStore();
   const localizedBookmarks = useLocalizedDeals(bookmarks);
+  const { locale } = useContentLocale();
   const [bookingDeal, setBookingDeal] = useState<TourDeal | null>(null);
 
   if (!isInitialized) {
@@ -76,7 +78,7 @@ export function SavedDealsSection() {
                       </p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                         <Clock className="w-4 h-4" />
-                        {formatDuration(deal.duration_days)}
+                        {formatDuration(deal.duration_days, locale)}
                       </div>
                     </div>
 
@@ -84,11 +86,11 @@ export function SavedDealsSection() {
                     <div className="flex items-center justify-between mt-4 pt-3 border-t">
                       <div>
                         <span className="text-xl font-bold text-primary">
-                          {formatCurrency(deal.price)}
+                          {formatPrice(deal.price, locale)}
                         </span>
                         {deal.original_price && deal.original_price > deal.price && (
                           <span className="text-sm text-muted-foreground line-through ml-2">
-                            {formatCurrency(deal.original_price)}
+                            {formatPrice(deal.original_price, locale)}
                           </span>
                         )}
                       </div>

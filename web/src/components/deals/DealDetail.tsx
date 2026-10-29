@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Heart, Share2, Calendar, Users, MapPin, Hash, Route, Crosshair, Star } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
+import { formatNumber, formatRating } from '@/lib/numerals';
+import { useContentLocale } from '@/lib/locale';
 
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { useRelatedDeals } from '@/hooks/useRelatedDeals';
@@ -24,6 +26,7 @@ interface DealDetailProps {
 
 export function DealDetail({ deal: rawDeal }: DealDetailProps) {
   const deal = useLocalizedDeal(rawDeal) ?? rawDeal;
+  const { locale } = useContentLocale();
   const { isBookmarked, toggleBookmark } = useBookmarkStore();
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isRouteOpen, setIsRouteOpen] = useState(false);
@@ -107,18 +110,18 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center">
               <Calendar className="w-4 h-4 mr-1" />
-              {formatDuration(deal.duration_days)}
+              {formatDuration(deal.duration_days, locale)}
             </span>
             {deal.max_travelers && (
               <span className="flex items-center">
                 <Users className="w-4 h-4 mr-1" />
-                Max {deal.max_travelers} travelers
+                Max {formatNumber(deal.max_travelers, locale)} travelers
               </span>
             )}
             {(deal.review_count ?? 0) > 0 && (
               <span className="flex items-center">
                 <Star className="w-4 h-4 mr-1 fill-amber-400 text-amber-400" />
-                {(deal.avg_rating ?? 0).toFixed(1)} ({deal.review_count})
+                {formatRating(deal.avg_rating ?? 0, locale)} ({formatNumber(deal.review_count ?? 0, locale)})
               </span>
             )}
           </div>
@@ -127,11 +130,11 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
         <div className="mt-4 md:mt-0 text-right">
           <div className="mb-4">
             <span className="text-3xl font-bold text-primary">
-              {formatCurrency(deal.price)}
+              {formatPrice(deal.price, locale)}
             </span>
             {deal.original_price && deal.original_price > deal.price && (
               <span className="text-lg text-muted-foreground line-through ml-2">
-                {formatCurrency(deal.original_price)}
+                {formatPrice(deal.original_price, locale)}
               </span>
             )}
           </div>

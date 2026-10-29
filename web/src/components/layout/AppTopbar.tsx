@@ -45,7 +45,7 @@ import { useBookmarkStore } from '@/stores/bookmarkStore'
 import { useBookmarkSync } from '@/hooks/useBookmarks';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 
-import { formatCurrency } from '@/lib/utils'
+import { formatPrice } from '@/lib/utils'
 import { formatDealLocation } from '@/components/deals/deals-destination'
 
 const PRIMARY_NAV = [
@@ -334,7 +334,7 @@ export function AppTopbar({ className }: { className?: string }) {
       id: deal.id,
       title: deal.title,
       description: formatDealLocation(deal.destination, deal.sub_destination),
-      meta: formatCurrency(deal.price),
+      meta: formatPrice(deal.price, locale),
       leading: (
         <img
           src={deal.image_url || '/placeholder-deal.jpg'}

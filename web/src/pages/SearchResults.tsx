@@ -1,10 +1,11 @@
 import { useState, useMemo, type MouseEvent } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useGlobalSearch, type SearchResult } from '@/hooks/useGlobalSearch';
+import { useContentLocale } from '@/lib/locale';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Search, MapPin, Package, Bookmark, ArrowLeft } from '@/components/ui/icons';
-import { formatCurrency } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import { SearchResultsSkeleton } from '@/components/skeletons/SearchResultsSkeleton';
 
 const typeConfig: Record<string, { label: string; color: string; icon: typeof Search }> = {
@@ -17,6 +18,7 @@ function SearchResultCard({ result }: { result: SearchResult }) {
   const config = typeConfig[result.type];
   const Icon = config.icon;
   const navigate = useNavigate();
+  const { locale } = useContentLocale();
 
   /**
    * The row cannot be an anchor: Chrome starts a link drag rather than a text
@@ -65,7 +67,7 @@ function SearchResultCard({ result }: { result: SearchResult }) {
         <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
         {result.price !== undefined && (
           <p className="text-sm font-semibold text-primary mt-0.5 sm:mt-1">
-            {formatCurrency(result.price)}
+            {formatPrice(result.price, locale)}
           </p>
         )}
       </div>

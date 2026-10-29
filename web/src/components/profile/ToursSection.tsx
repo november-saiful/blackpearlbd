@@ -3,10 +3,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, MapPin, Calendar } from '@/components/ui/icons';
-import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
+import { formatPrice, getStatusColor } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
 import { humanizeDashes } from '@/lib/text';
 import { useLocalizedDeal } from '@/lib/deal-locale';
+import { useContentLocale } from '@/lib/locale';
 import { useInvoice } from '@/hooks/useBookings';
 import type { Booking } from '@/types';
 
@@ -17,11 +18,12 @@ interface ToursSectionProps {
 function TourCard({ booking }: { booking: Booking }) {
   const { downloadInvoice } = useInvoice(booking.id);
   const deal = useLocalizedDeal(booking.deal) ?? booking.deal;
+  const { locale } = useContentLocale();
 
   const destination = humanizeDashes(deal?.destination || 'Custom Package');
   const title = humanizeDashes(deal?.title || booking.custom_package?.title || 'Trip');
   const date = deal
-    ? formatDuration(deal.duration_days)
+    ? formatDuration(deal.duration_days, locale)
     : booking.custom_package?.travel_date || 'N/A';
 
   return (
@@ -38,7 +40,7 @@ function TourCard({ booking }: { booking: Booking }) {
               <Calendar className="w-4 h-4" />
               <span>{date}</span>
               <span className="text-primary-foreground/70">•</span>
-              <span>{formatCurrency(booking.total_amount)}</span>
+              <span>{formatPrice(booking.total_amount, locale)}</span>
             </div>
           </div>
           

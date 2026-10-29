@@ -8,10 +8,12 @@ import {
   Route as RouteIcon,
   Sparkles,
 } from '@/components/ui/icons';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
+import { formatNumber } from '@/lib/numerals';
 import { getDealCategory } from '@/lib/deal-category';
 import { useLocalizedDeal } from '@/lib/deal-locale';
+import { useContentLocale } from '@/lib/locale';
 import {
   claimLeadPhotoSlot,
   onLeadPhotoSettled,
@@ -37,6 +39,7 @@ interface DealCardProps {
  */
 export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
   const deal = useLocalizedDeal(rawDeal) ?? rawDeal;
+  const { locale } = useContentLocale();
   const navigate = useNavigate();
   const image = deal.image_url || deal.gallery?.[0] || '';
   const category = getDealCategory(deal);
@@ -249,12 +252,14 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
           </span>
           <span className="glass-chip inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
             <CalendarDays className="h-3 w-3" />
-            {formatDuration(deal.duration_days)}
+            {formatDuration(deal.duration_days, locale)}
           </span>
           {stops > 0 && (
             <span className="glass-chip inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
               <RouteIcon className="h-3 w-3" />
-              {stops} {stops === 1 ? 'stop' : 'stops'}
+              {locale === 'bn'
+                ? `${formatNumber(stops, 'bn')} স্টপ`
+                : `${stops} ${stops === 1 ? 'stop' : 'stops'}`}
             </span>
           )}
         </div>
@@ -270,10 +275,10 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
         <div className="mt-auto flex items-end justify-between gap-3 border-t border-border pt-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-baseline gap-x-2">
-              <span className="text-xl font-bold text-primary">{formatCurrency(deal.price)}</span>
+              <span className="text-xl font-bold text-primary">{formatPrice(deal.price, locale)}</span>
               {originalPrice && (
                 <span className="text-xs text-muted-foreground line-through">
-                  {formatCurrency(originalPrice)}
+                  {formatPrice(originalPrice, locale)}
                 </span>
               )}
             </div>

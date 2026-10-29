@@ -33,11 +33,20 @@ describe('formatDuration', () => {
     expect(formatDuration(0)).toBe('');
     expect(formatDuration(null)).toBe('');
   });
+
+  it('writes the Bengali form with Bengali digits', () => {
+    expect(formatDuration(3, 'bn')).toBe('৩ দিন / ২ রাত');
+    expect(formatDuration(1, 'bn')).toBe('১ দিন');
+  });
 });
 
 describe('formatDurationShort', () => {
   it('abbreviates both units', () => {
     expect(formatDurationShort(5)).toBe('5D/4N');
     expect(formatDurationShort(1)).toBe('1D');
+  });
+
+  it('spells it out in Bengali rather than inventing an abbreviation', () => {
+    expect(formatDurationShort(5, 'bn')).toBe('৫ দিন / ৪ রাত');
   });
 });

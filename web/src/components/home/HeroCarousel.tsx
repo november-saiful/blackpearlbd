@@ -3,8 +3,8 @@ import ApertureCarousel, { type Slide } from '@/components/ui/aperture-carousel'
 import { formatDealLocation } from '@/components/deals/deals-destination'
 import { useLocalizedDeals } from '@/lib/deal-locale'
 import { useContentLocale, type ContentLocale } from '@/lib/locale'
-import { formatCurrency } from '@/lib/utils'
-import { formatDuration, tourNights } from '@/lib/duration'
+import { formatPrice } from '@/lib/utils'
+import { formatDuration } from '@/lib/duration'
 import type { TourDeal } from '@/types'
 
 const MAX_SLIDES = 6
@@ -29,12 +29,11 @@ function buildDealSlides(deals: TourDeal[], locale: ContentLocale): Slide[] {
       const location =
         formatDealLocation(deal.destination, deal.sub_destination) ||
         (locale === 'bn' ? 'বাংলাদেশ' : 'Bangladesh')
-      const nights = tourNights(deal.duration_days)
       const duration =
         locale === 'bn'
-          ? `${deal.duration_days} দিন${nights > 0 ? ` / ${nights} রাত` : ''}`
+          ? formatDuration(deal.duration_days, 'bn')
           : formatDuration(deal.duration_days).toLowerCase()
-      const price = deal.price > 0 ? formatCurrency(deal.price) : null
+      const price = deal.price > 0 ? formatPrice(deal.price, locale) : null
 
       return {
         image: deal.image_url || unsplash(FALLBACK_IMAGE_IDS[index % FALLBACK_IMAGE_IDS.length], 1920),
