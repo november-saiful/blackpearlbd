@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, EyeOff, RefreshCw, LocateFixed, FolderOpen, CheckCircle, AlertCircle, List } from '@/components/ui/icons';
 import { formatCurrency } from '@/lib/utils';
 import { formatDuration } from '@/lib/duration';
+import { BULLET_MARKER, enterOnBulletLine, hashToBullet, lineStartAt } from '@/lib/itinerary-text';
 import { DEAL_CATEGORIES, getDealCategory } from '@/lib/deal-category';
 
 import { useDeals } from '@/hooks/useDeals';
@@ -1043,10 +1044,10 @@ export function DealsManager() {
 
     const value = phaseDescription(index);
     const caret = textarea.selectionStart ?? value.length;
-    const lineStart = value.lastIndexOf('\n', Math.max(caret - 1, 0)) + 1;
+    const lineStart = lineStartAt(value, caret);
     const lineBreak = value.indexOf('\n', caret);
     const lineEnd = lineBreak === -1 ? value.length : lineBreak;
-    const alreadyBullet = /^\s*[-*•]\s+/.test(value.slice(lineStart, lineEnd));
+    const alreadyBullet = BULLET_MARKER.test(value.slice(lineStart, lineEnd));
 
     const insertAt = alreadyBullet ? lineEnd : lineStart;
     const marker = alreadyBullet ? '\n- ' : '- ';
@@ -1061,41 +1062,33 @@ export function DealsManager() {
     restorePhaseCaret(index, nextCaret);
   };
 
-  /** Enter on a bullet line opens the next one; on an empty bullet it ends the list. */
+  /**
+   * Enter on a bullet line opens the next one; on an empty bullet it ends the
+   * list. `#` at the head of a line is the shorthand for "make this a bullet":
+   * it becomes `- ` immediately, so the admin sees the bullet appear instead of
+   * only finding out when they save and open the deal page.
+   */
   const handlePhaseDescriptionKeyDown = (
     index: number,
     event: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => {
-    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+    if (event.shiftKey || event.nativeEvent.isComposing) return;
 
-    const value = phaseDescription(index);
     const caret = event.currentTarget.selectionStart;
     if (caret !== event.currentTarget.selectionEnd) return;
 
-    const lineStart = value.lastIndexOf('\n', Math.max(caret - 1, 0)) + 1;
-    const line = value.slice(lineStart, caret);
-    const marker = /^\s*[-*•]\s+/.exec(line)?.[0];
-    if (!marker) return;
+    const value = phaseDescription(index);
+    const edit =
+      event.key === '#'
+        ? hashToBullet(value, caret)
+        : event.key === 'Enter'
+          ? enterOnBulletLine(value, caret)
+          : null;
+    if (!edit) return;
 
     event.preventDefault();
-
-    if (line.trim() === marker.trim()) {
-      // The admin emptied the bullet: leave the list instead of adding another.
-      updateItineraryPhase(
-        index,
-        phaseDescriptionField(),
-        value.slice(0, lineStart) + value.slice(caret),
-      );
-      restorePhaseCaret(index, lineStart);
-      return;
-    }
-
-    updateItineraryPhase(
-      index,
-      phaseDescriptionField(),
-      `${value.slice(0, caret)}\n${marker}${value.slice(caret)}`,
-    );
-    restorePhaseCaret(index, caret + marker.length + 1);
+    updateItineraryPhase(index, phaseDescriptionField(), edit.text);
+    restorePhaseCaret(index, edit.caret);
   };
 
   const moveItineraryPhase = (index: number, direction: -1 | 1) => {
@@ -1890,7 +1883,7 @@ export function DealsManager() {
                       />
                       <div className="mt-1 flex items-center justify-between gap-2">
                         <p className="text-[11px] text-muted-foreground">
-                          Lines starting with “- ” show as bullets on the deal page. Enter continues the list.
+                          Start a line with “#” for a bullet — it becomes “- ” as you type. Enter continues the list.
                         </p>
                         <Button
                           type="button"

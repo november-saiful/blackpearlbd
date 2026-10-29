@@ -41,6 +41,9 @@ supabase/.temp/
 test-results/
 web/test-results/
 
+# Vitest scratch dir, used when the system temp dir is not writable
+.vitest-tmp/
+
 # MemPalace per-project files (issue #185)
 mempalace.yaml
 entities.json
