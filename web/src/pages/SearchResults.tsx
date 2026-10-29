@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useState, useMemo, type MouseEvent } from 'react';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useGlobalSearch, type SearchResult } from '@/hooks/useGlobalSearch';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -16,23 +16,47 @@ const typeConfig: Record<string, { label: string; color: string; icon: typeof Se
 function SearchResultCard({ result }: { result: SearchResult }) {
   const config = typeConfig[result.type];
   const Icon = config.icon;
+  const navigate = useNavigate();
+
+  /**
+   * The row cannot be an anchor: Chrome starts a link drag rather than a text
+   * selection when the press lands inside one, which would make the title and
+   * subtitle unselectable. Only the thumbnail is a real link; the rest of the
+   * row forwards its click here, skipping any drag that selected text.
+   */
+  const openResult = (event: MouseEvent<HTMLElement>) => {
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed && selection.toString()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if ((event.target as HTMLElement).closest('a, button')) return;
+    navigate(result.href);
+  };
 
   return (
-    <Link
-      to={result.href}
-      className="glass glass-hover flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl transition-colors"
+    <article
+      onClickCapture={openResult}
+      className="glass glass-hover flex cursor-pointer items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl transition-colors"
     >
-      {result.imageUrl ? (
-        <img
-          src={result.imageUrl}
-          alt={result.title}
-          className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover flex-shrink-0"
-        />
-      ) : (
-        <div className="glass-field w-12 h-12 sm:w-16 sm:h-16 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
-        </div>
-      )}
+      <Link
+        to={result.href}
+        aria-label={result.title}
+        className="flex-shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        {result.imageUrl ? (
+          <img
+            src={result.imageUrl}
+            alt=""
+            className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover"
+          />
+        ) : (
+          <div className="glass-field w-12 h-12 sm:w-16 sm:h-16 rounded-lg flex items-center justify-center">
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
+          </div>
+        )}
+      </Link>
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-0.5 sm:mb-1">
           <h3 className="text-sm font-medium text-foreground truncate">{result.title}</h3>
@@ -45,7 +69,7 @@ function SearchResultCard({ result }: { result: SearchResult }) {
           </p>
         )}
       </div>
-    </Link>
+    </article>
   );
 }
 

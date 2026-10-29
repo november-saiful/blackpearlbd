@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, CalendarDays } from '@/components/ui/icons';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,6 +38,7 @@ function RelatedPackageSkeletonRow() {
  */
 export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
   const localizedDeals = useLocalizedDeals(deals);
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -71,12 +72,29 @@ export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
 
             return (
               <li key={deal.id}>
-                <Link
-                  to={`/deals/${deal.slug}`}
-                  className="glass-field glass-hover group flex items-center gap-3 rounded-lg p-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                <div
+                  onClickCapture={(event) => {
+                    // Same rule as the deal card: the row is not an anchor, so
+                    // forward the click, but never treat a drag that selected
+                    // text as one.
+                    const selection = window.getSelection();
+                    if (selection && !selection.isCollapsed && selection.toString()) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      return;
+                    }
+                    if ((event.target as HTMLElement).closest('a, button')) return;
+                    navigate(`/deals/${deal.slug}`);
+                  }}
+                  className="glass-field glass-hover group flex cursor-pointer items-center gap-3 rounded-lg p-2.5 transition-colors"
                 >
-                  {/* Thumbnail */}
-                  <div className="glass-soft relative h-14 w-14 shrink-0 overflow-hidden rounded-md">
+                  {/* Thumbnail. Only the photo is a link, so the row's copy
+                      stays outside an anchor and can be selected. */}
+                  <Link
+                    to={`/deals/${deal.slug}`}
+                    aria-label={deal.title}
+                    className="glass-soft relative h-14 w-14 shrink-0 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
                     {image ? (
                       <img
                         src={image}
@@ -90,7 +108,7 @@ export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
                         <MapPin className="h-4 w-4 text-primary/40" />
                       </div>
                     )}
-                  </div>
+                  </Link>
 
                   {/* Info */}
                   <div className="min-w-0 flex-1">
@@ -111,7 +129,7 @@ export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
                       {formatCurrency(deal.price)}
                     </span>
                   </div>
-                </Link>
+                </div>
               </li>
             );
           })}

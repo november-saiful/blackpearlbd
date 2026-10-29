@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   CalendarDays,
@@ -37,6 +37,7 @@ interface DealCardProps {
  */
 export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
   const deal = useLocalizedDeal(rawDeal) ?? rawDeal;
+  const navigate = useNavigate();
   const image = deal.image_url || deal.gallery?.[0] || '';
   const category = getDealCategory(deal);
   const location = formatDealLocation(deal.destination, deal.sub_destination);
@@ -113,66 +114,90 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
   // need are 200 KB of high priority text bytes downloading beside it.
   const leadPriority = leadPhoto.current ? { fetchpriority: 'high' } : undefined;
 
+  /**
+   * The card body is not an anchor any more (see the render below), so the
+   * click has to be forwarded. This runs in the capture phase because a drag
+   * that selected text can end over the photo or the CTA, and that click must
+   * not follow either link.
+   */
+  const openDeal = (event: MouseEvent<HTMLElement>) => {
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed && selection.toString()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    if ((event.target as HTMLElement).closest('a, button')) return;
+    navigate(`/deals/${deal.slug}`);
+  };
+
   return (
-    <Link
-      to={`/deals/${deal.slug}`}
-      aria-label={`${deal.title}: ${category.label} in ${location}`}
+    <article
+      onClickCapture={openDeal}
       className={cn(
         'glass glass-hover paint-contained group relative flex h-full flex-col overflow-hidden rounded-2xl text-card-foreground',
-        'hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+        'hover:-translate-y-1',
         className,
       )}
     >
-      {/* Thumbnail */}
+      {/* Thumbnail. Only the photo is a link: the card's copy has to sit
+          outside an anchor, because Chrome starts a link drag instead of
+          selecting text when the press lands inside one. */}
       <div ref={frameRef} className="glass-soft relative aspect-[16/10] w-full overflow-hidden">
-        {!image ? (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-muted to-secondary/20">
-            <MapPin className="h-9 w-9 text-primary/40" />
-          </div>
-        ) : (
-          <>
-            {/* A photo slot, not a blank box: the soft gradient and the photo
-                glyph hold the frame while the image waits for the connection,
-                and fade out under the photo once it lands. */}
-            <div
-              aria-hidden="true"
-              className={cn(
-                'deal-photo-slot absolute inset-0 flex items-center justify-center transition-opacity duration-300',
-                photoReady ? 'opacity-0' : 'opacity-100',
-                !photoReady && !photoFailed && 'animate-pulse',
-              )}
-            >
-              {photoFailed ? (
-                <MapPin className="h-9 w-9 text-primary/40" />
-              ) : (
-                <ImageIcon className="h-8 w-8 text-foreground/15" />
-              )}
+        <Link
+          to={`/deals/${deal.slug}`}
+          aria-label={`${deal.title}: ${category.label} in ${location}`}
+          className="block h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          {!image ? (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-muted to-secondary/20">
+              <MapPin className="h-9 w-9 text-primary/40" />
             </div>
-
-            {mayDownload && (
-              <img
-                ref={checkLead}
-                {...leadPriority}
-                src={image}
-                alt={deal.title}
-                loading="lazy"
-                decoding="async"
-                onLoad={() => {
-                  setPhotoReady(true);
-                  settle();
-                }}
-                onError={() => {
-                  setPhotoFailed(true);
-                  settle();
-                }}
+          ) : (
+            <>
+              {/* A photo slot, not a blank box: the soft gradient and the photo
+                  glyph hold the frame while the image waits for the connection,
+                  and fade out under the photo once it lands. */}
+              <div
+                aria-hidden="true"
                 className={cn(
-                  'relative h-full w-full object-cover transition-[opacity,transform] duration-500 ease-out group-hover:scale-[1.06]',
-                  photoReady ? 'opacity-100' : 'opacity-0',
+                  'deal-photo-slot absolute inset-0 flex items-center justify-center transition-opacity duration-300',
+                  photoReady ? 'opacity-0' : 'opacity-100',
+                  !photoReady && !photoFailed && 'animate-pulse',
                 )}
-              />
-            )}
-          </>
-        )}
+              >
+                {photoFailed ? (
+                  <MapPin className="h-9 w-9 text-primary/40" />
+                ) : (
+                  <ImageIcon className="h-8 w-8 text-foreground/15" />
+                )}
+              </div>
+
+              {mayDownload && (
+                <img
+                  ref={checkLead}
+                  {...leadPriority}
+                  src={image}
+                  alt={deal.title}
+                  loading="lazy"
+                  decoding="async"
+                  onLoad={() => {
+                    setPhotoReady(true);
+                    settle();
+                  }}
+                  onError={() => {
+                    setPhotoFailed(true);
+                    settle();
+                  }}
+                  className={cn(
+                    'relative h-full w-full object-cover transition-[opacity,transform] duration-500 ease-out group-hover:scale-[1.06]',
+                    photoReady ? 'opacity-100' : 'opacity-0',
+                  )}
+                />
+              )}
+            </>
+          )}
+        </Link>
 
         {/* Keeps the chips readable over any photo */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
@@ -255,12 +280,15 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
             <span className="text-[11px] text-muted-foreground">per person</span>
           </div>
 
-          <span className="glass-primary inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors">
+          <Link
+            to={`/deals/${deal.slug}`}
+            className="glass-primary inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
             View details
             <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-          </span>
+          </Link>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }
