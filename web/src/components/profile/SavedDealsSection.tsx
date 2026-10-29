@@ -7,6 +7,7 @@ import { BookingModal } from '@/components/bookings/BookingModal';
 import { SavedDealsSkeleton } from '@/components/skeletons/ProfileSectionSkeletons';
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { formatCurrency } from '@/lib/utils';
+import { formatDuration } from '@/lib/duration';
 import { useLocalizedDeals } from '@/lib/deal-locale';
 import { formatDealLocation } from '@/components/deals/deals-destination';
 import type { TourDeal } from '@/types';
@@ -75,7 +76,7 @@ export function SavedDealsSection() {
                       </p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                         <Clock className="w-4 h-4" />
-                        {deal.duration_days} {deal.duration_days === 1 ? 'Day' : 'Days'}
+                        {formatDuration(deal.duration_days)}
                       </div>
                     </div>
 

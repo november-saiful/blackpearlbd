@@ -4,6 +4,7 @@ import { formatDealLocation } from '@/components/deals/deals-destination'
 import { useLocalizedDeals } from '@/lib/deal-locale'
 import { useContentLocale, type ContentLocale } from '@/lib/locale'
 import { formatCurrency } from '@/lib/utils'
+import { formatDuration, tourNights } from '@/lib/duration'
 import type { TourDeal } from '@/types'
 
 const MAX_SLIDES = 6
@@ -28,10 +29,11 @@ function buildDealSlides(deals: TourDeal[], locale: ContentLocale): Slide[] {
       const location =
         formatDealLocation(deal.destination, deal.sub_destination) ||
         (locale === 'bn' ? 'বাংলাদেশ' : 'Bangladesh')
+      const nights = tourNights(deal.duration_days)
       const duration =
         locale === 'bn'
-          ? `${deal.duration_days} দিন`
-          : `${deal.duration_days} ${deal.duration_days === 1 ? 'day' : 'days'}`
+          ? `${deal.duration_days} দিন${nights > 0 ? ` / ${nights} রাত` : ''}`
+          : formatDuration(deal.duration_days).toLowerCase()
       const price = deal.price > 0 ? formatCurrency(deal.price) : null
 
       return {

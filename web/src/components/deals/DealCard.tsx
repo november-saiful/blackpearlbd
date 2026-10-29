@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from '@/components/ui/icons';
 import { cn, formatCurrency } from '@/lib/utils';
+import { formatDuration } from '@/lib/duration';
 import { getDealCategory } from '@/lib/deal-category';
 import { useLocalizedDeal } from '@/lib/deal-locale';
 import {
@@ -223,7 +224,7 @@ export function DealCard({ deal: rawDeal, action, className }: DealCardProps) {
           </span>
           <span className="glass-chip inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
             <CalendarDays className="h-3 w-3" />
-            {deal.duration_days} {deal.duration_days === 1 ? 'Day' : 'Days'}
+            {formatDuration(deal.duration_days)}
           </span>
           {stops > 0 && (
             <span className="glass-chip inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">

@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["functions", "src/lib/seo.ts", "src/lib/text.ts"]
+  "include": ["functions", "src/lib/seo.ts", "src/lib/text.ts", "src/lib/duration.ts", "src/lib/itinerary-text.ts"]
 }

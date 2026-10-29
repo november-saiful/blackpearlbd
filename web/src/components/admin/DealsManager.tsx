@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, EyeOff, RefreshCw, LocateFixed, FolderOpen, CheckCircle, AlertCircle } from '@/components/ui/icons';
+import { Plus, Edit, Trash2, Package, Loader2, Search, MapPin, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, X, GripVertical, Upload, Calendar, Eye, EyeOff, RefreshCw, LocateFixed, FolderOpen, CheckCircle, AlertCircle, List } from '@/components/ui/icons';
 import { formatCurrency } from '@/lib/utils';
+import { formatDuration } from '@/lib/duration';
 import { DEAL_CATEGORIES, getDealCategory } from '@/lib/deal-category';
 
 import { useDeals } from '@/hooks/useDeals';
@@ -147,6 +148,12 @@ export function DealsManager() {
   const [isPurgingGeoCache, setIsPurgingGeoCache] = useState(false);
   const [snappingWaypointIndex, setSnappingWaypointIndex] = useState<number | null>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  /**
+   * Phase description boxes, keyed by phase index. The controlled value only
+   * lands after a re-render, so these are how a bullet insert puts the caret
+   * back where the admin is typing instead of jumping to the end.
+   */
+  const phaseDescriptionRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
   // Slug system. The slug is typed and checked for uniqueness, it is not a
   // picker: choosing an existing folder here would mean two deals sharing one
   // folder, which is exactly what the per-deal folder exists to prevent.
@@ -1007,6 +1014,90 @@ export function DealsManager() {
     }));
   };
 
+  /** The description field the copy toggle is currently editing. */
+  const phaseDescriptionField = (): 'description' | 'description_bn' =>
+    isBengaliCopy ? 'description_bn' : 'description';
+
+  const phaseDescription = (index: number) =>
+    String(formData.itinerary[index]?.[phaseDescriptionField()] ?? '');
+
+  /** Waits for the controlled value to reach the DOM, then puts the caret back. */
+  const restorePhaseCaret = (index: number, caret: number) => {
+    window.setTimeout(() => {
+      const node = phaseDescriptionRefs.current[index];
+      if (!node) return;
+      node.focus();
+      node.setSelectionRange(caret, caret);
+    }, 0);
+  };
+
+  /**
+   * A bullet is a `- ` line in the description, which the deal page turns into
+   * a list item. The caret's own line becomes the bullet, and a line that is
+   * already one gets a fresh bullet below it, so clicking again keeps adding
+   * bullets instead of stacking markers.
+   */
+  const addItineraryBullet = (index: number) => {
+    const textarea = phaseDescriptionRefs.current[index];
+    if (!textarea) return;
+
+    const value = phaseDescription(index);
+    const caret = textarea.selectionStart ?? value.length;
+    const lineStart = value.lastIndexOf('\n', Math.max(caret - 1, 0)) + 1;
+    const lineBreak = value.indexOf('\n', caret);
+    const lineEnd = lineBreak === -1 ? value.length : lineBreak;
+    const alreadyBullet = /^\s*[-*•]\s+/.test(value.slice(lineStart, lineEnd));
+
+    const insertAt = alreadyBullet ? lineEnd : lineStart;
+    const marker = alreadyBullet ? '\n- ' : '- ';
+    // Converting a line keeps the caret where it was, shifted by the marker.
+    const nextCaret = alreadyBullet ? insertAt + marker.length : caret + marker.length;
+
+    updateItineraryPhase(
+      index,
+      phaseDescriptionField(),
+      `${value.slice(0, insertAt)}${marker}${value.slice(insertAt)}`,
+    );
+    restorePhaseCaret(index, nextCaret);
+  };
+
+  /** Enter on a bullet line opens the next one; on an empty bullet it ends the list. */
+  const handlePhaseDescriptionKeyDown = (
+    index: number,
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
+
+    const value = phaseDescription(index);
+    const caret = event.currentTarget.selectionStart;
+    if (caret !== event.currentTarget.selectionEnd) return;
+
+    const lineStart = value.lastIndexOf('\n', Math.max(caret - 1, 0)) + 1;
+    const line = value.slice(lineStart, caret);
+    const marker = /^\s*[-*•]\s+/.exec(line)?.[0];
+    if (!marker) return;
+
+    event.preventDefault();
+
+    if (line.trim() === marker.trim()) {
+      // The admin emptied the bullet: leave the list instead of adding another.
+      updateItineraryPhase(
+        index,
+        phaseDescriptionField(),
+        value.slice(0, lineStart) + value.slice(caret),
+      );
+      restorePhaseCaret(index, lineStart);
+      return;
+    }
+
+    updateItineraryPhase(
+      index,
+      phaseDescriptionField(),
+      `${value.slice(0, caret)}\n${marker}${value.slice(caret)}`,
+    );
+    restorePhaseCaret(index, caret + marker.length + 1);
+  };
+
   const moveItineraryPhase = (index: number, direction: -1 | 1) => {
     const nextIndex = index + direction;
     if (nextIndex < 0 || nextIndex >= formData.itinerary.length) return;
@@ -1082,7 +1173,7 @@ export function DealsManager() {
                   <td className="py-3 px-3 text-sm text-muted-foreground font-mono hidden lg:table-cell">{deal.deal_code || 'Not set'}</td>
                   <td className="py-3 px-3 text-sm text-muted-foreground hidden sm:table-cell">{formatDealLocation(deal.destination, deal.sub_destination)}</td>
                   <td className="py-3 px-3 text-sm font-medium text-foreground">{formatCurrency(deal.price)}</td>
-                  <td className="py-3 px-3 text-sm text-muted-foreground hidden md:table-cell">{deal.duration_days} days</td>
+                  <td className="py-3 px-3 text-sm text-muted-foreground hidden md:table-cell">{formatDuration(deal.duration_days) || 'Not set'}</td>
                   <td className="py-3 px-3"><div className="flex gap-1 justify-end"><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(deal)}><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(deal.id)}><Trash2 className="w-4 h-4" /></Button></div></td>
                 </tr>
               ))}</tbody>
@@ -1331,7 +1422,15 @@ export function DealsManager() {
               </div>
               <div><Label>Price *</Label><Input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} /></div>
               <div><Label>Original Price</Label><Input type="number" value={formData.original_price} onChange={(e) => setFormData({ ...formData, original_price: Number(e.target.value) })} /></div>
-              <div><Label>Duration (Days) *</Label><Input type="number" value={formData.duration_days} onChange={(e) => setFormData({ ...formData, duration_days: Number(e.target.value) })} /></div>
+              <div>
+                <Label>Duration (Days) *</Label>
+                <Input type="number" min={1} value={formData.duration_days} onChange={(e) => setFormData({ ...formData, duration_days: Number(e.target.value) })} />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  {formatDuration(formData.duration_days)
+                    ? `Shown as ${formatDuration(formData.duration_days)}. Nights are the days minus one.`
+                    : 'Nights are counted as the days minus one.'}
+                </p>
+              </div>
               <div><Label>Max Travelers</Label><Input type="number" value={formData.max_travelers} onChange={(e) => setFormData({ ...formData, max_travelers: Number(e.target.value) })} /></div>
               {/* Centralized Gallery Upload */}
               <div className="col-span-1 sm:col-span-2">
@@ -1774,6 +1873,9 @@ export function DealsManager() {
                         placeholder={`${isBengaliCopy ? 'বাংলা' : 'English'} phase title (e.g. Arrival in Dhaka)`}
                       />
                       <Textarea
+                        ref={(node) => {
+                          phaseDescriptionRefs.current[index] = node;
+                        }}
                         value={isBengaliCopy ? (phase.description_bn || '') : phase.description}
                         lang={copyLocale}
                         className={isBengaliCopy ? 'font-bengali' : undefined}
@@ -1782,9 +1884,25 @@ export function DealsManager() {
                           isBengaliCopy ? 'description_bn' : 'description',
                           e.target.value,
                         )}
+                        onKeyDown={(e) => handlePhaseDescriptionKeyDown(index, e)}
                         placeholder={`What happens in this phase (${isBengaliCopy ? 'বাংলা' : 'English'})...`}
-                        rows={2}
+                        rows={3}
                       />
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <p className="text-[11px] text-muted-foreground">
+                          Lines starting with “- ” show as bullets on the deal page. Enter continues the list.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 shrink-0 px-2 text-[11px]"
+                          onClick={() => addItineraryBullet(index)}
+                        >
+                          <List className="mr-1 h-3.5 w-3.5" />
+                          Add bullet
+                        </Button>
+                      </div>
                       {/* Photo selector for this phase */}
                       {formData.gallery.length > 0 && (
                         <div className="mt-3">

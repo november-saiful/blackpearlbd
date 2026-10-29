@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, MapPin, Calendar } from '@/components/ui/icons';
 import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
+import { formatDuration } from '@/lib/duration';
 import { humanizeDashes } from '@/lib/text';
 import { useLocalizedDeal } from '@/lib/deal-locale';
 import { useInvoice } from '@/hooks/useBookings';
@@ -20,7 +21,7 @@ function TourCard({ booking }: { booking: Booking }) {
   const destination = humanizeDashes(deal?.destination || 'Custom Package');
   const title = humanizeDashes(deal?.title || booking.custom_package?.title || 'Trip');
   const date = deal
-    ? `${deal.duration_days} days`
+    ? formatDuration(deal.duration_days)
     : booking.custom_package?.travel_date || 'N/A';
 
   return (

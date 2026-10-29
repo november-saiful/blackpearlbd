@@ -3,6 +3,7 @@ import { Heart, Share2, Calendar, Users, MapPin, Hash, Route, Crosshair, Star } 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
+import { formatDuration } from '@/lib/duration';
 
 import { useBookmarkStore } from '@/stores/bookmarkStore';
 import { useRelatedDeals } from '@/hooks/useRelatedDeals';
@@ -106,7 +107,7 @@ export function DealDetail({ deal: rawDeal }: DealDetailProps) {
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center">
               <Calendar className="w-4 h-4 mr-1" />
-              {deal.duration_days} {deal.duration_days === 1 ? 'Day' : 'Days'}
+              {formatDuration(deal.duration_days)}
             </span>
             {deal.max_travelers && (
               <span className="flex items-center">

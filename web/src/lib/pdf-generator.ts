@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { Canvg } from 'canvg';
 import { humanizeDashes } from './text';
+import { formatDuration } from './duration';
 import type { Booking } from '../types';
 
 // Monochrome palette only.
@@ -171,7 +172,7 @@ export async function generateInvoicePDF(booking: Booking): Promise<void> {
     ['Deal ID', deal.id],
     ['Destination', humanizeDashes(deal.destination || '') || 'Not set'],
     ['Category', humanizeDashes(deal.category || '') || 'Not set'],
-    ['Duration', `${deal.duration_days} day${deal.duration_days === 1 ? '' : 's'}`],
+    ['Duration', formatDuration(deal.duration_days) || 'Not set'],
     ['Price', formatBDT(price)],
   ];
 

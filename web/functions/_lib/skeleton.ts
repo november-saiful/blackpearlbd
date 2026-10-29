@@ -12,6 +12,8 @@
  */
 import { escapeHtml, PAGE_META, type DealLike } from '../../src/lib/seo';
 import { humanizeDashes } from '../../src/lib/text';
+import { tourNights } from '../../src/lib/duration';
+import { parseItineraryDescription } from '../../src/lib/itinerary-text';
 
 const WRAP_STYLE = 'max-width:72rem;margin:0 auto;padding:6.5rem 1.25rem 3rem;line-height:1.65';
 const LIST_STYLE = 'display:grid;gap:0.75rem;padding:0;list-style:none';
@@ -44,7 +46,10 @@ function location(deal: DealLike): string {
 
 function duration(deal: DealLike): string {
   if (typeof deal.duration_days !== 'number' || deal.duration_days <= 0) return '';
-  return `${deal.duration_days} ${deal.duration_days === 1 ? 'day' : 'days'}`;
+  const days = deal.duration_days;
+  const nights = tourNights(days);
+  const dayPart = `${days} ${days === 1 ? 'day' : 'days'}`;
+  return nights > 0 ? `${dayPart} / ${nights} ${nights === 1 ? 'night' : 'nights'}` : dayPart;
 }
 
 function blurb(deal: DealLike): string {
@@ -142,13 +147,15 @@ export function dealSkeleton(deal: DealLike): string {
   const phases = itinerary
     .map((phase, index) => {
       const heading = phase.title?.trim() || `Phase ${phase.phase ?? index + 1}`;
-      const body = phase.description?.trim();
-      return [
-        '<li>',
-        `<h3>${text(heading)}</h3>`,
-        body ? `<p>${text(body)}</p>` : '',
-        '</li>',
-      ].join('');
+      // `- ` lines are bullets on the page, so they are a list here too.
+      const body = parseItineraryDescription(phase.description)
+        .map((block) =>
+          block.kind === 'bullets'
+            ? `<ul>${block.items.map((item) => `<li>${text(item)}</li>`).join('')}</ul>`
+            : `<p>${text(block.lines.join(' '))}</p>`,
+        )
+        .join('');
+      return ['<li>', `<h3>${text(heading)}</h3>`, body, '</li>'].join('');
     })
     .join('');
 

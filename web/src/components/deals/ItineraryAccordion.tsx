@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion, MotionConfig, type Transition } from 'motion/react';
 import { ChevronDown } from '@/components/ui/icons';
 import useMeasure from 'react-use-measure';
 import { cn } from '@/lib/utils';
+import { parseItineraryDescription } from '@/lib/itinerary-text';
 import type { ItineraryPhase } from '@/types';
 
 const springTransition: Transition = {
@@ -41,6 +42,9 @@ function PhaseItem({ phase, index, total, openIndex, onToggle, onOpenPhoto }: Ph
     if (isOpen) setHasOpened(true);
   }, [isOpen]);
   const showPhotos = hasOpened || isOpen;
+
+  // `- ` lines in the stored description are the admin's bullets.
+  const blocks = useMemo(() => parseItineraryDescription(phase.description), [phase.description]);
 
   const isFirst = index === 0;
   const isLast = index === total - 1;
@@ -123,9 +127,27 @@ function PhaseItem({ phase, index, total, openIndex, onToggle, onOpenPhoto }: Ph
           >
             <div ref={ref}>
               <div className="px-4 pb-4 md:px-5 md:pb-5">
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                  {phase.description}
-                </p>
+                <div className="space-y-2">
+                  {blocks.map((block, blockIndex) =>
+                    block.kind === 'bullets' ? (
+                      <ul
+                        key={blockIndex}
+                        className="list-disc space-y-1 pl-5 text-sm leading-relaxed text-muted-foreground marker:text-primary/70"
+                      >
+                        {block.items.map((item, itemIndex) => (
+                          <li key={itemIndex}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p
+                        key={blockIndex}
+                        className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground"
+                      >
+                        {block.lines.join('\n')}
+                      </p>
+                    ),
+                  )}
+                </div>
                 {showPhotos && phase.photos && phase.photos.length > 0 && (
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     {phase.photos.slice(0, 4).map((img, imgIdx) => (

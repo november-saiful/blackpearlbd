@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getDealCategory } from '@/lib/deal-category';
 import { useLocalizedDeals } from '@/lib/deal-locale';
 import { formatCurrency } from '@/lib/utils';
+import { formatDurationShort } from '@/lib/duration';
 import type { TourDeal } from '@/types';
 
 interface RelatedPackagesProps {
@@ -103,7 +104,7 @@ export function RelatedPackages({ deals, isLoading }: RelatedPackagesProps) {
                       </span>
                       <span className="flex items-center gap-1">
                         <CalendarDays className="h-3 w-3" />
-                        {deal.duration_days}D
+                        {formatDurationShort(deal.duration_days)}
                       </span>
                     </div>
                     <span className="mt-1 block text-sm font-bold text-primary">
