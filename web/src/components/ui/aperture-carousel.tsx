@@ -222,7 +222,7 @@ const AP_CSS = [
   ".ap-shade{position:absolute;inset:auto 0 0 0;height:45%;background:linear-gradient(to top,rgba(0,0,0,.55),rgba(0,0,0,0));pointer-events:none}",
   ".ap-top{position:absolute;inset:0 0 auto 0;height:clamp(120px,20vh,200px);background:linear-gradient(180deg,rgba(4,5,9,.72),rgba(4,5,9,.26) 46%,rgba(4,5,9,0));pointer-events:none}",
   "html.light .ap-top{background:linear-gradient(180deg,hsl(var(--background) / .9),hsl(var(--background) / .32) 46%,hsl(var(--background) / 0))}",
-  ".ap-text{position:absolute;left:clamp(20px,4vw,56px);bottom:calc(clamp(40px,7vh,72px) + var(--ap-bottom));right:clamp(20px,4vw,56px);pointer-events:none}",
+  ".ap-text{position:absolute;left:clamp(20px,4vw,56px);bottom:calc(clamp(40px,7vh,72px) + var(--ap-bottom));right:clamp(20px,4vw,56px);pointer-events:auto;user-select:text;-webkit-user-select:text;cursor:auto}",
   ".ap-line{display:block;overflow:hidden}",
   ".ap-line>span{display:block;animation:ap-rise .9s cubic-bezier(.2,.8,.2,1) both}",
   ".ap-title{font:500 clamp(34px,6vw,84px)/1 ui-serif,Georgia,'Times New Roman',serif;letter-spacing:-.02em}",
@@ -406,7 +406,8 @@ export default function ApertureCarousel({
   }
   const onMove = (e: React.PointerEvent) => {
     if (e.pointerType !== "mouse" || !showLens) return
-    if ((e.target as HTMLElement).closest("[data-ap-cta]")) {
+    // The copy is selectable, so the lens would sit on top of a text cursor.
+    if ((e.target as HTMLElement).closest("[data-ap-cta], .ap-text")) {
       if (lensOn) setLensOn(false)
       return
     }
@@ -424,6 +425,10 @@ export default function ApertureCarousel({
     const start = down.current
     down.current = null
     if (!start) return
+    // A drag that selected the slide's copy belongs to the reader, not to the
+    // carousel: advancing would throw the selection away mid-sentence.
+    const selection = window.getSelection()
+    if (selection && !selection.isCollapsed && selection.toString()) return
     const p = local(e)
     const dx = e.clientX - start.x
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(e.clientY - start.y)) go(dx < 0 ? 1 : -1, p.x, p.y)
